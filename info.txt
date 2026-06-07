@@ -1,0 +1,14 @@
+APPELEY AP-L124 
+
+CD/DVD/USB/SD/AV-IN/WI-FI [+ EVP MyLift Connection]/BLUETOOTH Multimedia Receiver
+
+- * Для работы с Bowser Elevators MyLift EVP (Elevator Video Player) необходимо * -
+
+    1. Добавить на дисплей нужные элементы:
+
+        1.1. В верхнем левом углу
+
+
+
+// Light Display Segment: #72bdff
+// Dark Display Segment: #22384b
