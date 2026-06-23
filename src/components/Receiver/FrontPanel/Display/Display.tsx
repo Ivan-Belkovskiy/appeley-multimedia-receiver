@@ -15,6 +15,7 @@ export type DisplayMainIndication = {
 } | (string | string[]);
 
 export default function Display({
+    powerOn,
     mainData,
     topLeftData,
     otherIndication,
@@ -23,6 +24,7 @@ export default function Display({
     indicationColor2 = "#0a1927",
 
 }: {
+    powerOn?: boolean;
     mainData: DisplayMainIndication[],
     topLeftData?: DisplayMainIndication[],
     otherIndication?: DisplayOtherIndication,
@@ -206,7 +208,7 @@ export default function Display({
         // </g>
 
 
-        <g>
+        <g className="display" style={{ filter: (powerOn === true) ? 'brightness(1)' : 'brightness(0)', transition: 'all 0.15s ease 0s' }}>
             {/* // <!-- DISPLAY (Main Window) --> */}
             <path d="M339.34911,339.10312v-91.24327h423.7256v91.24327z" fill="#000000" stroke="none" strokeWidth="0" strokeLinecap="butt" />
             {/* // <!-- Display (Top-Left Decoration Line) --> */}
