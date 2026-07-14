@@ -6,6 +6,7 @@ class Beeper {
 
     private singleBeepAudio: HTMLAudioElement | null = null;
     private tripleBeepAudio: HTMLAudioElement | null = null;
+    private scrollBeepAudio: HTMLAudioElement | null = null;
 
     constructor() {
 
@@ -21,12 +22,22 @@ class Beeper {
         return true;
     }
 
-     tripleBeep() {
+    tripleBeep() {
         if (!this.tripleBeepAudio) this.tripleBeepAudio = new Audio('/audio/beep/beep_new_03.mp3');
 
         this.tripleBeepAudio.volume = 0.05;
         this.tripleBeepAudio.currentTime = 0;
         this.tripleBeepAudio.play();
+
+        return true;
+    }
+
+    scrollBeep() {
+        if (!this.scrollBeepAudio) this.scrollBeepAudio = new Audio('/audio/beep/beep_new_scroll.mp3');
+
+        this.scrollBeepAudio.volume = 0.05;
+        this.scrollBeepAudio.currentTime = 0;
+        this.scrollBeepAudio.play();
 
         return true;
     }

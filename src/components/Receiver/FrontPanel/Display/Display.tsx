@@ -7,6 +7,21 @@ export interface DisplayOtherIndication {
     topLeftDecorationLine?: boolean;
     Tr?: boolean;
     Elevator?: boolean;
+
+    topRightData?: {
+        decorationLine?: boolean;
+        AUDIO?: boolean;
+        VIDEO?: boolean;
+        ELEVATOR?: boolean;
+        TAG?: boolean;
+        trackTagIcon?: boolean;
+        folderTagIcon?: boolean;
+        leftData?: DisplayMainIndication[];
+        separator?: boolean;
+        rightData?: DisplayMainIndication[];
+    };
+
+
 }
 
 export type DisplayMainIndication = {
@@ -378,6 +393,54 @@ export default function Display({
                     <path d="M359.72656,260.30032v8.58556h-1.09326v-8.58556z" stroke={staticColor(otherIndication?.Elevator)} strokeWidth="0" />
                 </g>
             </g>
+
+            {/* <!-- Top-Right Decoration Line --> */}
+            <path d="M760.92337,287.58442h-80.74546v-38.33333" fill="none" stroke={staticColor(otherIndication?.topRightData?.decorationLine)} strokeWidth="2" strokeLinecap="round" />
+
+            {Array(8).fill(0).map((_, idx) => (
+                <MainIndicator
+                    offsetX={(572 + ((8.7 * idx) + (idx > 3 ? 10 : 0)))}
+                    offsetY={177}
+                    scale={0.32}
+                    data={(idx <= 3) ? (
+                        otherIndication?.topRightData?.leftData?.[idx] || ""
+                    ) : (
+                        otherIndication?.topRightData?.rightData?.[idx - 4] || ""
+                    )}
+                    color1={indicationColor1}
+                    color2={indicationColor2}
+                />
+            ))}
+
+            {/* <!-- Top-Right Indication Separator "/" --> */}
+            <path d="M724.67176,270.11438l-5.69271,13.7185" fill="none" stroke={staticColor(otherIndication?.topRightData?.separator)} strokeWidth="0.5" strokeLinecap="round" />
+
+            {/* <!-- Folder Icon (For ID3-Tags or File & Folder Names) --> */}
+            <path transform="translate(-13 0)" d="M742.38512,264.86809v-5.24755h2.43327l0.90058,1.19736l4.40627,-0.026v4.0762z" fill={staticColor(otherIndication?.topRightData?.folderTagIcon)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
+
+
+            {/* <!-- Track Icon (For ID3-Tags or File & Folder Names --> */}
+            <g transform="translate(-13 0)">
+                <path d="M732.97294,263.87743l1.12512,-4.55158h4.34701l-0.81826,4.44877" fill="none" stroke={staticColor(otherIndication?.topRightData?.trackTagIcon)} strokeWidth="1" strokeLinecap="round" />
+                <path d="M730.45874,263.49527c0,-0.83244 0.67483,-1.50727 1.50727,-1.50727c0.83244,0 1.50727,0.67483 1.50727,1.50727c0,0.83244 -0.67483,1.50727 -1.50727,1.50727c-0.83244,0 -1.50727,-0.67483 -1.50727,-1.50727z" fill={staticColor(otherIndication?.topRightData?.trackTagIcon)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
+                <path d="M735.12473,263.49527c0,-0.83244 0.67483,-1.50727 1.50727,-1.50727c0.83244,0 1.50727,0.67483 1.50727,1.50727c0,0.83244 -0.67483,1.50727 -1.50727,1.50727c-0.83244,0 -1.50727,-0.67483 -1.50727,-1.50727z" fill={staticColor(otherIndication?.topRightData?.trackTagIcon)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
+            </g>
+
+
+            <text transform="translate(705.61815,263.77012) scale(0.11371,0.11371)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.topRightData?.TAG)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                <tspan x="0" dy="0">TAG</tspan>
+            </text>
+
+
+            <text transform="translate(696.69084,254.97283) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.topRightData?.AUDIO)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                <tspan x="0" dy="0">AUDIO</tspan>
+            </text>
+            <text transform="translate(712.74076,254.97283) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.topRightData?.VIDEO)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                <tspan x="0" dy="0">VIDEO</tspan>
+            </text>
+            <text transform="translate(727.99629,254.97283) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.topRightData?.ELEVATOR)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                <tspan x="0" dy="0">ELEVATOR</tspan>
+            </text>
             {/* <MainIndicator data={data?.[0]} />
             <MainIndicator offset={((26) * 1)} data={data?.[1]} /> */}
         </g>

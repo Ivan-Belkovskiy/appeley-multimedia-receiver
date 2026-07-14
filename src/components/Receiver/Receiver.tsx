@@ -40,7 +40,7 @@ export default function AppeleyReceiver() {
             controllerOutputsRef.current.currentSource = res.data.outputs.currentSource;
             controllerOutputsRef.current.mainVolume = res.data.outputs.mainVolume;
             controllerOutputsRef.current.display = res.data.outputs.display;
-            
+
             if (res.data.outputs.sourceData[1]) {
                 controllerOutputsRef.current.sourceData[1] = {
                     dataToLoad: {
@@ -54,9 +54,13 @@ export default function AppeleyReceiver() {
             //     controllerInputsRef.current.sourceData[1].allowReading = true;
             // }
 
-            if (res.data.outputs.sourceData[5]) {
-                controllerOutputsRef.current.sourceData[5] = res.data.outputs.sourceData[5];
+            if (res.data.outputs.sourceData[5].connectionInfo) {
+                controllerOutputsRef.current.sourceData[5].connectionInfo = res.data.outputs.sourceData[5].connectionInfo;
             }
+
+            // if (res.data.outputs.sourceData[5]) {
+            //     controllerOutputsRef.current.sourceData[5] = res.data.outputs.sourceData[5];
+            // }
         }
         // console.log(res.data);
     }
@@ -69,7 +73,7 @@ export default function AppeleyReceiver() {
     useEffect(() => {
 
         if (typeof window !== 'undefined') window.addEventListener('beforeunload', beforeUnloadHandler);
-        
+
         loadSavedData();
 
         return () => window.removeEventListener('beforeunload', beforeUnloadHandler);

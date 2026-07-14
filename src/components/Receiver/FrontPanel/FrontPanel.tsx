@@ -7,6 +7,8 @@ import { MainControllerInputs, MainControllerOutputs, MainControllerSource, Main
 import { centerMainText } from "@/utils/display";
 import { formatTime, timeFromDate } from "@/utils/time";
 import beeper from "@/utils/beeper";
+import Encoder from "./Encoder/Encoder";
+import { parseMyLiftSelectorString } from "@/utils/string";
 
 interface DisplayData {
     main: DisplayMainIndication[];
@@ -932,6 +934,13 @@ export default function FrontPanel({
             }
 
 
+            if (demoPosition === 0 && demoTimer < 1) {
+                updateDisplayData({
+                    main: [],
+                    topLeft: [],
+                    otherIndication: {},
+                })
+            }
 
             if (nextDemoTimer > 0) {
                 nextDemoTimer--;
@@ -1248,7 +1257,20 @@ export default function FrontPanel({
                                             main: [],
                                             topLeft: (sourceData.menu.subCategory === 'file' ? 'FILE' : 'LIST').split(''),
                                             otherIndication: {
-                                                topLeftDecorationLine: true
+                                                topLeftDecorationLine: true,
+                                                topRightData: {
+                                                    decorationLine: true,
+                                                    leftData: ((sourceData.menu.subCategory && typeof sourceData.menu.subIndex === 'number') ? String(sourceData.menu.subIndex + 1).padStart(4, "0") : String(sourceData.menu.mainIndex + 1).padStart(4, "0")).split(''),
+                                                    separator: true,
+                                                    rightData: ((sourceData.menu.subCategory && sourceData.navigationData?.[
+                                                        sourceData.menu.mainIndex
+                                                    ].trackList) ? String(sourceData.navigationData?.[
+                                                        sourceData.menu.mainIndex
+                                                    ].trackList.length).padStart(4, "0") : String(sourceData.navigationData?.length || 0).padStart(4, "0")).split(''),
+
+                                                    folderTagIcon: (sourceData.menu.subCategory) ? false : true,
+                                                    trackTagIcon: (sourceData.menu.subCategory) ? true : false,
+                                                }
                                             },
                                         });
 
@@ -1296,7 +1318,7 @@ export default function FrontPanel({
                                     // let other: DisplayOtherIndication = {};
                                     if (displayMode.volume === true) {
                                         updateDisplayData({
-                                            ...displayDataRef.current,
+                                            main: [],
                                             topLeft: [],
                                             otherIndication: {}
                                         })
@@ -1336,7 +1358,7 @@ export default function FrontPanel({
                                     } else if (displayMode.folder === null && folderName) {
 
                                         animateScrollingText(animTimer, (
-                                            `${folderName} / ${artist ? artist : ''}`
+                                            `${folderName.data}${artist ? ` / ${artist}` : ''}`
                                         ), () => {
                                             animTimer = 0;
                                             displayMode.folder = sourceData.playbackData?.folderNumber || 0;
@@ -1345,7 +1367,13 @@ export default function FrontPanel({
                                         updateDisplayData({
                                             ...displayDataRef.current,
                                             topLeft: folderNumber.split(''),
-                                            otherIndication: {}
+                                            otherIndication: {
+                                                topRightData: {
+                                                    AUDIO: true,
+                                                    TAG: folderName.isID3Tag,
+                                                    folderTagIcon: true,
+                                                }
+                                            }
                                         });
 
                                         animTimer++;
@@ -1353,7 +1381,7 @@ export default function FrontPanel({
                                     } else if (displayMode.track === null && trackName) {
 
                                         animateScrollingText(animTimer, (
-                                            trackName
+                                            trackName.data
                                         ), () => {
                                             animTimer = 0;
                                             displayMode.track = sourceData.playbackData?.trackNumber || 0;
@@ -1363,7 +1391,14 @@ export default function FrontPanel({
                                         updateDisplayData({
                                             ...displayDataRef.current,
                                             topLeft: trackNumber.split(''),
-                                            otherIndication: { Tr: true }
+                                            otherIndication: {
+                                                Tr: true,
+                                                topRightData: {
+                                                    AUDIO: true,
+                                                    TAG: trackName.isID3Tag,
+                                                    trackTagIcon: true,
+                                                }
+                                            }
                                         });
 
                                         animTimer++;
@@ -1376,7 +1411,11 @@ export default function FrontPanel({
                                                 ...displayDataRef.current,
                                                 main: main.split(''),
                                                 topLeft: folderNumber.split(''),
-                                                otherIndication: {}
+                                                otherIndication: {
+                                                    topRightData: {
+                                                        AUDIO: true,
+                                                    }
+                                                }
                                             });
                                         } else if (displayMode.clockTime) {
 
@@ -1386,7 +1425,11 @@ export default function FrontPanel({
                                                 ...displayDataRef.current,
                                                 main: main.split(''),
                                                 topLeft: folderNumber.split(''),
-                                                otherIndication: {}
+                                                otherIndication: {
+                                                    topRightData: {
+                                                        AUDIO: true,
+                                                    }
+                                                }
                                             });
                                         }
                                     }
@@ -1477,19 +1520,44 @@ export default function FrontPanel({
                                     // console.log('Connected?: ' + sourceData.isConnected);
                                     if (sourceData.data) {
 
-                                        if (sourceData.ui?.elevatorCategorySelection) {
+                                        if (sourceData.ui?.error) {
+                                            updateDisplayData({
+                                                main: centerMainText(sourceData.ui.error || ""),
+                                                topLeft: [],
+                                                otherIndication: {}
+                                            })
+                                        } else if (sourceData.ui?.elevatorCategorySelection) {
                                             animateTopLeftSelection(Math.floor((updateTimer / 30)));
                                             updateDisplayData({
                                                 ...displayDataRef.current,
                                                 main: centerMainText("Мои Лифты")
                                             });
                                         } else if (sourceData.ui?.elevatorListSelection) {
-                                            animateTopLeftSelection(Math.floor((updateTimer / 30)));
 
                                             if (_currentLift !== sourceData.ui.elevatorListSelection.currentLift) {
                                                 _currentLift = sourceData.ui.elevatorListSelection.currentLift ?? null;
                                                 animTimer = 0;
                                             }
+
+                                            updateDisplayData({
+                                                ...displayDataRef.current,
+                                                main: [],
+                                                topLeft: [],
+                                                otherIndication: {
+                                                    topRightData: {
+                                                        ELEVATOR: true,
+                                                        leftData: String(
+                                                            (sourceData.ui.elevatorListSelection.currentLift || 0) + 1
+                                                        ).padStart(4, "0").split(''),
+                                                        separator: true,
+                                                        rightData: String(
+                                                            sourceData.data.elevators.length
+                                                        ).padStart(4, "0").split(''),
+                                                    }
+                                                }
+                                            });
+
+                                            animateTopLeftSelection(Math.floor((updateTimer / 30)));
 
                                             animateScrollingText(animTimer, (
                                                 sourceData.data.elevators?.[
@@ -1498,13 +1566,95 @@ export default function FrontPanel({
                                             ), () => animTimer = 0);
                                             animTimer++;
                                         } else if (sourceData.ui?.selectedElevator) {
-                                            updateDisplayData({
-                                                main: [],
-                                                topLeft: String(sourceData.ui.selectedElevator.liftNumber + 1).padStart(3, "0").split(''),
-                                                otherIndication: {
-                                                    Elevator: true
+                                            let data: string | string[] | DisplayMainIndication[] = (sourceData.selectedElevatorData) ? (
+                                                ` ${sourceData.ui.selectedElevator.floorNumber}F  :: ACTIONS `
+                                            ) : (
+                                                ` ${sourceData.ui.selectedElevator.floorNumber || 1}F `
+                                            );
+
+
+                                            if (sourceData.ui.elevatorCoursebotNavigation) {
+                                                const navigation = sourceData.ui.elevatorCoursebotNavigation;
+                                                if (navigation.navigationTypeSelection) {
+                                                    const idx = navigation.navigationTypeSelection.idx;
+                                                    data = centerMainText(
+                                                        navigation.navigationTypeSelection.types[idx]
+                                                    );
+                                                    animTimer = 0;
+                                                } else if (navigation.floorSelection) {
+                                                    const idx = navigation.floorIdx;
+                                                    const floor = sourceData.selectedElevatorData?.floors?.[idx - 1];
+                                                    if (floor?.videoData?.title)  data = [
+                                                        ...` 1F: `.split(''),
+                                                        ...centerMainText(floor.videoData.title, 11)
+                                                    ];
+                                                        else data = centerMainText(`${idx} F`);
+                                                    animTimer = 0;
+                                                } else if (navigation.floorSlotView && typeof navigation.floorSlotIdx === 'number') {
+                                                    const idx = navigation.floorSlotIdx;
+                                                    data = centerMainText((idx === -1) ? `AUTOSAVE` : `SLOT ${String(idx + 1).padStart(3, "0")}`);
+                                                    animTimer = 0;
+                                                } else if (navigation.slotDataView && typeof navigation.slotDataIdx === 'number') {
+                                                    const floorId = navigation.floorIdx;
+                                                    const slotIdx = navigation.floorSlotIdx;
+                                                    const slotsData = sourceData.selectedElevatorData?.coursebot?.slots[floorId];
+                                                    /*if (slotIdx === -1) {
+                                                        data = slotsData['AUTOSAVE'].data.title
+                                                    } else */if (typeof slotIdx === 'number' && slotIdx >= 0) {
+                                                        animateScrollingText(animTimer, slotsData.fragments[slotIdx]?.data?.title || "", () => {
+                                                            animTimer = 0;
+                                                        });
+                                                        data = displayDataRef.current.main;
+                                                        animTimer++;
+                                                    } else data = data.split('');
+
+                                                } else {
+                                                    data = data.split('');
+                                                    animTimer = 0;
                                                 }
-                                            })
+                                                // const floorIdx = sourceData.ui.elevatorCoursebotNavigation.floorIdx;
+
+
+                                            } else if (sourceData.ui.elevatorActionSelection) {
+                                                let actionSelection = sourceData.ui.elevatorActionSelection;
+                                                if (actionSelection.currentAction) {
+                                                    data = centerMainText(
+                                                        parseMyLiftSelectorString(actionSelection.selection[actionSelection.currentAction].displayText, (
+                                                            actionSelection.selection[actionSelection.currentAction]
+                                                        ))
+                                                    );
+                                                } else {
+                                                    data = centerMainText(
+                                                        actionSelection.items[actionSelection.mainIdx].text
+                                                    );
+                                                }
+                                                animTimer = 0;
+                                            } else data = data.split('');
+
+                                            updateDisplayData({
+                                                main: data,
+                                                topLeft: (
+                                                    (sourceData.ui.elevatorCoursebotNavigation?.slotDataView) ? 'SLOT' :
+                                                        String(sourceData.ui.selectedElevator.liftNumber + 1).padStart(3, "0")
+                                                ).split(''),
+                                                otherIndication: {
+                                                    Elevator: (!sourceData.ui.elevatorCoursebotNavigation?.slotDataView),
+                                                    topLeftDecorationLine: (!!sourceData.ui.elevatorActionSelection || !!sourceData.ui.elevatorCoursebotNavigation),
+                                                    topRightData: {
+                                                        decorationLine: (!!sourceData.ui.elevatorCoursebotNavigation?.slotDataView),
+                                                        leftData: (sourceData.ui.elevatorCoursebotNavigation?.slotDataView && typeof sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx === 'number') ? (
+                                                            (sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx === -1) ? "AUTO" : String(sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx + 1).padStart(4, "0") || ""
+                                                        ).split('') : undefined,
+                                                        separator: (sourceData.ui.elevatorCoursebotNavigation?.slotDataView && sourceData.ui.elevatorCoursebotNavigation.floorSlotIdx !== -1),
+                                                        rightData: (sourceData.ui.elevatorCoursebotNavigation?.slotDataView && typeof sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx === 'number') ? (
+                                                            (sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx === -1) ? "SAVE" : String(sourceData.selectedElevatorData?.coursebot?.slots?.[
+                                                                sourceData.ui.elevatorCoursebotNavigation?.floorIdx || 1
+                                                            ].fragments.length - 1).padStart(4, "0") || ""
+                                                        ).split('') : undefined,
+                                                        ELEVATOR: (!sourceData.ui.elevatorCoursebotNavigation?.slotDataView)
+                                                    }
+                                                }
+                                            });
                                         }
                                         // updateDisplayData({
                                         //     ...displayDataRef.current,
@@ -1564,6 +1714,7 @@ export default function FrontPanel({
                             isDemoAnimating = true;
                             mainInputs.isDemoAnimating = true;
                             demoTimer = 0;
+                            updateTimer = 0;
                             demoPosition = 0;
                             updateDisplayData({
                                 main: [],
@@ -1702,7 +1853,44 @@ export default function FrontPanel({
                         <path d="M139.6259,193.99169v-30.58669h635.25725v30.58669z" fill="#000000" stroke="none" strokeWidth="0" strokeLinecap="butt" />
 
                         {/* Encoder */}
-                        <g
+                        <Encoder
+                            indicationColor={(outputValues?.powerOn) ? (outputValues?.display?.color1) : (outputValues?.display?.color2)}
+
+                            onButtonClick={() => mainInputs.buttons = {
+                                ...mainInputs.buttons,
+                                encoder: {
+                                    ...mainInputs.buttons?.encoder,
+                                    button: true
+                                },
+                            }}
+
+                            onButtonUp={() => mainInputs.buttons = {
+                                ...mainInputs.buttons,
+                                encoder: {
+                                    ...mainInputs.buttons?.encoder,
+                                    button: false,
+                                    left: false,
+                                    right: false,
+                                },
+                            }}
+
+                            onScrollLeft={() => mainInputs.buttons = {
+                                ...mainInputs.buttons,
+                                encoder: {
+                                    ...mainInputs.buttons?.encoder,
+                                    left: true
+                                },
+                            }}
+
+                            onScrollRight={() => mainInputs.buttons = {
+                                ...mainInputs.buttons,
+                                encoder: {
+                                    ...mainInputs.buttons?.encoder,
+                                    right: true
+                                },
+                            }}
+                        />
+                        {/* <g
                             stroke="#000000"
                             strokeLinecap="butt"
                         >
@@ -1768,7 +1956,7 @@ export default function FrontPanel({
                                     },
                                 }}
                             />
-                        </g>
+                        </g> */}
 
                         <g stroke="none" strokeWidth="0" strokeLinecap="butt">
                             <path d="M836.87248,341.56063c0,-9.97002 8.08231,-18.05235 18.05235,-18.05235c9.97004,0 18.05235,8.08233 18.05235,18.05235c0,9.97002 -8.08231,18.05235 -18.05235,18.05235c-9.97004,0 -18.05235,-8.08233 -18.05235,-18.05235z" fill="#aeaeae" />
@@ -2037,7 +2225,7 @@ export default function FrontPanel({
                             }}
                         >
                             <path d="M83.68439,215.49771l-19.39423,15.94654h-44.33409l0.04979,-15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt" />
-                            <text transform="translate(27.21783,226.96182) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="Sans Serif" fontWeight="normal" textAnchor="start">
+                            <text transform="translate(27.21783,226.96182) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">MENU</tspan>
                             </text>
                         </g>
@@ -2060,7 +2248,7 @@ export default function FrontPanel({
                             }}
                         >
                             <path d="M75.42391,231.44425l19.39423,-15.94654h56.96734l-19.39423,15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt" />
-                            <text transform="translate(100.51709,227.02132) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="Sans Serif" fontWeight="normal" textAnchor="start">
+                            <text transform="translate(100.51709,227.02132) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">BACK</tspan>
                             </text>
                         </g>
@@ -2171,6 +2359,8 @@ export default function FrontPanel({
                             <path d="M117.38437,339.28163h-84.77119l42.67506,-41.87264z" fill="#72bdff" stroke="#72bdff" />
                             <path d="M81.94572,317.57596l-6.859,15.60482l-7.03489,-15.60482z" fill="#ffffff" stroke="#e6e6e6" />
                         </g>
+
+
                     </g>
                 </g>
             </svg>
