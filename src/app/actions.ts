@@ -5,9 +5,12 @@ import { Dirent, existsSync, readdirSync, readFileSync, writeFileSync } from "fs
 import { parseFile } from "music-metadata";
 import path from "path";
 
+const EXTENSIONS_AUDIO = [".mp3", ".wma", ".wav"];
+const EXTENSIONS_VIDEO = [".mp4"];
+
 export async function getNavigationData(url?: string) {
     // const usbContentsPath = url || 'D:\\Media\\Music\\FOR_USB_32GB\\01_Music_by_VilkiElense\\! NEW (For Recording)';
-    const usbContentsPath = 'D:\\Media';
+    const usbContentsPath = 'D:\\Media\\Music\\FOR_USB_32GB\\05_Jazz_Funk_Fusion_Instrumental\\! NEW (for recording)\\FROM MUSIFY.CLUB\\_ Normalized with Audacity';
     const data = readdirSync(usbContentsPath, {
         // recursive: true,
         withFileTypes: true,
@@ -22,7 +25,10 @@ export async function getNavigationData(url?: string) {
     // writeFileSync(path.join(process.cwd(), 'log.txt'), '')
     // } else fileS
 
-    let folders: Partial<Dirent<string> & { isEmpty: boolean; trackList: string[] }>[] = [];
+    let folders: Partial<Dirent<string> & { isEmpty: boolean; trackList: {
+        name: string;
+        type: "audio" | "video";
+    }[] }>[] = [];
 
     const readDirContents = (data: Dirent<string>[], counter: number = 0) => new Promise((resolve: (val: { success: boolean, error?: any }) => void, reject) => {
         data.forEach(dir => {
@@ -30,9 +36,12 @@ export async function getNavigationData(url?: string) {
                 let innerDirContents = readdirSync(path.join(dir.parentPath, dir.name), { withFileTypes: true });
                 folders.push({
                     ...dir,
-                    isEmpty: (innerDirContents.filter(entry => entry.isFile() && ['.mp3', '.wav', '.wma'].includes(path.extname(entry.name).toLowerCase())).length === 0),
+                    isEmpty: (innerDirContents.filter(entry => entry.isFile() && [...EXTENSIONS_AUDIO, ...EXTENSIONS_VIDEO].includes(path.extname(entry.name).toLowerCase())).length === 0),
                     // trackCount: innerDirContents.filter(entry => entry.isFile() && ['.mp3', '.wav', '.wma'].includes(path.extname(entry.name).toLowerCase())).length,
-                    trackList: innerDirContents.filter(entry => entry.isFile() && ['.mp3', '.wav', '.wma'].includes(path.extname(entry.name).toLowerCase())).map(ent => ent.name)
+                    trackList: innerDirContents.filter(entry => entry.isFile() && [...EXTENSIONS_AUDIO, ...EXTENSIONS_VIDEO].includes(path.extname(entry.name).toLowerCase())).map(ent => ({
+                        type: (EXTENSIONS_VIDEO.includes(path.extname(ent.name).toLowerCase())) ? "video" : "audio",
+                        name: ent.name,
+                    }))
                 });
                 if (counter < 8) readDirContents(innerDirContents.filter(dir => dir.isDirectory()), (counter + 1));
             } catch (error) {
@@ -64,6 +73,7 @@ export async function getNavigationData(url?: string) {
             path: path.join(dir.parentPath || "", dir.name || ""),
             isEmpty: dir.isEmpty,
             trackList: dir.trackList,
+            
             // trackCount: dir.trackCount,
         })),
 
@@ -104,7 +114,7 @@ export async function getTrackID3(folderUrl: string, trackName: string) {
 export async function saveData(inputs: MainControllerInputs, outputs: MainControllerOutputs) {
     try {
         const file = writeFileSync(
-            path.join(process.cwd(), 'data.appeley'),
+            path.join(process.cwd(), 'data', 'data.appeley'),
             JSON.stringify({
                 inputs,
                 outputs,
@@ -118,7 +128,7 @@ export async function saveData(inputs: MainControllerInputs, outputs: MainContro
 
 export async function loadData() {
     try {
-        const filepath = path.join(process.cwd(), 'data.appeley');
+        const filepath = path.join(process.cwd(), 'data', 'data.appeley');
 
         if (!existsSync(filepath)) return { success: false, error: "File not found" };
 

@@ -16,7 +16,7 @@ interface DisplayData {
     otherIndication?: DisplayOtherIndication;
 }
 
-type DemoAnimationType = "default" | "scroll-left";
+type DemoAnimationType = "default" | "scroll-left" | "left-to-right";
 
 interface DemoIndicationOption<T = string> {
     active: (animTimer: number) => boolean;
@@ -82,7 +82,7 @@ export default function FrontPanel({
 
 
         let data: DisplayMainIndication[] = ["", "", "", ""];
-        const offset = Math.floor((t - startPoint) / 1);
+        const offset = Math.floor((t - 37) / 1);
 
         // const animMap = [
         //     // [indicator, [...segments] ],
@@ -142,7 +142,7 @@ export default function FrontPanel({
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback(t, 37),
+                    data: (t) => demoTopLeftAnimCallback(t, 18),
                 }
             ],
             otherIndication: [
@@ -157,33 +157,33 @@ export default function FrontPanel({
         {
             main: "APPELEY",
             animation: "default",
-            delayBeforeNext: 115,
+            delayBeforeNext: 100,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback(t, 37),
+                    data: (t) => demoTopLeftAnimCallback(t, 18),
                 }
             ],
         },
         {
             main: "MULTIMEDIA",
             animation: "scroll-left",
-            delayBeforeNext: 115,
+            delayBeforeNext: 100,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    data: (t) => demoTopLeftAnimCallback(t, 18),
                 }
             ],
         },
         {
             main: "RECEIVER",
             animation: "scroll-left",
-            delayBeforeNext: 115,
+            delayBeforeNext: 100,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    data: (t) => demoTopLeftAnimCallback(t, 18),
                 }
             ],
         },
@@ -725,7 +725,7 @@ export default function FrontPanel({
         let _currentLift: number | null = null;
 
         const demoTransition = (anim: DemoAnimationType = "default", timer: number, position: number, onEnded?: () => void) => {
-            const t = timer;
+            let t = timer;
             // const t = Math.floor(timer / 4);
 
             if (displayDataRef.current.main.length < 15) {
@@ -737,7 +737,44 @@ export default function FrontPanel({
                 });
             }
 
-            if (anim === 'default') {
+            if (anim === 'left-to-right') {
+                // Незавершено! Требует доработки!
+                if (t === 0) updateDisplayData({
+                    ...displayDataRef.current,
+                    main: Array(16).fill("", 0, 16),
+                });
+                const symbol: DisplayMainIndication = {
+                    directDisplay: true,
+                    segments: []
+                };
+
+                t = (t * 2);
+
+                if (t < 3) {
+                    symbol.segments.push(
+                        ...[1, 2, 4, 3].slice(0, t),
+                        ...[5, 7, 6, 8].slice(0, t),
+                        ...[9, 10, 12, 11].slice(0, t)
+                    )
+                } else {
+                    symbol.segments = [
+                        1, 2, 4, 3,
+                        5, 6, 7, 8,
+                        9, 10, 11, 12
+                    ];
+                }
+
+                updateDisplayData({
+                    ...displayDataRef.current,
+                    main: (t < 3) ? [symbol] : (displayDataRef.current.main).map((_, i) => i === (t - 3) ? symbol : (i === (t - 4)) ? centerMainText(demoInfo[position].main || "").join('')?.[t - 4] || "" : _)
+                });
+
+                if (t > 19) {
+                    onEnded?.();
+                }
+
+            } else if (anim === 'default') {
+                // t = t * 2;
                 updateDisplayData({
                     ...displayDataRef.current,
                     main: displayDataRef.current.main.map((s: DisplayMainIndication, idx) => {
@@ -871,27 +908,30 @@ export default function FrontPanel({
                     }),
                 });
             } else {
-                if (t < 1) {
-                    const prev = centerMainText(demoInfo[position - 1].main || "");
-                    const next = centerMainText(demoInfo[position].main || "");
-                    updateDisplayData({
+
+                if (t % 1 === 0) {
+                    if (t < 1) {
+                        const prev = centerMainText(demoInfo[position - 1].main || "");
+                        const next = centerMainText(demoInfo[position].main || "");
+                        updateDisplayData({
+                            ...displayDataRef.current,
+                            main: [...prev, ...next]
+                        });
+                    } else if (displayDataRef.current.main.length > 16) updateDisplayData({
                         ...displayDataRef.current,
-                        main: [...prev, ...next]
-                    });
-                } else if (displayDataRef.current.main.length > 16) updateDisplayData({
-                    ...displayDataRef.current,
-                    main: displayDataRef.current.main.slice(1, displayDataRef.current.main.length),
-                    // main: displayDataRef.current.main.map((s, i) => {
-                    //     // const prev = centerMainText(demoInfo[position - 1].main || "");
-                    //     // const next = centerMainText(demoInfo[position].main || "");
-                    //     return displayDataRef.current.main[i + 1] || "";
-                    // })
-                }); else {
-                    updateDisplayData({
-                        ...displayDataRef.current,
-                        main: displayDataRef.current.main.slice(0, 16)
-                    });
-                    onEnded?.();
+                        main: displayDataRef.current.main.slice(2, displayDataRef.current.main.length),
+                        // main: displayDataRef.current.main.map((s, i) => {
+                        //     // const prev = centerMainText(demoInfo[position - 1].main || "");
+                        //     // const next = centerMainText(demoInfo[position].main || "");
+                        //     return displayDataRef.current.main[i + 1] || "";
+                        // })
+                    }); else {
+                        updateDisplayData({
+                            ...displayDataRef.current,
+                            main: displayDataRef.current.main.slice(0, 16)
+                        });
+                        onEnded?.();
+                    }
                 }
                 // if (t > 16) {
 
@@ -899,7 +939,9 @@ export default function FrontPanel({
             }
         }
 
-        // demoTimer = 0;
+        demoTimer = 0;
+
+        let demoTopLeftTimer = 0;
 
         const animateDemo = (updTimer: number = 0) => {
 
@@ -907,31 +949,39 @@ export default function FrontPanel({
             const current = demoInfo[demoPosition];
 
 
-            if (current?.topLeft) {
-                current.topLeft.forEach((opt) => {
-                    if (opt.active(demoTimer)) {
-                        updateDisplayData({
-                            ...displayDataRef.current,
-                            topLeft: (
-                                // typeof opt.data === 'string' ? opt.data.split('')
-                                typeof opt.data === 'function' ? opt.data(demoTimer) :
-                                    Array.isArray(opt.data) ? opt.data : opt.data
-                            ),
-                        });
-                    }
-                });
+            if (updTimer % 7 === 0) {
+                // if (demoTimer > 38 && current.animation === 'default') {
+                //     demoTopLeftTimer = 0;
+                // } else {
+                    demoTopLeftTimer++;
+                // }
             }
 
-            if (current?.otherIndication) {
-                current.otherIndication.forEach((opt) => {
-                    if (opt.active(demoTimer)) {
-                        updateDisplayData({
-                            ...displayDataRef.current,
-                            otherIndication: typeof opt.data === 'function' ? opt.data(demoTimer) : opt.data,
-                        });
-                    }
-                });
-            }
+            // if (current?.topLeft) {
+            //     current.topLeft.forEach((opt) => {
+            //         if (opt.active(demoTopLeftTimer)) {
+            //             updateDisplayData({
+            //                 ...displayDataRef.current,
+            //                 topLeft: (
+            //                     // typeof opt.data === 'string' ? opt.data.split('')
+            //                     typeof opt.data === 'function' ? opt.data(demoTopLeftTimer) :
+            //                         Array.isArray(opt.data) ? opt.data : opt.data
+            //                 ),
+            //             });
+            //         }
+            //     });
+            // }
+
+            // if (current?.otherIndication) {
+            //     current.otherIndication.forEach((opt) => {
+            //         if (opt.active(demoTimer)) {
+            //             updateDisplayData({
+            //                 ...displayDataRef.current,
+            //                 otherIndication: typeof opt.data === 'function' ? opt.data(demoTimer) : opt.data,
+            //             });
+            //         }
+            //     });
+            // }
 
 
             if (demoPosition === 0 && demoTimer < 1) {
@@ -947,6 +997,7 @@ export default function FrontPanel({
                 if (nextDemoTimer === 0) {
                     demoTimer = 0;
                     demoPosition++;
+                    demoTopLeftTimer = 0;
                 }
                 else if (updTimer % 7 === 0) demoTimer++;
             } else if (demoTimer < 38) {
@@ -955,7 +1006,7 @@ export default function FrontPanel({
                     demoTransition(current?.animation || "default", demoTimer, demoPosition, () => {
                         demoTimer = 38;
                     });
-                    demoTimer++;
+                    demoTimer+=2;
                 }
 
             } else {
@@ -983,31 +1034,31 @@ export default function FrontPanel({
             // }
 
 
-            // if (current?.topLeft) {
-            //     current.topLeft.forEach((opt) => {
-            //         if (opt.active(demoTimer)) {
-            //             updateDisplayData({
-            //                 ...displayDataRef.current,
-            //                 topLeft: (
-            //                     // typeof opt.data === 'string' ? opt.data.split('')
-            //                     typeof opt.data === 'function' ? opt.data(demoTimer) :
-            //                         Array.isArray(opt.data) ? opt.data : opt.data
-            //                 ),
-            //             });
-            //         }
-            //     });
-            // }
+            if (current?.topLeft) {
+                current.topLeft.forEach((opt) => {
+                    if (opt.active(demoTimer)) {
+                        updateDisplayData({
+                            ...displayDataRef.current,
+                            topLeft: (
+                                // typeof opt.data === 'string' ? opt.data.split('')
+                                typeof opt.data === 'function' ? opt.data(demoTimer) :
+                                    Array.isArray(opt.data) ? opt.data : opt.data
+                            ),
+                        });
+                    }
+                });
+            }
 
-            // if (current?.otherIndication) {
-            //     current.otherIndication.forEach((opt) => {
-            //         if (opt.active(demoTimer)) {
-            //             updateDisplayData({
-            //                 ...displayDataRef.current,
-            //                 otherIndication: typeof opt.data === 'function' ? opt.data(demoTimer) : opt.data,
-            //             });
-            //         }
-            //     });
-            // }
+            if (current?.otherIndication) {
+                current.otherIndication.forEach((opt) => {
+                    if (opt.active(demoTimer)) {
+                        updateDisplayData({
+                            ...displayDataRef.current,
+                            otherIndication: typeof opt.data === 'function' ? opt.data(demoTimer) : opt.data,
+                        });
+                    }
+                });
+            }
 
             // demoTimer++;
         }
@@ -1247,8 +1298,8 @@ export default function FrontPanel({
 
                                         const data = (sourceData.menu.subCategory === 'file' && typeof sourceData.menu.subIndex === 'number') ? (
                                             sourceData.navigationData?.[sourceData.menu.mainIndex].trackList[
-                                            sourceData.menu.subIndex
-                                            ] || ""
+                                                sourceData.menu.subIndex
+                                            ].name || ""
                                         ) : (
                                             sourceData.navigationData?.[sourceData.menu.mainIndex].name || ""
                                         );
@@ -1369,7 +1420,8 @@ export default function FrontPanel({
                                             topLeft: folderNumber.split(''),
                                             otherIndication: {
                                                 topRightData: {
-                                                    AUDIO: true,
+                                                    AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                    VIDEO: (sourceData.playbackData.dataType === 'video'),
                                                     TAG: folderName.isID3Tag,
                                                     folderTagIcon: true,
                                                 }
@@ -1394,7 +1446,8 @@ export default function FrontPanel({
                                             otherIndication: {
                                                 Tr: true,
                                                 topRightData: {
-                                                    AUDIO: true,
+                                                    AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                    VIDEO: (sourceData.playbackData.dataType === 'video'),
                                                     TAG: trackName.isID3Tag,
                                                     trackTagIcon: true,
                                                 }
@@ -1413,7 +1466,8 @@ export default function FrontPanel({
                                                 topLeft: folderNumber.split(''),
                                                 otherIndication: {
                                                     topRightData: {
-                                                        AUDIO: true,
+                                                        AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                        VIDEO: (sourceData.playbackData.dataType === 'video'),
                                                     }
                                                 }
                                             });
@@ -1427,7 +1481,8 @@ export default function FrontPanel({
                                                 topLeft: folderNumber.split(''),
                                                 otherIndication: {
                                                     topRightData: {
-                                                        AUDIO: true,
+                                                        AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                        VIDEO: (sourceData.playbackData.dataType === 'video'),
                                                     }
                                                 }
                                             });
@@ -1584,12 +1639,22 @@ export default function FrontPanel({
                                                 } else if (navigation.floorSelection) {
                                                     const idx = navigation.floorIdx;
                                                     const floor = sourceData.selectedElevatorData?.floors?.[idx - 1];
-                                                    if (floor?.videoData?.title)  data = [
-                                                        ...` 1F: `.split(''),
-                                                        ...centerMainText(floor.videoData.title, 11)
-                                                    ];
-                                                        else data = centerMainText(`${idx} F`);
-                                                    animTimer = 0;
+                                                    if (floor?.videoData?.title) {
+                                                        data = ` ${idx}F: `.split('');
+                                                        animateScrollingText(animTimer, `     ${floor.videoData.title}`, () => {
+                                                            animTimer = 0;
+                                                        });
+                                                        data[0] = ' ';
+                                                        data[1] = `${idx}`;
+                                                        data[2] = 'F';
+                                                        data[3] = ':';
+                                                        data[4] = ' ';
+                                                        animTimer++;
+                                                    } else {
+                                                        data = centerMainText(`${idx} F`);
+                                                        animTimer = 0;
+                                                    }
+
                                                 } else if (navigation.floorSlotView && typeof navigation.floorSlotIdx === 'number') {
                                                     const idx = navigation.floorSlotIdx;
                                                     data = centerMainText((idx === -1) ? `AUTOSAVE` : `SLOT ${String(idx + 1).padStart(3, "0")}`);

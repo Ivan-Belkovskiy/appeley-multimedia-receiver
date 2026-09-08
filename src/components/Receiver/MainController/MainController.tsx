@@ -1,6 +1,6 @@
 import { getNavigationData, getTrackID3 } from "@/app/actions";
 import beeper from "@/utils/beeper";
-import { RefObject, useEffect, useRef } from "react";
+import { Dispatch, RefObject, SetStateAction, useEffect, useRef } from "react";
 
 export interface MainControllerInputButtons {
     powerOnOff?: boolean;
@@ -77,6 +77,8 @@ export interface MainControllerUSBPlaybackData {
         isID3Tag: boolean;
         data: string;
     };
+
+    dataType: "audio" | "video";
     // trackName?: string;
     // albumName?: string;
     artist?: string;
@@ -92,7 +94,10 @@ export interface FolderInfo {
     name: string;
     path: string;
     isEmpty: boolean;
-    trackList: string[];
+    trackList: {
+        name: string;
+        type: "audio" | "video";
+    }[];
     // trackCount: number;
 }
 
@@ -244,10 +249,16 @@ export interface MainControllerOutputs {
 
 export default function MainController({
     inputsRef,
-    outputsRef
+    outputsRef,
+
+    videoOutputRef, // В дальнейшем переместить в outputsRef
+    setVideoPowerOn
 }: {
-    inputsRef: RefObject<MainControllerInputs>,
-    outputsRef: RefObject<MainControllerOutputs>
+    inputsRef: RefObject<MainControllerInputs>;
+    outputsRef: RefObject<MainControllerOutputs>;
+
+    videoOutputRef: RefObject<HTMLVideoElement | null>;
+    setVideoPowerOn: Dispatch<SetStateAction<boolean | undefined>>;
 }) {
 
     const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -330,7 +341,7 @@ export default function MainController({
 
 
                 const folderUrl = currentFolder?.path;
-                const trackName = currentFolder?.trackList[sourceData.playbackData.trackNumber];
+                const trackName = currentFolder?.trackList[sourceData.playbackData.trackNumber].name;
                 // alert(`folderUrl: ${folderUrl}\ntrackName: ${trackName}\nfolder: ${JSON.stringify(currentFolder?.trackList)}`)
                 if (!folderUrl || !trackName) throw new Error('Folder url or track name not provided!');
 
@@ -424,62 +435,108 @@ export default function MainController({
 
                 // if (trackNumber > current.trackCount - 1) trackNumber = (current.trackCount - 1);
 
-                const trackName = current.trackList[trackNumber];
+                const trackData = current.trackList[trackNumber];
 
                 const encodedPath = encodeURIComponent(current.path);
-                const encodedName = encodeURIComponent(trackName);
+                const encodedName = encodeURIComponent(trackData.name);
 
-                if (audioPlayerRef.current) {
+                if (trackData.type === 'audio') {
+                    if (audioPlayerRef.current) {
 
-                    audioPlayerRef.current.src = (
+                        if (videoOutputRef.current) videoOutputRef.current.src = '';
+                        audioPlayerRef.current.src = (
+                            `/api/track?folderUrl=${encodedPath}&trackName=${encodedName}`
+                        );
+
+                        // audioPlayerRef.current.currentTime = 0;
+                        audioPlayerRef.current.play();
+
+                        if (outputsRef.current.sourceData[1].playbackData) {
+                            outputsRef.current.sourceData[1].playbackData.isPlaying = true;
+                        }
+
+                    } else audioPlayerRef.current = new Audio(
                         `/api/track?folderUrl=${encodedPath}&trackName=${encodedName}`
                     );
 
-                    // audioPlayerRef.current.currentTime = 0;
-                    audioPlayerRef.current.play();
+                    audioPlayerRef.current.volume = (outputsRef.current.mainVolume / 100);
 
-                    if (outputsRef.current.sourceData[1].playbackData) {
-                        outputsRef.current.sourceData[1].playbackData.isPlaying = true;
-                    }
+                    const canplayHandler = () => {
+                        console.log('AUDIO LOADED! URL: ', audioPlayerRef.current?.src);
+                        audioPlayerRef.current?.play();
+                        resolve(true);
 
-                } else audioPlayerRef.current = new Audio(
-                    `/api/track?folderUrl=${encodedPath}&trackName=${encodedName}`
-                );
+                        if (outputsRef.current.sourceData[1].playbackData) {
+                            outputsRef.current.sourceData[1].playbackData.isPlaying = true;
+                        }
 
-                audioPlayerRef.current.volume = (outputsRef.current.mainVolume / 100);
-
-                // audio.addEventListener('error', (e) => alert(e));
-                const canplayHandler = () => {
-                    console.log('AUDIO LOADED! URL: ', audioPlayerRef.current?.src);
-                    audioPlayerRef.current?.play();
-                    resolve(true);
-
-                    if (outputsRef.current.sourceData[1].playbackData) {
-                        outputsRef.current.sourceData[1].playbackData.isPlaying = true;
-                    }
-
-                    outputsRef.current.sourceData[1].playbackData = {
-                        folderNumber: available.number,
-                        trackNumber,
+                        outputsRef.current.sourceData[1].playbackData = {
+                            folderNumber: available.number,
+                            trackNumber,
+                            dataType: "audio",
+                        };
                     };
-                    // alert(`FolderNumber: ${folder}\ntrackNumber: ${trackNumber}`)
-                };
 
-                audioPlayerRef.current.addEventListener('canplay', canplayHandler);
-                audioPlayerRef.current.addEventListener('timeupdate', () => {
-                    if (outputsRef.current.sourceData[1].playbackData) {
-                        outputsRef.current.sourceData[1].playbackData.currentTime = (
-                            audioPlayerRef.current?.currentTime || undefined
-                        )
+                    audioPlayerRef.current.addEventListener('canplay', canplayHandler);
+                    audioPlayerRef.current.addEventListener('timeupdate', () => {
+                        if (outputsRef.current.sourceData[1].playbackData) {
+                            outputsRef.current.sourceData[1].playbackData.currentTime = (
+                                audioPlayerRef.current?.currentTime || undefined
+                            )
+                        }
+                    });
+                    audioPlayerRef.current.addEventListener('ended', () => {
+                        selectTrack('next');
+                    });
+                } else {
+
+                    if (videoOutputRef.current) {
+
+                        if (audioPlayerRef.current) audioPlayerRef.current.src = '';
+                        videoOutputRef.current.src = (
+                            `/api/track?folderUrl=${encodedPath}&trackName=${encodedName}`
+                        );
+
+                        // audioPlayerRef.current.currentTime = 0;
+                        videoOutputRef.current.play();
+                        setVideoPowerOn(true);
+
+                        if (outputsRef.current.sourceData[1].playbackData) {
+                            outputsRef.current.sourceData[1].playbackData.isPlaying = true;
+                        }
+
+                        videoOutputRef.current.volume = (outputsRef.current.mainVolume / 100);
+
+                        const canplayHandler = () => {
+                            console.log('AUDIO LOADED! URL: ', videoOutputRef.current?.src);
+                            videoOutputRef.current?.play();
+                            resolve(true);
+
+                            if (outputsRef.current.sourceData[1].playbackData) {
+                                outputsRef.current.sourceData[1].playbackData.isPlaying = true;
+                            }
+
+                            outputsRef.current.sourceData[1].playbackData = {
+                                folderNumber: available.number,
+                                trackNumber,
+                                dataType: "video"
+                            };
+                        };
+
+                        videoOutputRef.current.addEventListener('canplay', canplayHandler);
+                        videoOutputRef.current.addEventListener('timeupdate', () => {
+                            if (outputsRef.current.sourceData[1].playbackData) {
+                                outputsRef.current.sourceData[1].playbackData.currentTime = (
+                                    videoOutputRef.current?.currentTime || undefined
+                                )
+                            }
+                        });
+                        videoOutputRef.current.addEventListener('ended', () => {
+                            selectTrack('next');
+                        });
+
                     }
-                    // setPlaybackData?.({
-                    //     ...playbackData?.current,
-                    //     currentTime: audioPlayerRef.current?.currentTime,
-                    // });
-                });
-                audioPlayerRef.current.addEventListener('ended', () => {
-                    selectTrack('next');
-                });
+                }
 
 
 
@@ -597,6 +654,7 @@ export default function MainController({
                 if (outputsRef.current.powerOn) {
 
                     if (audioPlayerRef.current) audioPlayerRef.current.volume = (outputsRef.current.mainVolume / 100);
+                    if (videoOutputRef.current) videoOutputRef.current.volume = (outputsRef.current.mainVolume / 100);
 
                     if (inputsRef.current.buttons.srcSelect) {
                         srcBtnTimer++;
@@ -615,6 +673,13 @@ export default function MainController({
                                     outputsRef.current.sourceData[1].playbackData.isPlaying = false;
                                 }
                                 // audioPlayerRef.current = null;
+                            }
+                            if (videoOutputRef.current) {
+                                setVideoPowerOn(false);
+                                videoOutputRef.current.pause();
+                                if (outputsRef.current.sourceData[1].playbackData) {
+                                    outputsRef.current.sourceData[1].playbackData.isPlaying = false;
+                                }
                             }
                             resetDemo();
                             srcBtnTimer = -20;
@@ -818,8 +883,14 @@ export default function MainController({
                                     d[1].playbackData.artist
                                 ) {
                                     d[1].isReadingID3 = false;
-                                    if (!d[1].playbackData.isPlaying && audioPlayerRef.current) {
-                                        audioPlayerRef.current.play();
+                                    if (!d[1].playbackData.isPlaying) {
+                                        if (audioPlayerRef.current) {
+                                            audioPlayerRef.current.play();
+                                        }
+                                        if (videoOutputRef.current) {
+                                            videoOutputRef.current.play();
+                                            setVideoPowerOn(true);
+                                        }
                                         d[1].playbackData.isPlaying = true;
                                     }
 
@@ -861,9 +932,11 @@ export default function MainController({
 
                                                 if (!d[1].playbackData.isPaused) {
                                                     audioPlayerRef.current?.pause();
+                                                    videoOutputRef.current?.pause();
                                                     d[1].playbackData.isPaused = true;
                                                 } else {
                                                     audioPlayerRef.current?.play();
+                                                    videoOutputRef.current?.play();
                                                     d[1].playbackData.isPaused = false;
                                                 }
 
@@ -1149,9 +1222,9 @@ export default function MainController({
 
                                                         return beeper.tripleBeep()
                                                     } else {
-                                                    navigation.floorSlotView = false;
-                                                    navigation.slotDataView = true;
-                                                    navigation.slotDataIdx = 0;
+                                                        navigation.floorSlotView = false;
+                                                        navigation.slotDataView = true;
+                                                        navigation.slotDataIdx = 0;
                                                     }
                                                 }
 
@@ -1410,6 +1483,14 @@ export default function MainController({
                             outputsRef.current.sourceData[1].playbackData.isPlaying = false;
                         }
                         // audioPlayerRef.current.currentTime = 0;
+                    }
+
+                    setVideoPowerOn(false);
+                    if (videoOutputRef.current) {
+                        videoOutputRef.current.pause();
+                        if (outputsRef.current.sourceData[1].playbackData) {
+                            outputsRef.current.sourceData[1].playbackData.isPlaying = false;
+                        }
                     }
                     // displayUpdateTimer = 0;
                     // outputsRef.current.display = {};

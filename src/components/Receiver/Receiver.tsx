@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { Dispatch, RefObject, SetStateAction, useEffect, useRef, useState } from "react";
 import FrontPanel from "./FrontPanel/FrontPanel";
 import MainController, { MainControllerInputs, MainControllerOutputs } from "./MainController/MainController";
 import { loadData, saveData } from "@/app/actions";
 
-export default function AppeleyReceiver() {
+export default function AppeleyReceiver({ videoOutputRef, setVideoPowerOn }: { videoOutputRef: RefObject<HTMLVideoElement | null>; setVideoPowerOn: Dispatch<SetStateAction<boolean | undefined>>; }) {
 
     const controllerInputsRef = useRef<MainControllerInputs>({
         sourceData: {
@@ -82,7 +82,7 @@ export default function AppeleyReceiver() {
 
     return (
         <div className="appeley-receiver">
-            <MainController inputsRef={controllerInputsRef} outputsRef={controllerOutputsRef} />
+            <MainController inputsRef={controllerInputsRef} outputsRef={controllerOutputsRef} videoOutputRef={videoOutputRef} setVideoPowerOn={setVideoPowerOn} />
             <FrontPanel
                 mainControllerInputsRef={controllerInputsRef}
                 mainControllerOutputsRef={controllerOutputsRef}

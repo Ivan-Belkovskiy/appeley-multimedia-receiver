@@ -1,5 +1,5 @@
-getTrackID3() :: Server Actions Log | 03.07.2026, 22:21:32
-✅ fullPath: D:\Media\From MicroSD Kingston 128GB\ТРИ БОГАТЫРЯ\плейлист Три Богатыря\7 - Три богатыря на дальних берегах - Обезьяна [audiovk.com].mp3
+getTrackID3() :: Server Actions Log | 08.09.2026, 23:50:55
+✅ fullPath: D:\Media\Music\FOR_USB_32GB\05_Jazz_Funk_Fusion_Instrumental\! NEW (for recording)\FROM MUSIFY.CLUB\_ Normalized with Audacity\Brian Simpson\South Beach (2010)\01_south-beach.mp3
 ✅ metadata: 
 
 {
@@ -13,26 +13,44 @@ getTrackID3() :: Server Actions Log | 03.07.2026, 22:21:32
       "hasVideo": false,
       "container": "MPEG",
       "codec": "MPEG 1 Layer 3",
-      "sampleRate": 48000,
+      "sampleRate": 44100,
       "numberOfChannels": 2,
       "bitrate": 320000,
       "codecProfile": "CBR",
-      "duration": 67.368,
-      "numberOfSamples": 3234816
+      "tool": "LAME 3.100",
+      "trackPeakLevel": null,
+      "duration": 205.89714285714285,
+      "numberOfSamples": 9080064
    },
    "native": {
       "ID3v2.4": [
          {
+            "id": "TXXX:comment",
+            "value": "(myzuka.org)"
+         },
+         {
+            "id": "TDRC",
+            "value": "2010"
+         },
+         {
             "id": "TPE1",
-            "value": "Три богатыря на дальних берегах"
+            "value": "Brian Simpson"
+         },
+         {
+            "id": "TALB",
+            "value": "South Beach"
          },
          {
             "id": "TIT2",
-            "value": "Обезьяна"
+            "value": "South Beach"
+         },
+         {
+            "id": "TRCK",
+            "value": "1"
          },
          {
             "id": "TSSE",
-            "value": "Lavf58.29.100"
+            "value": "Lavf60.16.100"
          }
       ]
    },
@@ -48,7 +66,7 @@ getTrackID3() :: Server Actions Log | 03.07.2026, 22:21:32
    },
    "common": {
       "track": {
-         "no": null,
+         "no": 1,
          "of": null
       },
       "disk": {
@@ -59,11 +77,14 @@ getTrackID3() :: Server Actions Log | 03.07.2026, 22:21:32
          "no": null,
          "of": null
       },
+      "year": 2010,
+      "date": "2010",
       "artists": [
-         "Три богатыря на дальних берегах"
+         "Brian Simpson"
       ],
-      "artist": "Три богатыря на дальних берегах",
-      "title": "Обезьяна",
-      "encodersettings": "Lavf58.29.100"
+      "artist": "Brian Simpson",
+      "album": "South Beach",
+      "title": "South Beach",
+      "encodersettings": "Lavf60.16.100"
    }
 }
