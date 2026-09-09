@@ -1,19 +1,11 @@
-'use client';
-import LCDMonitor from "@/components/LCDMonitor/LCDMonitor";
+export const dynamic = 'force-dynamic';
+
 import "./page.css";
-import AppeleyReceiver from "@/components/Receiver/Receiver";
-import Image from "next/image";
-import { useRef, useState } from "react";
+import HomePage from "@/components/HomePage/HomePage";
 
 
-export default function Home() {
-  const monitorRef = useRef<HTMLVideoElement | null>(null);
-  const [videoOn, setVideoOn] = useState<boolean | undefined>(false);
+export default async function Home() {
   return (
-    <div className="page-container">
-      <h1 className="page-title">APPELEY Multimedia Receiver</h1>
-      <AppeleyReceiver videoOutputRef={monitorRef} setVideoPowerOn={setVideoOn} />
-      {/* <LCDMonitor ref={monitorRef} powerOn={videoOn} /> */}
-    </div>
-  );
+    <HomePage />
+  )
 }
