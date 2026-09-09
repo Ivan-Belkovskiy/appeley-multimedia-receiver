@@ -1,4 +1,4 @@
-import { getNavigationData, getTrackID3 } from "@/app/actions";
+import { getNavigationData, getTrackID3, USBFlashInfo } from "@/app/actions";
 import beeper from "@/utils/beeper";
 import { Dispatch, RefObject, SetStateAction, useEffect, useRef } from "react";
 
@@ -47,6 +47,7 @@ export interface MainControllerInputs {
     sourceData: {
         1: {
             allowReading?: boolean;
+            connectedUSBDevice?: USBFlashInfo;
         };
     }
 
@@ -159,6 +160,7 @@ export interface MainControllerOutputs {
             isReadingID3?: boolean;
             error?: string;
             playbackData?: MainControllerUSBPlaybackData;
+            // usbDevice?: USBFlashInfo;
             navigationData?: FolderInfo[];
 
             dataToLoad?: {
@@ -322,7 +324,7 @@ export default function MainController({
 
         const getNavigation = () => new Promise(async (resolve, reject) => {
             try {
-                const data = await getNavigationData();
+                const data = await getNavigationData(inputsRef.current.sourceData[1].connectedUSBDevice);
                 resolve(data.data);
             } catch (error) {
                 reject(error);
@@ -848,7 +850,7 @@ export default function MainController({
                         //     }
                         // }
 
-                        if (inputsRef.current.sourceData[1].allowReading === true) {
+                        if (inputsRef.current.sourceData[1].allowReading === true && inputsRef.current.sourceData[1].connectedUSBDevice) {
                             if (d[1].dataToLoad) {
                                 if (!d[1].isReading) {
                                     getNavigation().then((data) => {

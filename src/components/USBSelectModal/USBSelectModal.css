@@ -1,0 +1,138 @@
+.usb-select-modal__overlay {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    background-color: #00000056;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.usb-select-modal {
+    position: relative;
+    width: 80%;
+    height: 80%;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.usb-select-modal__content {
+    width: 90%;
+    height: 70%;
+    overflow-y: auto;
+}
+
+.usb-select-modal__title {
+    width: 90%;
+    font-size: 30px;
+    color: #0035e2;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #0035e2;
+}
+
+.usb-select-modal__button {
+    margin-top: 20px;
+    flex-grow: 1;
+    padding: 8px 16px;
+    background-color: #0035e2;
+    color: #fff;
+    outline: 2px solid transparent;
+    border-radius: 8px;
+    transition: all 0.3s ease 0s;
+
+    &:hover {
+        cursor: pointer;
+        outline-color: #0035e2;
+        color: #0035e2;
+        background-color: #fff;
+    }
+}
+
+.usb-select-modal__message {
+    width: 100%;
+    padding: 20px;
+    font-size: 18px;
+    color: #0035e2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.usb-select-modal__buttons {
+    width: 80%;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    gap: 10px;
+}
+
+.usb-flash-data {
+    width: 100%;
+    border: 2px solid #0035e2;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+
+    .usb-flash-data__left {
+        width: 50%;
+        height: 100%;
+        display: flex;
+        justify-content: start;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .usb-flash-data__right {
+        width: 50%;
+        height: 100%;
+        display: flex;
+        justify-content: end;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .usb-flash-data__button {
+
+        padding: 8px 16px;
+        background-color: #0035e2;
+        color: #fff;
+        outline: 2px solid transparent;
+        border-radius: 8px;
+        transition: all 0.3s ease 0s;
+
+        &:hover {
+            cursor: pointer;
+            outline-color: #0035e2;
+            color: #0035e2;
+            background-color: #fff;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    }
+
+    .usb-flash-data__name {
+        color: #0035e2;
+        font-weight: bold;
+    }
+
+    &:hover {
+        outline: 2px solid #00eeff;
+    }
+
+    &:not(:first-child) {
+        margin-top: 10px;
+    }
+}

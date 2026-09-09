@@ -9,6 +9,7 @@ import { formatTime, timeFromDate } from "@/utils/time";
 import beeper from "@/utils/beeper";
 import Encoder from "./Encoder/Encoder";
 import { parseMyLiftSelectorString } from "@/utils/string";
+import USBSelectModal from "@/components/USBSelectModal/USBSelectModal";
 
 interface DisplayData {
     main: DisplayMainIndication[];
@@ -66,6 +67,12 @@ export default function FrontPanel({
 
 
     const [outputValues, setOutputValues] = useState<MainControllerOutputs>(mainOutputs);
+
+    const [openedModal, setOpenedModal] = useState<'usb-select' | null>(null);
+
+    const handleUSBSelect = () => {
+        setOpenedModal('usb-select');
+    }
 
     const demoTopLeftAnimCallback = useCallback((t: number, startPoint: number = 37) => {
         // return String(t).split('')
@@ -953,7 +960,7 @@ export default function FrontPanel({
                 // if (demoTimer > 38 && current.animation === 'default') {
                 //     demoTopLeftTimer = 0;
                 // } else {
-                    demoTopLeftTimer++;
+                demoTopLeftTimer++;
                 // }
             }
 
@@ -1006,7 +1013,7 @@ export default function FrontPanel({
                     demoTransition(current?.animation || "default", demoTimer, demoPosition, () => {
                         demoTimer = 38;
                     });
-                    demoTimer+=2;
+                    demoTimer += 2;
                 }
 
             } else {
@@ -1282,7 +1289,13 @@ export default function FrontPanel({
                                 // USB
                                 const sourceData = mainOutputs.sourceData?.[1];
 
-                                if (sourceData.menu?.menuType === 'navigation') {
+                                if (!mainInputs.sourceData[1].connectedUSBDevice) {
+                                    updateDisplayData({
+                                        ...displayDataRef.current,
+                                        main: centerMainText("NO USB"),
+                                        topLeft: []
+                                    })
+                                } else if (sourceData.menu?.menuType === 'navigation') {
 
                                     displayMode.volume = false;
 
@@ -2033,7 +2046,9 @@ export default function FrontPanel({
                             <tspan x="0" dy="0">AV-IN</tspan>
                         </text>
                         <path d="M805.16474,306.83312v-78.42678l7.22347,-8.92462h65.13191l-0.10335,95.71498h-65.37253z" fill="#ffffff" stroke="none" strokeWidth="0" strokeLinecap="butt" />
-                        <path d="M812.73223,304.31676v-77.39484h43.34111v77.39484z" fill="#000000" stroke="none" strokeWidth="0" strokeLinecap="butt" />
+                        {/* USB Input */}
+                        <path onClick={handleUSBSelect} className="front-panel__usb-port" d="M812.73223,304.31676v-77.39484h43.34111v77.39484z" fill="#000000" stroke="none" strokeWidth="0" strokeLinecap="butt" />
+
                         <text transform="translate(826.1783,312.67515) scale(0.18499,0.18499)" fontSize="40" xmlSpace="preserve" fill="#000000" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">USB</tspan>
                         </text>
@@ -2430,6 +2445,19 @@ export default function FrontPanel({
                 </g>
             </svg>
             {/* <!--rotationCenter:432.627005:125.64786000000001--> */}
+            {openedModal === 'usb-select' && (
+                <USBSelectModal
+                    connectedDevice={mainInputs.sourceData[1].connectedUSBDevice}
+                    onSelect={(usb) => {
+                        if (mainInputs.sourceData[1].connectedUSBDevice) {
+                            mainInputs.sourceData[1].connectedUSBDevice = undefined;
+                        } else {
+                            mainInputs.sourceData[1].connectedUSBDevice = usb;
+                        }
+                    }}
+                    onClose={() => setOpenedModal(null)}
+                />
+            )}
         </div>
     )
 }

@@ -1,72 +1,37 @@
-getTrackID3() :: Server Actions Log | 08.09.2026, 23:50:55
-✅ fullPath: D:\Media\Music\FOR_USB_32GB\05_Jazz_Funk_Fusion_Instrumental\! NEW (for recording)\FROM MUSIFY.CLUB\_ Normalized with Audacity\Brian Simpson\South Beach (2010)\01_south-beach.mp3
+getTrackID3() :: Server Actions Log | 09.09.2026, 20:18:03
+✅ fullPath: D:\VilkiElense_Data\NEW\My_Projects\Development\Web\NextJS\other projects\appeley-multimedia-receiver\data\usb\Новая флешка\Music\Music by VilkiElense\Track_06.wav
 ✅ metadata: 
 
 {
    "format": {
-      "tagTypes": [
-         "ID3v2.4"
-      ],
+      "tagTypes": [],
       "trackInfo": [],
-      "lossless": false,
       "hasAudio": true,
       "hasVideo": false,
-      "container": "MPEG",
-      "codec": "MPEG 1 Layer 3",
+      "container": "WAVE",
+      "codec": "IEEE_FLOAT",
+      "bitsPerSample": 32,
       "sampleRate": 44100,
       "numberOfChannels": 2,
-      "bitrate": 320000,
-      "codecProfile": "CBR",
-      "tool": "LAME 3.100",
-      "trackPeakLevel": null,
-      "duration": 205.89714285714285,
-      "numberOfSamples": 9080064
+      "lossless": true,
+      "numberOfSamples": 12573792,
+      "duration": 285.12,
+      "bitrate": 2822400
    },
-   "native": {
-      "ID3v2.4": [
-         {
-            "id": "TXXX:comment",
-            "value": "(myzuka.org)"
-         },
-         {
-            "id": "TDRC",
-            "value": "2010"
-         },
-         {
-            "id": "TPE1",
-            "value": "Brian Simpson"
-         },
-         {
-            "id": "TALB",
-            "value": "South Beach"
-         },
-         {
-            "id": "TIT2",
-            "value": "South Beach"
-         },
-         {
-            "id": "TRCK",
-            "value": "1"
-         },
-         {
-            "id": "TSSE",
-            "value": "Lavf60.16.100"
-         }
-      ]
-   },
+   "native": {},
    "quality": {
       "warnings": [
          {
-            "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+            "message": "Ignore chunk: RIFF/JUNK"
          },
          {
-            "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+            "message": "Data chunk size exceeds file size"
          }
       ]
    },
    "common": {
       "track": {
-         "no": 1,
+         "no": null,
          "of": null
       },
       "disk": {
@@ -76,15 +41,6 @@ getTrackID3() :: Server Actions Log | 08.09.2026, 23:50:55
       "movementIndex": {
          "no": null,
          "of": null
-      },
-      "year": 2010,
-      "date": "2010",
-      "artists": [
-         "Brian Simpson"
-      ],
-      "artist": "Brian Simpson",
-      "album": "South Beach",
-      "title": "South Beach",
-      "encodersettings": "Lavf60.16.100"
+      }
    }
 }

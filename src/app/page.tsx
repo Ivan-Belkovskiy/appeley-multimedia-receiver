@@ -11,8 +11,9 @@ export default function Home() {
   const [videoOn, setVideoOn] = useState<boolean | undefined>(false);
   return (
     <div className="page-container">
+      <h1 className="page-title">APPELEY Multimedia Receiver</h1>
       <AppeleyReceiver videoOutputRef={monitorRef} setVideoPowerOn={setVideoOn} />
-      <LCDMonitor ref={monitorRef} powerOn={videoOn} />
+      {/* <LCDMonitor ref={monitorRef} powerOn={videoOn} /> */}
     </div>
   );
 }

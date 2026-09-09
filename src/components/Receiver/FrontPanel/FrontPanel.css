@@ -26,3 +26,13 @@
 .front-panel__button {
     user-select: none;
 }
+
+.front-panel__usb-port {
+    outline: 2px dashed transparent;
+    transition: all 0.3s ease 0s;
+
+    &:hover {
+        cursor: pointer;
+        outline-color: #0967d3;
+    }
+}
