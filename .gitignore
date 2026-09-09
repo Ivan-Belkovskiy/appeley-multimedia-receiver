@@ -2,6 +2,8 @@
 
 data.appeley
 
+/data
+
 # dependencies
 /node_modules
 /.pnp
