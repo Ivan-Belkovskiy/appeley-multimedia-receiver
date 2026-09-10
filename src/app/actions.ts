@@ -86,6 +86,7 @@ export async function getNavigationData(usbId: number) {
 }
 
 import { parseBuffer } from "music-metadata";
+import { Prisma } from "@prisma/client";
 
 export async function getTrackID3(trackUrl: string) {
     try {
@@ -158,7 +159,7 @@ export async function getUSBData(): Promise<{ success: boolean; data?: USBFlashI
         const res = await prisma.usb_devices.findMany({});
 
         return {
-            success: true, data: res.map(usb => ({
+            success: true, data: res.map((usb: Prisma.usb_devicesGetPayload<{}>) => ({
                 id: usb.id,
                 name: usb.name,
                 style: {
