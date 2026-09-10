@@ -97,9 +97,9 @@ export interface FolderInfo {
     isEmpty: boolean;
     trackList: {
         name: string;
+        url: string;
         type: "audio" | "video";
     }[];
-    // trackCount: number;
 }
 
 export interface MyLiftElevatorAction {
@@ -324,7 +324,9 @@ export default function MainController({
 
         const getNavigation = () => new Promise(async (resolve, reject) => {
             try {
-                const data = await getNavigationData(inputsRef.current.sourceData[1].connectedUSBDevice);
+                const usbId = inputsRef.current.sourceData[1].connectedUSBDevice?.id;
+                if (!usbId) throw new Error("No USB device connected!");
+                const data = await getNavigationData(usbId);
                 resolve(data.data);
             } catch (error) {
                 reject(error);
@@ -339,15 +341,13 @@ export default function MainController({
 
                 if (!sourceData.playbackData || !sourceData.navigationData) throw new Error('Playback or navigation data not provided!');
 
-                const currentFolder = sourceData.navigationData.find(v => v.number === sourceData.playbackData!.folderNumber);
+                const currentFolder = sourceData.navigationData.find(
+                    v => v.number === sourceData.playbackData!.folderNumber
+                );
+                const track = currentFolder?.trackList[sourceData.playbackData.trackNumber];
+                if (!track) throw new Error("Track not found!");
 
-
-                const folderUrl = currentFolder?.path;
-                const trackName = currentFolder?.trackList[sourceData.playbackData.trackNumber].name;
-                // alert(`folderUrl: ${folderUrl}\ntrackName: ${trackName}\nfolder: ${JSON.stringify(currentFolder?.trackList)}`)
-                if (!folderUrl || !trackName) throw new Error('Folder url or track name not provided!');
-
-                const { id3 } = await getTrackID3(folderUrl, trackName);
+                const { id3 } = await getTrackID3(track.url);
 
                 if (!id3) throw new Error('ID3 Tag reading error!');
 
@@ -362,7 +362,7 @@ export default function MainController({
 
                 sourceData.playbackData.trackName = {
                     isID3Tag: (id3.common.title ? true : false),
-                    data: (id3.common.title || trackName)
+                    data: (id3.common.title || '')
                 };
                 sourceData.playbackData.albumName = {
                     isID3Tag: (id3.common.album ? true : false),
@@ -444,22 +444,15 @@ export default function MainController({
 
                 if (trackData.type === 'audio') {
                     if (audioPlayerRef.current) {
-
                         if (videoOutputRef.current) videoOutputRef.current.src = '';
-                        audioPlayerRef.current.src = (
-                            `/api/track?folderUrl=${encodedPath}&trackName=${encodedName}`
-                        );
-
-                        // audioPlayerRef.current.currentTime = 0;
+                        audioPlayerRef.current.src = trackData.url;
                         audioPlayerRef.current.play();
-
                         if (outputsRef.current.sourceData[1].playbackData) {
                             outputsRef.current.sourceData[1].playbackData.isPlaying = true;
                         }
-
-                    } else audioPlayerRef.current = new Audio(
-                        `/api/track?folderUrl=${encodedPath}&trackName=${encodedName}`
-                    );
+                    } else {
+                        audioPlayerRef.current = new Audio(trackData.url);
+                    }
 
                     audioPlayerRef.current.volume = (outputsRef.current.mainVolume / 100);
 
@@ -495,11 +488,7 @@ export default function MainController({
                     if (videoOutputRef.current) {
 
                         if (audioPlayerRef.current) audioPlayerRef.current.src = '';
-                        videoOutputRef.current.src = (
-                            `/api/track?folderUrl=${encodedPath}&trackName=${encodedName}`
-                        );
-
-                        // audioPlayerRef.current.currentTime = 0;
+                        videoOutputRef.current.src = trackData.url;
                         videoOutputRef.current.play();
                         setVideoPowerOn(true);
 
@@ -863,9 +852,12 @@ export default function MainController({
                                             d[1].isReading = false;
                                             d[1].dataToLoad = undefined;
                                         }).catch(err => {
-                                            tryReadTrack((0), (0), 'next').then(() => {
+                                            tryReadTrack(-1, 0, "next").then(() => {
                                                 d[1].isReading = false;
                                                 d[1].dataToLoad = undefined;
+                                            }).catch((err) => {
+                                                console.error("❌ Initial tryReadTrack failed:", err);
+                                                d[1].isReading = false;
                                             });
                                         });
 
@@ -1022,7 +1014,7 @@ export default function MainController({
                                         d[1].navigationData = data as FolderInfo[];
                                         console.log('NAVIGATION DATA:');
                                         console.log(data);
-                                        tryReadTrack(0, 0, "next").then(() => {
+                                        tryReadTrack(-1, 0, "next").then(() => {
                                             d[1].isReading = false;
                                         });
 

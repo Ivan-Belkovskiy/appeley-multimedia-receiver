@@ -1,6 +1,6 @@
 'use client';
 
-import { createUSBFlash, getOrInitUSBData, USBFlashInfo } from "@/app/actions";
+import { createUSBFlash, getUSBData, USBFlashInfo } from "@/app/actions";
 import "./USBCreateModal.css";
 import { useEffect, useState } from "react";
 

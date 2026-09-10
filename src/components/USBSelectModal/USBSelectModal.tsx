@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteUSBFlash, getOrInitUSBData, USBFlashInfo } from "@/app/actions";
+import { deleteUSBFlash, getUSBData, USBFlashInfo } from "@/app/actions";
 import "./USBSelectModal.css";
 import { useEffect, useState } from "react";
 import USBCreateModal from "../USBCreateModal/USBCreateModal";
@@ -29,7 +29,7 @@ export default function USBSelectModal({ connectedDevice, onSelect, onClose }: {
     const loadUsbData = async () => {
         setLoading(true);
 
-        const res = await getOrInitUSBData();
+        const res = await getUSBData();
         if (res.success && res.data) {
             setData(res.data || []);
         }
@@ -45,8 +45,9 @@ export default function USBSelectModal({ connectedDevice, onSelect, onClose }: {
     //     setUpdated(false);
     // }, [updated]);
 
-    const handleDelete = async (name: string) => {
-        const res = await deleteUSBFlash(name);
+    const handleDelete = async (id?: number) => {
+        if (!id) return;
+        const res = await deleteUSBFlash(id);
 
         if (res.success && res.data) {
             setData(res.data);
@@ -101,7 +102,7 @@ export default function USBSelectModal({ connectedDevice, onSelect, onClose }: {
                                             }}
                                             disabled={connected && (connected.name !== usb.name)}
                                         >{(connected?.name === usb.name) ? "Отключить" : "Подключить"}</button>
-                                        <button className="usb-flash-data__button" onClick={() => handleDelete(usb.name)}>Удалить</button>
+                                        <button className="usb-flash-data__button" onClick={() => handleDelete(usb.id)}>Удалить</button>
                                     </div>
                                 </div>
                             ))}

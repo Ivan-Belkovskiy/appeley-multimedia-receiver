@@ -3,122 +3,110 @@
 import { FolderEntry } from "@/components/FileNavigationModal/FileNavigationModal";
 import { MainControllerInputs, MainControllerOutputs } from "@/components/Receiver/MainController/MainController";
 import { USBEditingData } from "@/components/USBCreateModal/USBCreateModal";
+import { prisma } from "@/lib/prisma";
 import { Dirent, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { parseFile } from "music-metadata";
 import path, { parse } from "path";
 
+import { list, createFolder, put, del } from "@vercel/blob";
+
 const EXTENSIONS_AUDIO = [".mp3", ".wma", ".wav"];
 const EXTENSIONS_VIDEO = [".mp4"];
 
-export async function getNavigationData(usbDevice?: USBFlashInfo) {
-    
-    let fullUrl: string | null = null;
-    if (usbDevice) {
-        const usbDataPath = path.join(process.cwd(), 'data', 'usb');
+export async function getNavigationData(usbId: number) {
+    try {
+        if (!usbId) return { success: false, error: "USB ID not provided!" };
 
-        fullUrl = path.join(usbDataPath, usbDevice.name);
-    }
+        const prefix = `USB${usbId}/`;
+        const { blobs } = await list({ prefix });
 
-    const usbContentsPath = fullUrl || 'D:\\Media\\Music\\FOR_USB_32GB\\05_Jazz_Funk_Fusion_Instrumental\\! NEW (for recording)\\FROM MUSIFY.CLUB\\_ Normalized with Audacity';
-    const data = readdirSync(usbContentsPath, {
-        // recursive: true,
-        withFileTypes: true,
-    }).filter(dir => dir.isDirectory());
-
-
-    // Write Log File //
-
-
-
-    // if (!existsSync(process.cwd())) {
-    // writeFileSync(path.join(process.cwd(), 'log.txt'), '')
-    // } else fileS
-
-    let folders: Partial<Dirent<string> & {
-        isEmpty: boolean; trackList: {
+        const foldersMap = new Map<string, {
             name: string;
-            type: "audio" | "video";
-        }[]
-    }>[] = [];
+            path: string;
+            trackList: { name: string; url: string; type: "audio" | "video" }[];
+        }>();
 
-    const readDirContents = (data: Dirent<string>[], counter: number = 0) => new Promise((resolve: (val: { success: boolean, error?: any }) => void, reject) => {
-        data.forEach(dir => {
-            try {
-                let innerDirContents = readdirSync(path.join(dir.parentPath, dir.name), { withFileTypes: true });
-                folders.push({
-                    ...dir,
-                    isEmpty: (innerDirContents.filter(entry => entry.isFile() && [...EXTENSIONS_AUDIO, ...EXTENSIONS_VIDEO].includes(path.extname(entry.name).toLowerCase())).length === 0),
-                    // trackCount: innerDirContents.filter(entry => entry.isFile() && ['.mp3', '.wav', '.wma'].includes(path.extname(entry.name).toLowerCase())).length,
-                    trackList: innerDirContents.filter(entry => entry.isFile() && [...EXTENSIONS_AUDIO, ...EXTENSIONS_VIDEO].includes(path.extname(entry.name).toLowerCase())).map(ent => ({
-                        type: (EXTENSIONS_VIDEO.includes(path.extname(ent.name).toLowerCase())) ? "video" : "audio",
-                        name: ent.name,
-                    }))
-                });
-                if (counter < 8) readDirContents(innerDirContents.filter(dir => dir.isDirectory()), (counter + 1));
-            } catch (error) {
-                console.error('Reading folder error', error);
-                resolve({ success: false, error })
-                // reject(error);
+        for (const blob of blobs) {
+            const relative = blob.pathname.slice(prefix.length);
+            if (!relative) continue;
+
+            if (relative.endsWith("/")) {
+                const folderPath = relative.slice(0, -1);
+                if (!foldersMap.has(folderPath)) {
+                    foldersMap.set(folderPath, {
+                        name: path.posix.basename(folderPath),
+                        path: folderPath,
+                        trackList: [],
+                    });
+                }
+                continue;
             }
-        });
-        resolve({ success: true });
-    });
 
-    const result = await readDirContents(data);
+            const lastSlash = relative.lastIndexOf("/");
+            const folderPath = lastSlash === -1 ? "" : relative.slice(0, lastSlash);
+            const fileName = lastSlash === -1 ? relative : relative.slice(lastSlash + 1);
 
+            const ext = path.posix.extname(fileName).toLowerCase();
+            const isAudio = EXTENSIONS_AUDIO.includes(ext);
+            const isVideo = EXTENSIONS_VIDEO.includes(ext);
+            if (!isAudio && !isVideo) continue; 
 
-    // const folders = data.filter(dir => dir.isDirectory()).sort((a, b) => (
-    //     (a.parentPath === b.parentPath) ? -1 : 1
-    // ));
+            if (!foldersMap.has(folderPath)) {
+                foldersMap.set(folderPath, {
+                    name: folderPath ? path.posix.basename(folderPath) : "/",
+                    path: folderPath,
+                    trackList: [],
+                });
+            }
 
-    if (result.error) return ({
-        success: false,
-        error: `Reading Error: ${result.error}`,
-    });
+            foldersMap.get(folderPath)!.trackList.push({
+                name: fileName,
+                url: blob.url,                    
+                type: isAudio ? "audio" : "video",
+            });
+        }
 
-    return ({
-        success: true,
-        data: folders.map((dir, idx) => ({
-            number: idx,
-            name: dir.name,
-            path: path.join(dir.parentPath || "", dir.name || ""),
-            isEmpty: dir.isEmpty,
-            trackList: dir.trackList,
+        const data = Array.from(foldersMap.values())
+            .sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))
+            .map((f, idx) => ({
+                number: idx,
+                name: f.name,
+                path: f.path,
+                isEmpty: f.trackList.length === 0,
+                trackList: f.trackList.sort((a, b) =>
+                    a.name.localeCompare(b.name, undefined, { numeric: true })
+                ),
+            }));
 
-            // trackCount: dir.trackCount,
-        })),
-
-    });
+        return { success: true, data };
+    } catch (error) {
+        console.error("getNavigationData error:", error);
+        return { success: false, error: String(error) };
+    }
 }
 
-export async function getTrackID3(folderUrl: string, trackName: string) {
-    let LOG_DATA = `getTrackID3() :: Server Actions Log | ${new Date().toLocaleString()}`;
+import { parseBuffer } from "music-metadata";
+
+export async function getTrackID3(trackUrl: string) {
     try {
+        if (!trackUrl) throw new Error("Track URL not provided!");
 
-        if (!folderUrl || !trackName) throw new Error('Folder Url and Track Name not provided!!!');
+        const res = await fetch(trackUrl);
+        if (!res.ok) throw new Error(`Failed to fetch track: ${res.status}`);
 
-        const fullPath = path.join(folderUrl, trackName);
+        const arrayBuffer = await res.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const contentType = res.headers.get("content-type") || undefined;
 
-        LOG_DATA += `\n✅ fullPath: ${fullPath}`;
-
-        if (!existsSync(fullPath)) throw new Error('File not found!');
-
-
-        const metadata = await parseFile(fullPath, {
+        const metadata = await parseBuffer(buffer, contentType, {
             duration: true,
             skipCovers: true,
         });
 
-        LOG_DATA += `\n✅ metadata: \n\n${JSON.stringify(metadata, null, 3)}`;
-
-        writeFileSync(path.join(process.cwd(), 'log.txt'), LOG_DATA);
-
         return { success: true, id3: metadata };
-
     } catch (error) {
-        LOG_DATA += `\n🔺 ERROR: ${error}`;
-        writeFileSync(path.join(process.cwd(), 'log.txt'), LOG_DATA);
-        return { success: false, error };
+        console.error("getTrackID3 error:", error);
+        return { success: false, error: String(error) };
     }
 }
 
@@ -156,6 +144,7 @@ export async function loadData() {
 
 
 export interface USBFlashInfo {
+    id?: number;
     name: string;
     style: {
         primaryColor: string;
@@ -163,29 +152,43 @@ export interface USBFlashInfo {
     },
 }
 
-export async function getOrInitUSBData(): Promise<{ success: boolean; data?: USBFlashInfo[]; error?: any }> {
+export async function getUSBData(): Promise<{ success: boolean; data?: USBFlashInfo[]; error?: any }> {
     try {
 
-        const usbDataPath = path.join(process.cwd(), 'data', 'usb');
+        const res = await prisma.usb_devices.findMany({});
 
-        if (!existsSync(usbDataPath)) mkdirSync(usbDataPath, {
-            recursive: true,
-        });
-
-        const usbJsonPath = path.join(usbDataPath, 'usb.appeley');
-
-        if (!existsSync(usbJsonPath)) {
-            const newData: any[] = [];
-
-            writeFileSync(usbJsonPath, JSON.stringify(newData));
-            return { success: true, data: newData };
-        } else {
-            const data = readFileSync(usbJsonPath, {
-                encoding: 'utf-8',
-            });
-
-            return { success: true, data: JSON.parse(data) };
+        return {
+            success: true, data: res.map(usb => ({
+                id: usb.id,
+                name: usb.name,
+                style: {
+                    primaryColor: usb.primaryColor,
+                    secondaryColor: usb.secondaryColor
+                }
+            }))
         }
+
+        // const usbDataPath = path.join(process.cwd(), 'data', 'usb');
+
+        // if (!existsSync(usbDataPath)) mkdirSync(usbDataPath, {
+        //     recursive: true,
+        // });
+
+        // const usbJsonPath = path.join(usbDataPath, 'usb.appeley');
+
+        // if (!existsSync(usbJsonPath)) {
+        //     const newData: any[] = [];
+
+        //     writeFileSync(usbJsonPath, JSON.stringify(newData));
+        //     return { success: true, data: newData };
+        // } else {
+        //     const data = readFileSync(usbJsonPath, {
+        //         encoding: 'utf-8',
+        //     });
+
+        //     return { success: true, data: JSON.parse(data) };
+        // }
+
 
 
 
@@ -197,209 +200,215 @@ export async function getOrInitUSBData(): Promise<{ success: boolean; data?: USB
 export async function createUSBFlash(editing: USBEditingData) {
     try {
 
-        await getOrInitUSBData();
-
-        const usbDataPath = path.join(process.cwd(), 'data', 'usb');
-
-        const usbJsonPath = path.join(usbDataPath, 'usb.appeley');
-
-
-        const data = readFileSync(usbJsonPath, {
-            encoding: 'utf-8',
+        const created = await prisma.usb_devices.create({
+            data: {
+                name: editing.name,
+                primaryColor: editing.style.primaryColor,
+                secondaryColor: editing.style.secondaryColor,
+            }
         });
 
-        const newUSBData: USBFlashInfo[] = JSON.parse(data);
+        const data = await createFolder(`USB${created.id}/`);
 
-        if (Array.isArray(newUSBData)) {
-            newUSBData.push({
-                ...editing,
-            });
-        }
+        return await getUSBData();
 
-        mkdirSync(path.join(usbDataPath, editing.name), {
-            recursive: true
-        });
+        // return { success: true, data: data };
 
-        const res = writeFileSync(usbJsonPath, JSON.stringify(newUSBData));
+        // await getUSBData();
 
-        return { success: true, data: newUSBData };
-
-
-    } catch (error) {
-        return { success: false, error: "" };
-    }
-}
-
-export async function deleteUSBFlash(name: string) {
-    try {
-
-        await getOrInitUSBData();
-
-        const usbDataPath = path.join(process.cwd(), 'data', 'usb');
-
-        const usbJsonPath = path.join(usbDataPath, 'usb.appeley');
-
-
-        const data = readFileSync(usbJsonPath, {
-            encoding: 'utf-8',
-        });
-
-        let newUSBData: USBFlashInfo[] = JSON.parse(data);
-
-        if (Array.isArray(newUSBData)) {
-            newUSBData = newUSBData.filter(usb => usb.name !== name);
-        }
-
-        const res = writeFileSync(usbJsonPath, JSON.stringify(newUSBData));
-
-        return { success: true, data: newUSBData };
-
-
-    } catch (error) {
-        return { success: false, error: "" };
-    }
-}
-
-export async function getUSBFiles(name: string, nextPath: string) {
-    try {
-
-        if (!name) return { success: false, error: "Name not provided!" };
-
-        const usbDataPath = path.join(process.cwd(), 'data', 'usb');
+        // const usbDataPath = path.join(process.cwd(), 'data', 'usb');
 
         // const usbJsonPath = path.join(usbDataPath, 'usb.appeley');
 
-        const current = path.join(usbDataPath, name);
-        const next = path.normalize(nextPath);
 
-        const fullPath = path.join(current, next);
+        // const data = readFileSync(usbJsonPath, {
+        //     encoding: 'utf-8',
+        // });
 
-        if (!existsSync(fullPath)) return { success: false, error: "USB Flash not found!" };
+        // const newUSBData: USBFlashInfo[] = JSON.parse(data);
 
-        const data = readdirSync(fullPath, {
-            withFileTypes: true,
-        })/*.sort((a, b) => */;
+        // if (Array.isArray(newUSBData)) {
+        //     newUSBData.push({
+        //         ...editing,
+        //     });
+        // }
+
+        // mkdirSync(path.join(usbDataPath, editing.name), {
+        //     recursive: true
+        // });
+
+        // const res = writeFileSync(usbJsonPath, JSON.stringify(newUSBData));
+
+        // return { success: true, data: newUSBData };
+
+
+    } catch (error) {
+        return { success: false, error: "" };
+    }
+}
+
+export async function deleteUSBFlash(id: number) {
+    try {
+
+        const deleted = await prisma.usb_devices.delete({
+            where: {
+                id,
+            }
+        });
+
+        return await getUSBData();
+        // return { success: true, data: deleted };
+
+        // await getUSBData();
+
+        // const usbDataPath = path.join(process.cwd(), 'data', 'usb');
+
+        // const usbJsonPath = path.join(usbDataPath, 'usb.appeley');
+
+
+        // const data = readFileSync(usbJsonPath, {
+        //     encoding: 'utf-8',
+        // });
+
+        // let newUSBData: USBFlashInfo[] = JSON.parse(data);
+
+        // if (Array.isArray(newUSBData)) {
+        //     newUSBData = newUSBData.filter(usb => usb.name !== name);
+        // }
+
+        // const res = writeFileSync(usbJsonPath, JSON.stringify(newUSBData));
+
+        // return { success: true, data: newUSBData };
+
+
+    } catch (error) {
+        return { success: false, error: "" };
+    }
+}
+
+const USB_ROOT = "USB";
+
+function buildPrefix(usbId: number, nextPath: string = ""): string {
+    const clean = nextPath.replace(/^\/+|\/+$/g, "");
+    const base = `${USB_ROOT}${usbId}/`;
+    return clean ? `${base}${clean}/` : base;
+}
+
+export async function getUSBFiles(usbId: number, nextPath: string = "") {
+    try {
+        if (!usbId) return { success: false, error: "ID not provided!" };
+
+        const prefix = buildPrefix(usbId, nextPath);
+
+        const data = await list({
+            prefix,
+            mode: "folded",
+        });
 
         return {
-            success: true, data: data.map(ent => ({
-                name: ent.name,
-                parentPath: ent.parentPath,
-                isDirectory: ent.isDirectory()
-            }))
+            success: true,
+            data: [
+                ...data.blobs.map((blob) => ({
+                    name: blob.pathname.slice(prefix.length),
+                    isDirectory: false,
+                    url: blob.url,
+                    size: blob.size,
+                })),
+                ...data.folders.map((f) => ({
+                    name: path.posix.basename(f.replace(/\/$/, "")),
+                    isDirectory: true,
+                })),
+            ],
         };
-
-
     } catch (error) {
-        return { success: false, error: "" };
+        console.error("getUSBFiles error:", error);
+        return { success: false, error: String(error) };
     }
 }
 
-export async function createUSBFolder(usbName: string, nextPath: string, folderName: string) {
+export async function createUSBFolder(
+    usbId: number,
+    nextPath: string,
+    folderName: string
+) {
     try {
+        if (!usbId) return { success: false, error: "ID not provided!" };
 
-        if (!usbName) return { success: false, error: "Name not provided!" };
+        const cleanNext = nextPath.replace(/^\/+|\/+$/g, "");
+        const folderPath = cleanNext
+            ? `${USB_ROOT}${usbId}/${cleanNext}/${folderName}/`  
+            : `${USB_ROOT}${usbId}/${folderName}/`;
 
-        const usbDataPath = path.join(process.cwd(), 'data', 'usb');
+        await createFolder(folderPath);
 
-        const current = path.join(usbDataPath, usbName);
-        const next = path.normalize(nextPath);
-
-        const fullPath = path.join(current, next);
-
-        if (!existsSync(fullPath)) return { success: false, error: "Folder not exists!" };
-
-        mkdirSync(path.join(fullPath, folderName));
-
-        return { success: true };
-
-
+        return await getUSBFiles(usbId, nextPath);
     } catch (error) {
-        return { success: false, error: "" };
+        console.error("createUSBFolder error:", error);
+        return { success: false, error: String(error) };
     }
 }
 
-export async function enterUSBFolder(usbName: string, nextPath: string, folderName: string) {
+export async function enterUSBFolder(
+    usbId: number,
+    nextPath: string,
+    folderName: string
+) {
     try {
+        const newNextPath = path.posix.join(nextPath, folderName);
+        const res = await getUSBFiles(usbId, newNextPath);
 
-        if (!usbName) return { success: false, error: "Name not provided!" };
-
-        const usbDataPath = path.join(process.cwd(), 'data', 'usb');
-
-        const current = path.join(usbDataPath, usbName);
-        const next = path.normalize(nextPath);
-
-        const fullPath = path.join(current, next, folderName);
-
-        if (!existsSync(fullPath)) return { success: false, error: "Folder not exists!" };
-
-        const newNextPath = path.join(nextPath, folderName);
-        const data = await getUSBFiles(usbName, newNextPath);
-
-        return { success: true, data: data.data, path: newNextPath };
-
-
+        return {
+            ...res,
+            path: res.success ? newNextPath : undefined,
+        };
     } catch (error) {
-        return { success: false, error: "" };
+        console.error("enterUSBFolder error:", error);
+        return { success: false, error: String(error), path: undefined };
     }
 }
 
-export async function moveToParentUSBFolder(usbName: string, nextPath: string) {
+export async function moveToParentUSBFolder(usbId: number, nextPath: string) {
     try {
+        const parts = nextPath.split("/").filter(Boolean);
+        parts.pop();
+        const newPath = parts.join("/");
 
-        if (!usbName) return { success: false, error: "Name not provided!" };
-
-        const usbDataPath = path.join(process.cwd(), 'data', 'usb');
-
-        const current = path.join(usbDataPath, usbName);
-        const next = path.normalize(nextPath);
-
-        const fullPath = path.join(current, next);
-
-        if (!existsSync(fullPath)) return { success: false, error: "Folder not exists!" };
-
-        const newNextPath = path.normalize(`${next}/..`);
-
-        const data = await getUSBFiles(usbName, newNextPath);
-
-        return { success: true, data: data.data, path: newNextPath };
-
-
+        const res = await getUSBFiles(usbId, newPath);
+        return {
+            ...res,
+            path: res.success ? newPath : undefined,
+        };
     } catch (error) {
-        return { success: false, error: "" };
+        console.error("moveToParentUSBFolder error:", error);
+        return { success: false, error: String(error), path: undefined };
     }
 }
 
-export async function uploadFilesToUSBFolder(usbName: string, nextPath: string, formData: FormData) {
+export async function uploadFilesToUSBFolder(
+    usbId: number,
+    nextPath: string,
+    formData: FormData
+) {
     try {
+        if (!usbId) return { success: false, error: "ID not provided!" };
 
-        if (!usbName) return { success: false, error: "Name not provided!" };
+        const prefix = buildPrefix(usbId, nextPath);
 
-        const usbDataPath = path.join(process.cwd(), 'data', 'usb');
-
-        const current = path.join(usbDataPath, usbName);
-        const next = path.normalize(nextPath);
-
-        const fullPath = path.join(current, next);
-
-        if (!existsSync(fullPath)) return { success: false, error: "Folder not exists!" };
-
-        for (const [key, value] of formData) {
+        for (const [, value] of formData) {
             if (value instanceof File) {
                 const bytes = await value.arrayBuffer();
                 const buffer = Buffer.from(bytes);
-
-                const filePath = path.join(fullPath, value.name);
-                
-                writeFileSync(filePath, buffer);
+                const blobPath = `${prefix}${value.name}`;
+                await put(blobPath, buffer, {
+                    access: "public",
+                    contentType: value.type || "application/octet-stream",
+                });
             }
         }
 
-        const data = await getUSBFiles(usbName, nextPath);
-
-        return { success: true, data: data.data, path: nextPath };
-
-
+        return await getUSBFiles(usbId, nextPath);
     } catch (error) {
-        return { success: false, error: "" };
+        console.error("uploadFilesToUSBFolder error:", error);
+        return { success: false, error: String(error) };
     }
 }

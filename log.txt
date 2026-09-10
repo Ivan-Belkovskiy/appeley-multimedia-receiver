@@ -1,37 +1,2546 @@
-getTrackID3() :: Server Actions Log | 09.09.2026, 20:18:03
-✅ fullPath: D:\VilkiElense_Data\NEW\My_Projects\Development\Web\NextJS\other projects\appeley-multimedia-receiver\data\usb\Новая флешка\Music\Music by VilkiElense\Track_06.wav
+getTrackID3() :: Server Actions Log | 10.09.2026, 03:09:00
+✅ fullPath: D:\VilkiElense_Data\NEW\My_Projects\Development\Web\NextJS\other projects\appeley-multimedia-receiver\data\usb\Новая флешка\Music\Track_05.mp3
 ✅ metadata: 
 
 {
    "format": {
-      "tagTypes": [],
+      "tagTypes": [
+         "ID3v2.3",
+         "ID3v1"
+      ],
       "trackInfo": [],
+      "lossless": false,
       "hasAudio": true,
       "hasVideo": false,
-      "container": "WAVE",
-      "codec": "IEEE_FLOAT",
-      "bitsPerSample": 32,
+      "container": "MPEG",
+      "codec": "MPEG 1 Layer 3",
       "sampleRate": 44100,
       "numberOfChannels": 2,
-      "lossless": true,
-      "numberOfSamples": 12573792,
-      "duration": 285.12,
-      "bitrate": 2822400
+      "bitrate": 320000,
+      "codecProfile": "CBR",
+      "tool": "LAME 3.100",
+      "trackPeakLevel": null,
+      "duration": 293.04163265306124,
+      "numberOfSamples": 12923136
    },
-   "native": {},
+   "native": {
+      "ID3v2.3": [
+         {
+            "id": "TIT2",
+            "value": "Track 05"
+         },
+         {
+            "id": "TYER",
+            "value": "2026"
+         },
+         {
+            "id": "COMM",
+            "value": {
+               "language": "eng",
+               "descriptor": "",
+               "text": ""
+            }
+         },
+         {
+            "id": "TRCK",
+            "value": "5"
+         },
+         {
+            "id": "TALB",
+            "value": "For JVC KD-R402"
+         },
+         {
+            "id": "TPE1",
+            "value": "VilkiElense"
+         }
+      ],
+      "ID3v1": [
+         {
+            "id": "title",
+            "value": "Track 05"
+         },
+         {
+            "id": "artist",
+            "value": "VilkiElense"
+         },
+         {
+            "id": "album",
+            "value": "For JVC KD-R402"
+         },
+         {
+            "id": "track",
+            "value": 5
+         },
+         {
+            "id": "year",
+            "value": "2026"
+         }
+      ]
+   },
    "quality": {
       "warnings": [
          {
-            "message": "Ignore chunk: RIFF/JUNK"
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
          },
          {
-            "message": "Data chunk size exceeds file size"
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Invalid ID3v2.3 frame-header-ID: \u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "id3v2.3 header has empty tag type=\u0000\u0000\u0000\u0000"
+         },
+         {
+            "message": "Illegal ID3v2 tag length"
          }
       ]
    },
    "common": {
       "track": {
-         "no": null,
+         "no": 5,
          "of": null
       },
       "disk": {
@@ -41,6 +2550,20 @@ getTrackID3() :: Server Actions Log | 09.09.2026, 20:18:03
       "movementIndex": {
          "no": null,
          "of": null
-      }
+      },
+      "title": "Track 05",
+      "year": 2026,
+      "comment": [
+         {
+            "language": "eng",
+            "descriptor": "",
+            "text": ""
+         }
+      ],
+      "album": "For JVC KD-R402",
+      "artists": [
+         "VilkiElense"
+      ],
+      "artist": "VilkiElense"
    }
 }

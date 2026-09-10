@@ -1,0 +1,20 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model usb_devices {
+  id              Int     @id @default(autoincrement())
+  name            String  @db.VarChar(100)
+  primaryColor    String  @db.VarChar(9)
+  secondaryColor  String  @db.VarChar(9)
+}

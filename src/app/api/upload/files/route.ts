@@ -1,52 +1,37 @@
-import { existsSync, writeFileSync } from "fs";
-import { NextRequest, NextResponse } from "next/server";
-import path from "path";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
-
-    let usbName = req.nextUrl.searchParams.get('usbName');
-    let nextPath = req.nextUrl.searchParams.get('path');
-
-    if (!usbName || !nextPath) return NextResponse.json({
-        success: false,
-        error: 'USB Name or path not provided!'
-    });
-
-    usbName = decodeURIComponent(usbName);
-    nextPath = decodeURIComponent(nextPath);
+export async function POST(request: Request): Promise<NextResponse> {
+    const body = (await request.json()) as HandleUploadBody;
 
     try {
-        const formData = await req.formData();
+        const jsonResponse = await handleUpload({
+            body,
+            request,
+            onBeforeGenerateToken: async (pathname /*, clientPayload */) => {
 
-        if (!usbName) return NextResponse.json({ success: false, error: "Name not provided!" });
+                return {
+                    allowedContentTypes: [
+                        "audio/mpeg",       
+                        "audio/wav",        
+                        "audio/x-ms-wma",   
+                        "video/mp4",        
+                    ],
+                    addRandomSuffix: false, 
+                    maximumSizeInBytes: 500 * 1024 * 1024,
+                };
+            },
+            onUploadCompleted: async ({ blob, tokenPayload }) => {
+                console.log("✅ Upload completed:", blob.url);
+            },
+        });
 
-        const usbDataPath = path.join(process.cwd(), 'data', 'usb');
-
-        const current = path.join(usbDataPath, usbName);
-        const next = path.normalize(nextPath);
-
-        const fullPath = path.join(current, next);
-
-        if (!existsSync(fullPath)) return NextResponse.json({ success: false, error: "Folder not exists!" });
-
-        for (const [key, value] of formData) {
-            if (value instanceof File) {
-                const bytes = await value.arrayBuffer();
-                const buffer = Buffer.from(bytes);
-
-                const filePath = path.join(fullPath, value.name);
-
-                writeFileSync(filePath, buffer);
-            }
-        }
-
-        // const data = await getUSBFiles(usbName, nextPath);
-
-        return NextResponse.json({ success: true });
-
-
+        return NextResponse.json(jsonResponse);
     } catch (error) {
-        return NextResponse.json({ success: false, error: "" });
+        console.error("Upload token error:", error);
+        return NextResponse.json(
+            { error: (error as Error).message },
+            { status: 400 }
+        );
     }
-
 }
