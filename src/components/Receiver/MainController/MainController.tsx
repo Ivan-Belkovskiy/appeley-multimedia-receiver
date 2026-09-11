@@ -444,27 +444,23 @@ export default function MainController({
 
                 if (trackData.type === 'audio') {
                     if (audioPlayerRef.current) {
-                        if (videoOutputRef.current) videoOutputRef.current.src = '';
-                        audioPlayerRef.current.src = trackData.url;
-                        audioPlayerRef.current.play();
-                        if (outputsRef.current.sourceData[1].playbackData) {
-                            outputsRef.current.sourceData[1].playbackData.isPlaying = true;
-                        }
-                    } else {
-                        audioPlayerRef.current = new Audio(trackData.url);
+                        audioPlayerRef.current.pause();
+                        audioPlayerRef.current.removeAttribute('src');
+                        audioPlayerRef.current.load();
                     }
+                    if (videoOutputRef.current) videoOutputRef.current.src = '';
 
-                    audioPlayerRef.current.volume = (outputsRef.current.mainVolume / 100);
+                    const audio = new Audio();
+                    audio.preload = 'metadata';
+                    audio.volume = outputsRef.current.mainVolume / 100;
+                    audio.src = trackData.url;
 
-                    const canplayHandler = () => {
-                        console.log('AUDIO LOADED! URL: ', audioPlayerRef.current?.src);
-                        audioPlayerRef.current?.play();
-                        resolve(true);
+                    audioPlayerRef.current = audio;
 
-                        if (outputsRef.current.sourceData[1].playbackData) {
-                            outputsRef.current.sourceData[1].playbackData.isPlaying = true;
-                        }
-
+                    const onCanPlay = () => {
+                        console.log('AUDIO LOADED:', trackData.url);
+                        audio.removeEventListener('canplay', onCanPlay); 
+                        audio.play().then(() => resolve(true)).catch(reject);
                         outputsRef.current.sourceData[1].playbackData = {
                             folderNumber: available.number,
                             trackNumber,
@@ -472,16 +468,24 @@ export default function MainController({
                         };
                     };
 
-                    audioPlayerRef.current.addEventListener('canplay', canplayHandler);
-                    audioPlayerRef.current.addEventListener('timeupdate', () => {
+                    const onTimeUpdate = () => {
                         if (outputsRef.current.sourceData[1].playbackData) {
-                            outputsRef.current.sourceData[1].playbackData.currentTime = (
-                                audioPlayerRef.current?.currentTime || undefined
-                            )
+                            outputsRef.current.sourceData[1].playbackData.currentTime = audio.currentTime;
                         }
-                    });
-                    audioPlayerRef.current.addEventListener('ended', () => {
+                    };
+
+                    const onEnded = () => {
+                        audio.removeEventListener('timeupdate', onTimeUpdate);
+                        audio.removeEventListener('ended', onEnded);
                         selectTrack('next');
+                    };
+
+                    audio.addEventListener('canplay', onCanPlay, { once: true });
+                    audio.addEventListener('timeupdate', onTimeUpdate);
+                    audio.addEventListener('ended', onEnded, { once: true });
+
+                    audio.play().catch((err) => {
+                        console.warn('play() deferred:', err.name, err.message);
                     });
                 } else {
 
