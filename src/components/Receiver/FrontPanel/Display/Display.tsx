@@ -1,5 +1,6 @@
 'use client';
 
+import { brightnessFilter, setBrightness, normalizeLuminance } from "@/utils/color";
 import "./Display.css";
 import MainIndicator from "./MainIndicator/MainIndicator";
 
@@ -49,7 +50,7 @@ export default function Display({
 
 }) {
 
-    const staticColor = (condition?: boolean) => condition ? indicationColor1 : indicationColor2;
+    const staticColor = (condition?: boolean) => condition ? indicationColor1 : setBrightness(indicationColor1, 0.1);
 
     return (
         // <div className="display">
@@ -227,7 +228,7 @@ export default function Display({
             {/* // <!-- DISPLAY (Main Window) --> */}
             <path d="M339.34911,339.10312v-91.24327h423.7256v91.24327z" fill="#000000" stroke="none" strokeWidth="0" strokeLinecap="butt" />
             {/* // <!-- Display (Top-Left Decoration Line) --> */}
-            <path d="M467.83354,250.08056l-27.23683,27.23684h-95.26316" fill="none" stroke={(otherIndication?.topLeftDecorationLine) ? indicationColor1 : indicationColor2} strokeWidth="1" strokeLinecap="round" />
+            <path d="M467.83354,250.08056l-27.23683,27.23684h-95.26316" fill="none" stroke={(otherIndication?.topLeftDecorationLine) ? indicationColor1 : setBrightness(indicationColor1, 0.1)} strokeWidth="1" strokeLinecap="round" />
 
             {/* // <!-- Display (Indicator Places) --> */}
             {/* <g fill="#395e7e" stroke="none" strokeWidth="0" strokeLinecap="butt">
@@ -311,7 +312,7 @@ export default function Display({
                     offsetX={(26 * idx)}
                     data={mainData?.[idx] || ""}
                     color1={indicationColor1}
-                    color2={indicationColor2}
+                    color2={setBrightness(indicationColor1, 0.1)}
                 />
             ))}
 
@@ -322,7 +323,7 @@ export default function Display({
                     scale={0.6}
                     data={topLeftData?.[idx] || ""}
                     color1={indicationColor1}
-                    color2={indicationColor2}
+                    color2={setBrightness(indicationColor1, 0.1)}
                 />
             ))}
 
@@ -379,7 +380,7 @@ export default function Display({
                 <path d="M375.23124,250.22427v1.30487h-3.03335v-1.30487z" stroke-width="NaN" />
             </g> */}
 
-            <text transform="translate(355.05362,256.1348) scale(0.19262,0.19262)" fontSize="40" xmlSpace="preserve" fill={otherIndication?.Tr ? indicationColor1 : indicationColor2} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+            <text transform="translate(355.05362,256.1348) scale(0.19262,0.19262)" fontSize="40" xmlSpace="preserve" fill={otherIndication?.Tr ? indicationColor1 : setBrightness(indicationColor1, 0.1)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                 <tspan x="0" dy="0">Tr</tspan>
             </text>
             <g strokeLinecap="butt">
@@ -408,7 +409,7 @@ export default function Display({
                         otherIndication?.topRightData?.rightData?.[idx - 4] || ""
                     )}
                     color1={indicationColor1}
-                    color2={indicationColor2}
+                    color2={setBrightness(indicationColor1, 0.1)}
                 />
             ))}
 

@@ -17,6 +17,10 @@
     height: 100%;
 }
 
+.front-panel__svg * {
+    transition: fill 0.2s ease 0s;
+}
+
 .front-panel .display {
     z-index: 10;
     margin-top: 60px;

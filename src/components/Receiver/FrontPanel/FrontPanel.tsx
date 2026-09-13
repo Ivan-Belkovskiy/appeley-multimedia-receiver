@@ -3,13 +3,14 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from "react";
 import Display, { DisplayMainIndication, DisplayOtherIndication } from "./Display/Display";
 import "./FrontPanel.css";
-import { MainControllerInputs, MainControllerOutputs, MainControllerSource, MainControllerSources } from "../MainController/MainController";
+import { JAZZ_RADIO_STATIONS, MainControllerInputs, MainControllerMenuDefinition, MainControllerOutputs, MainControllerSource, MainControllerSources, MenuOption } from "../MainController/MainController";
 import { centerMainText } from "@/utils/display";
 import { formatTime, timeFromDate } from "@/utils/time";
 import beeper from "@/utils/beeper";
 import Encoder from "./Encoder/Encoder";
 import { parseMyLiftSelectorString } from "@/utils/string";
 import USBSelectModal from "@/components/USBSelectModal/USBSelectModal";
+import { applyColorOffset, brightnessFilter } from "@/utils/color";
 
 interface DisplayData {
     main: DisplayMainIndication[];
@@ -35,18 +36,74 @@ interface DemoInfo {
     topLeft?: DemoIndicationOption<DisplayMainIndication[]>[];
     otherIndication?: DemoIndicationOption<DisplayOtherIndication>[];
 
+    indicationColor?: {
+        display?: string;
+        buttons?: string;
+    };
+
     animation: DemoAnimationType;
     delayBeforeNext: number;
 }
+
+export const getCurrentMenuElement = (menuData: MainControllerMenuDefinition, path?: number[]) => {
+    if (!menuData.navigation.menuOpened) return;
+
+
+    let result: MenuOption | null = null;
+
+    const navigation = menuData.navigation;
+    const currentIdx = menuData.navigation.currentIdx;
+    const openedIdxArray = menuData.navigation.openedIdxArray;
+
+    let currentLevel = menuData.options;
+
+    if (openedIdxArray.length === 0) return currentLevel[currentIdx];
+
+
+    let openedArray = [...openedIdxArray, currentIdx];
+    if (Array.isArray(path)) openedArray = path;
+
+    for (let i = 0; i < openedArray.length; i++) {
+        const idx = openedArray[i];
+        const element = currentLevel[idx];
+        if (element?.type === 'block' && element?.innerOptions.length > 0) {
+            currentLevel = element.innerOptions;
+            // result = currentLevel[idx];
+        }
+        result = element;
+    }
+
+    // if (result && result.type === 'block' && result.innerOptions.length > 0) {
+    //     result = result.innerOptions[currentIdx];
+    //     // result = currentLevel[idx];
+    // }
+    // openedIdxArray.forEach(idx => {
+    //     const element = currentLevel[idx];
+    //     if (element.type === 'block' && element.innerOptions.length > 0) {
+    //         currentLevel = element.innerOptions;
+    //         // result = currentLevel[idx];
+    //     }
+    //     result = element;
+    // });
+
+    // alert(result?.label);
+
+    return result;
+
+};
 
 export default function FrontPanel({
     mainControllerInputsRef,
     mainControllerOutputsRef,
 
+    // indicationColor
 }: {
     mainControllerInputsRef: RefObject<MainControllerInputs>,
     mainControllerOutputsRef: RefObject<MainControllerOutputs>
 
+    // indicationColor?: {
+    //     display?: string;
+    // }
 }) {
 
     const [displayData, setDisplayData] = useState<DisplayData>({
@@ -89,7 +146,7 @@ export default function FrontPanel({
 
 
         let data: DisplayMainIndication[] = ["", "", "", ""];
-        const offset = Math.floor((t - 37) / 1);
+        const offset = Math.floor((t - startPoint) / 1);
 
         // const animMap = [
         //     // [indicator, [...segments] ],
@@ -120,36 +177,378 @@ export default function FrontPanel({
             [1, 6],
             [2, 6],
             [2, 7],
-            [2, 7],
-            [2, 7],
-            [2, 7],
-            [2, 7],
-            [2, 7],
-            [2, 7],
-            [2, 7],
+            // [2, 7],
+            // [2, 7],
+            // [2, 7],
+            // [2, 7],
+            // [2, 7],
+            // [2, 7],
+            // [2, 7],
+            []
         ]
 
-        const currentIndicator = animMap[(offset % animMap.length)]?.[0];
+        const idx = ((offset % animMap.length) + animMap.length) % animMap.length;
+        const currentIndicator = animMap[idx]?.[0];
 
-        if (t > startPoint) data[currentIndicator] = {
-            directDisplay: true,
-            segments: segmentMap[
-                animMap[(offset % animMap.length)]?.[1]
-            ] || []
-            // segments: [1, 2, 3, 4]
+        if (t > startPoint && currentIndicator !== undefined) {
+            data[currentIndicator] = {
+                directDisplay: true,
+                segments: segmentMap[animMap[idx]?.[1]] || []
+            };
         }
         return data;
     }, []);
+
+    // const demoInfo: DemoInfo[] = [
+    //     {
+    //         main: "DEMO",
+    //         animation: "default",
+    //         delayBeforeNext: 100,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0 && t < 30,
+    //                 data: (t) => demoTopLeftAnimCallback(t, 12),
+    //             }
+    //         ],
+    //         otherIndication: [
+    //             {
+    //                 active: (t) => t > 10,
+    //                 data: {
+    //                     topLeftDecorationLine: true
+    //                 }
+    //             }
+    //         ]
+    //     },
+    //     {
+    //         main: "APPELEY",
+    //         animation: "default",
+    //         delayBeforeNext: 60,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 40,
+    //                 data: (t) => demoTopLeftAnimCallback(t, 40),
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "MULTIMEDIA",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 60,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t < 58 || (t > 58),
+    //                 data: (t) => demoTopLeftAnimCallback(t, (t < 58 ? 40 : 58)),
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "RECEIVER",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 60,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t < 76 || (t > 76),
+    //                 data: (t) => demoTopLeftAnimCallback(t, (t < 76 ? 58 : 76)),
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 20,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t < 94,
+    //                 data: (t) => demoTopLeftAnimCallback(t, 76),
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "CD/DVD",
+    //         animation: "default",
+    //         delayBeforeNext: 100,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > (94 + 14) && t < ((94 + 14) + 18),
+    //                 data: (t) => demoTopLeftAnimCallback(t, (94 + 14)),
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "FRONT AV-IN",
+    //         animation: "default",
+    //         delayBeforeNext: 100,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > ((94 + 14 + 16) + 0) && t < (
+    //                     ((94 + 14 + 16) + 0) + 18
+    //                 ),
+    //                 data: (t) => demoTopLeftAnimCallback(t, (94 + 14 + 16) + 0),
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "BUILT-IN",
+    //         animation: "default",
+    //         delayBeforeNext: 60,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > (
+    //                     ((94 + 14 + 16) + 0) + 16 + (18)
+    //                 ) && t < (
+    //                     ((94 + 14 + 16) + 0) + 16 + (18 + 18)
+    //                 ),
+    //                 data: (t) => demoTopLeftAnimCallback(t, ((94 + 14 + 16) + 0 + 16) + 18),
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "BLUETOOTH",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 60,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t < (
+    //                     ((94 + 14 + 16) + 0) + (14 + 18)
+    //                      + 18
+    //                 ) || t > (
+    //                     ((94 + 14 + 16) + 0) + (14 + 18)
+    //                      + 18
+    //                 ),
+    //                 data: (t) => demoTopLeftAnimCallback(t, (t < (
+    //                     ((94 + 14 + 16) + 0) + (14 + 18)
+    //                      + 18
+    //                 ) ? (
+    //                     ((94 + 14 + 16) + 0) + (14 + 18)
+    //                      + 0
+    //                 ) : (
+    //                     ((94 + 14 + 16) + 0) + (14 + 18)
+    //                      + 18
+    //                 ))),
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "MODULE",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 60,
+    //         topLeft: [
+    //             // {
+    //             //     active: (t) => t > 0,
+    //             //     data: demoTopLeftAnimCallback,
+    //             // }
+    //         ],
+    //     },
+    //     {
+    //         main: "",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 20,
+    //         topLeft: [],
+    //     },
+
+    //     {
+    //         main: "READY FOR",
+    //         animation: "default",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "BOWSER ELEVATORS",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "ELEVATOR",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "VIDEO PLAYER",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 20,
+    //         topLeft: [],
+    //     },
+    //     {
+    //         main: "AUTOMATIC",
+    //         animation: "default",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "VOLUME",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "CONTROL",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 20,
+    //         topLeft: [],
+    //     },
+    //     {
+    //         main: "SELECTABLE",
+    //         animation: "default",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "INDICATION",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "COLOR",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 20,
+    //         topLeft: [],
+    //     },
+    //     {
+    //         main: "EXTENDED",
+    //         animation: "default",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "DISPLAY INFO",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "MANAGEMENT",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 115,
+    //         topLeft: [
+    //             {
+    //                 active: (t) => t > 0,
+    //                 data: demoTopLeftAnimCallback,
+    //             }
+    //         ],
+    //     },
+    //     {
+    //         main: "",
+    //         animation: "scroll-left",
+    //         delayBeforeNext: 20,
+    //         topLeft: [],
+    //     },
+    //     // {
+    //     //     main: "TIME-ACTIVATED",
+    //     //     animation: "default",
+    //     //     delayBeforeNext: 115,
+    //     //     topLeft: [
+    //     //         {
+    //     //             active: (t) => t > 0,
+    //     //             data: demoTopLeftAnimCallback,
+    //     //         }
+    //     //     ],
+    //     // },
+    //     // {
+    //     //     main: "POWER ON/OFF",
+    //     //     animation: "scroll-left",
+    //     //     delayBeforeNext: 115,
+    //     //     topLeft: [
+    //     //         {
+    //     //             active: (t) => t > 0,
+    //     //             data: demoTopLeftAnimCallback,
+    //     //         }
+    //     //     ],
+    //     // },
+
+    // ];
+
+
 
     const demoInfo: DemoInfo[] = [
         {
             main: "DEMO",
             animation: "default",
-            delayBeforeNext: 115,
+            delayBeforeNext: 100,
             topLeft: [
                 {
-                    active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback(t, 18),
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
             ],
             otherIndication: [
@@ -159,38 +558,43 @@ export default function FrontPanel({
                         topLeftDecorationLine: true
                     }
                 }
-            ]
+            ],
+            indicationColor: {
+                display: '#ffffff',
+                buttons: '#ffffff',
+            }
         },
         {
             main: "APPELEY",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 75,
             topLeft: [
                 {
-                    active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback(t, 18),
+                    active: (t) => t > 12,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
             ],
         },
         {
             main: "MULTIMEDIA",
             animation: "scroll-left",
-            delayBeforeNext: 100,
+            delayBeforeNext: 75,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback(t, 18),
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    // data: (t) => demoTopLeftAnimCallback((t < 18 ? (t + 11) : (t + 11)), 0),
                 }
             ],
         },
         {
             main: "RECEIVER",
             animation: "scroll-left",
-            delayBeforeNext: 100,
+            delayBeforeNext: 75,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback(t, 18),
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
                 }
             ],
         },
@@ -198,60 +602,71 @@ export default function FrontPanel({
             main: "",
             animation: "scroll-left",
             delayBeforeNext: 20,
-            topLeft: [],
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 6,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                }
+            ],
         },
         {
             main: "CD/DVD",
             animation: "default",
-            delayBeforeNext: 115,
+            delayBeforeNext: 100,
             topLeft: [
                 {
-                    active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
             ],
         },
         {
             main: "FRONT AV-IN",
             animation: "default",
-            delayBeforeNext: 115,
+            delayBeforeNext: 100,
             topLeft: [
                 {
-                    active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
+                // {
+                //     active: (t) => t > ((94 + 14 + 16) + 0) && t < (
+                //         ((94 + 14 + 16) + 0) + 18
+                //     ),
+                //     data: (t) => demoTopLeftAnimCallback(t, (94 + 14 + 16) + 0),
+                // }
             ],
         },
         {
             main: "BUILT-IN",
             animation: "default",
-            delayBeforeNext: 115,
+            delayBeforeNext: 75,
             topLeft: [
                 {
-                    active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    active: (t) => t > 12,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
             ],
         },
         {
             main: "BLUETOOTH",
             animation: "scroll-left",
-            delayBeforeNext: 115,
+            delayBeforeNext: 75,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
                 }
             ],
         },
         {
             main: "MODULE",
             animation: "scroll-left",
-            delayBeforeNext: 115,
+            delayBeforeNext: 75,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
                 }
             ],
         },
@@ -259,89 +674,143 @@ export default function FrontPanel({
             main: "",
             animation: "scroll-left",
             delayBeforeNext: 20,
-            topLeft: [],
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 6,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                }
+            ],
         },
 
         {
             main: "READY FOR",
             animation: "default",
-            delayBeforeNext: 115,
+            delayBeforeNext: 75,
             topLeft: [
                 {
-                    active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    active: (t) => t > 12,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
             ],
         },
         {
             main: "BOWSER ELEVATORS",
             animation: "scroll-left",
-            delayBeforeNext: 115,
+            delayBeforeNext: 75,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
                 }
             ],
+            otherIndication: [
+                {
+                    active: (t) => t > 0,
+                    data: (t) => ({
+                        Elevator: (t % 60 < 30),
+                        topRightData: {
+                            ELEVATOR: (t % 60 < 30),
+                        },
+                        topLeftDecorationLine: true
+                    })
+                },
+            ]
         },
         {
             main: "ELEVATOR",
             animation: "scroll-left",
-            delayBeforeNext: 115,
+            delayBeforeNext: 75,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
                 }
             ],
+            otherIndication: [
+                {
+                    active: (t) => t > 0,
+                    data: (t) => ({
+                        Elevator: (t % 60 < 30),
+                        topRightData: {
+                            ELEVATOR: (t % 60 < 30),
+                        },
+                        topLeftDecorationLine: true
+                    })
+                },
+            ]
         },
         {
             main: "VIDEO PLAYER",
             animation: "scroll-left",
-            delayBeforeNext: 115,
+            delayBeforeNext: 75,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
                 }
             ],
+            otherIndication: [
+                {
+                    active: (t) => t > 0,
+                    data: (t) => ({
+                        Elevator: (t % 60 < 30),
+                        topRightData: {
+                            ELEVATOR: (t % 60 < 30),
+                        },
+                        topLeftDecorationLine: true
+                    })
+                },
+            ]
         },
         {
             main: "",
             animation: "scroll-left",
             delayBeforeNext: 20,
-            topLeft: [],
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 6,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                }
+            ],
+            otherIndication: [
+                {
+                    active: (t) => t > 0,
+                    data: {
+                        topLeftDecorationLine: true
+                    }
+                },
+            ]
         },
         {
             main: "AUTOMATIC",
             animation: "default",
-            delayBeforeNext: 115,
+            delayBeforeNext: 75,
             topLeft: [
                 {
-                    active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    active: (t) => t > 12,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
             ],
         },
         {
             main: "VOLUME",
             animation: "scroll-left",
-            delayBeforeNext: 115,
+            delayBeforeNext: 75,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
                 }
             ],
         },
         {
             main: "CONTROL",
             animation: "scroll-left",
-            delayBeforeNext: 115,
+            delayBeforeNext: 75,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
                 }
             ],
         },
@@ -349,38 +818,65 @@ export default function FrontPanel({
             main: "",
             animation: "scroll-left",
             delayBeforeNext: 20,
-            topLeft: [],
-        },
-        {
-            main: "SELECTABLE",
-            animation: "default",
-            delayBeforeNext: 115,
             topLeft: [
                 {
-                    active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    active: (t) => t > 0 && t < 6,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                }
+            ],
+        },
+        {
+            main: "PLAYLIST MODE",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+        },
+        {
+            main: "INTERNET RADIO",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+        },
+        {
+            main: "AUTO ON/OFF",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+        },
+        {
+            main: "VARIABLE COLOR",
+            animation: "default",
+            delayBeforeNext: 75,
+            topLeft: [
+                {
+                    active: (t) => t > 12,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
             ],
         },
         {
             main: "INDICATION",
             animation: "scroll-left",
-            delayBeforeNext: 115,
+            delayBeforeNext: 75,
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
-                }
-            ],
-        },
-        {
-            main: "COLOR",
-            animation: "scroll-left",
-            delayBeforeNext: 115,
-            topLeft: [
-                {
-                    active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
                 }
             ],
         },
@@ -388,58 +884,133 @@ export default function FrontPanel({
             main: "",
             animation: "scroll-left",
             delayBeforeNext: 20,
-            topLeft: [],
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 6,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                }
+            ],
         },
         {
-            main: "EXTENDED",
+            main: "APPEL THEME",
             animation: "default",
-            delayBeforeNext: 115,
+            delayBeforeNext: 100,
             topLeft: [
                 {
-                    active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
             ],
+            indicationColor: {
+                display: '#ffff00',
+                buttons: '#00ff55'
+            }
         },
         {
-            main: "DISPLAY INFO",
-            animation: "scroll-left",
-            delayBeforeNext: 115,
+            main: "ORANGEULYA THEME",
+            animation: "default",
+            delayBeforeNext: 100,
             topLeft: [
                 {
-                    active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
             ],
+            indicationColor: {
+                display: '#88ff00',
+                buttons: '#ff9900'
+            }
         },
         {
-            main: "MANAGEMENT",
-            animation: "scroll-left",
-            delayBeforeNext: 115,
+            main: "ROZULYA THEME",
+            animation: "default",
+            delayBeforeNext: 100,
             topLeft: [
                 {
-                    active: (t) => t > 0,
-                    data: demoTopLeftAnimCallback,
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
             ],
+            indicationColor: {
+                display: '#ff00c8',
+                buttons: '#ffee00'
+            }
         },
         {
-            main: "",
-            animation: "scroll-left",
-            delayBeforeNext: 20,
-            topLeft: [],
+            main: "INVERTIK THEME",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+            indicationColor: {
+                display: '#00ff55',
+                buttons: '#ffff00'
+            }
         },
-        // {
-        //     main: "TIME-ACTIVATED",
-        //     animation: "default",
-        //     delayBeforeNext: 115,
-        //     topLeft: [
-        //         {
-        //             active: (t) => t > 0,
-        //             data: demoTopLeftAnimCallback,
-        //         }
-        //     ],
-        // },
+        {
+            main: "LASERIK THEME",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+            indicationColor: {
+                display: '#00fff2',
+                buttons: '#0044ff'
+            }
+        },
+        {
+            main: "LAVULYA THEME",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+            indicationColor: {
+                display: '#ffa600',
+                buttons: '#ffd000'
+            }
+        },
+        {
+            main: "ZUBULYA THEME",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+            indicationColor: {
+                display: '#ffffff',
+                buttons: '#afafaf'
+            }
+        },
+        {
+            main: "INV_ROBOTS THEME",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+            indicationColor: {
+                display: '#ff0000',
+                buttons: '#ff0000'
+            }
+        },
         // {
         //     main: "POWER ON/OFF",
         //     animation: "scroll-left",
@@ -455,6 +1026,8 @@ export default function FrontPanel({
     ];
 
     const [powerOn, setPowerOn] = useState(false);
+
+
 
     useEffect(() => {
         let frameId: number;
@@ -621,6 +1194,8 @@ export default function FrontPanel({
         let demoTimer = 0;
         let nextDemoTimer = 0;
 
+        let demoTopLeftTimer = 0;
+
         let clickedButton: string | null = null;
 
         let displayMode: {
@@ -653,7 +1228,14 @@ export default function FrontPanel({
             isDemoAnimating = false;
             mainInputs.isDemoAnimating = false;
             demoPosition = 0;
+            demoTopLeftTimer = 0;
+            // demoTimer = ((5) * 60);
             demoTimer = ((mainOutputs.settings?.demo?.interval ?? 20) * 60);
+
+            mainOutputs.indicationColor = {
+                display: mainOutputs.settings.indication.display.color || "#0088ff",
+                buttons: mainOutputs.settings.indication.buttons.color || "#0088ff"
+            };
         }
 
         resetDemo();
@@ -916,39 +1498,33 @@ export default function FrontPanel({
                 });
             } else {
 
-                if (t % 1 === 0) {
-                    if (t < 1) {
-                        const prev = centerMainText(demoInfo[position - 1].main || "");
-                        const next = centerMainText(demoInfo[position].main || "");
-                        updateDisplayData({
-                            ...displayDataRef.current,
-                            main: [...prev, ...next]
-                        });
-                    } else if (displayDataRef.current.main.length > 16) updateDisplayData({
+                if (t < 1) {
+                    const prev = centerMainText(demoInfo[position - 1]?.main || "");
+                    const next = centerMainText(demoInfo[position]?.main || "");
+                    updateDisplayData({
+                        ...displayDataRef.current,
+                        main: [...prev, ...next],
+                    });
+                } else if (displayDataRef.current.main.length > 16) {
+                    updateDisplayData({
                         ...displayDataRef.current,
                         main: displayDataRef.current.main.slice(2, displayDataRef.current.main.length),
-                        // main: displayDataRef.current.main.map((s, i) => {
-                        //     // const prev = centerMainText(demoInfo[position - 1].main || "");
-                        //     // const next = centerMainText(demoInfo[position].main || "");
-                        //     return displayDataRef.current.main[i + 1] || "";
-                        // })
-                    }); else {
-                        updateDisplayData({
-                            ...displayDataRef.current,
-                            main: displayDataRef.current.main.slice(0, 16)
-                        });
-                        onEnded?.();
-                    }
+                    });
+                } else {
+                    updateDisplayData({
+                        ...displayDataRef.current,
+                        main: displayDataRef.current.main.slice(0, 16),
+                    });
+                    onEnded?.();
                 }
-                // if (t > 16) {
-
-                // }
             }
         }
 
+
         demoTimer = 0;
 
-        let demoTopLeftTimer = 0;
+
+        let _prevDemoPosition = 0;
 
         const animateDemo = (updTimer: number = 0) => {
 
@@ -956,7 +1532,7 @@ export default function FrontPanel({
             const current = demoInfo[demoPosition];
 
 
-            if (updTimer % 7 === 0) {
+            if (updTimer % 6 === 0) {
                 // if (demoTimer > 38 && current.animation === 'default') {
                 //     demoTopLeftTimer = 0;
                 // } else {
@@ -990,8 +1566,24 @@ export default function FrontPanel({
             //     });
             // }
 
+            // if (updTimer === 0) {
+            //     demoTimer = 0;
+            // }
+
+            //  alert('animateDemo() :: ' + `
+            //                     isDemoAnimating: ${isDemoAnimating}
+            //                     mainInputs.isDemoAnimating: ${mainInputs.isDemoAnimating};
+            //                     demoTimer: ${demoTimer};
+            //                     demoTopLeftTimer: ${demoTopLeftTimer};
+            //                     updateTimer: ${updateTimer};
+            //                     demoPosition: ${demoPosition};
+            //                     animTimer: ${animTimer};
+            //                     nextDemoTimer: ${nextDemoTimer};
+            //                     `);
+
 
             if (demoPosition === 0 && demoTimer < 1) {
+                // alert(`demo timer :: ${demoTimer}`);
                 updateDisplayData({
                     main: [],
                     topLeft: [],
@@ -1003,10 +1595,12 @@ export default function FrontPanel({
                 nextDemoTimer--;
                 if (nextDemoTimer === 0) {
                     demoTimer = 0;
-                    demoPosition++;
+                    // if (demoInfo[demoPosition]?.animation === 'scroll-left') {
+                    // }
                     demoTopLeftTimer = 0;
+                    demoPosition++;
                 }
-                else if (updTimer % 7 === 0) demoTimer++;
+                else if (updTimer % 6 === 0) demoTimer++;
             } else if (demoTimer < 38) {
 
                 if (updTimer % 4 === 0) {
@@ -1043,12 +1637,12 @@ export default function FrontPanel({
 
             if (current?.topLeft) {
                 current.topLeft.forEach((opt) => {
-                    if (opt.active(demoTimer)) {
+                    if (opt.active(demoTopLeftTimer)) {
                         updateDisplayData({
                             ...displayDataRef.current,
                             topLeft: (
                                 // typeof opt.data === 'string' ? opt.data.split('')
-                                typeof opt.data === 'function' ? opt.data(demoTimer) :
+                                typeof opt.data === 'function' ? opt.data(demoTopLeftTimer) :
                                     Array.isArray(opt.data) ? opt.data : opt.data
                             ),
                         });
@@ -1065,6 +1659,21 @@ export default function FrontPanel({
                         });
                     }
                 });
+            }
+
+            if (current?.indicationColor?.display) {
+                mainOutputs.indicationColor = {
+                    ...mainOutputs.indicationColor,
+                    display: current.indicationColor.display
+                };
+                // mainOutputs.indicationColor.display = current.indicationColor.display;
+            }
+
+            if (current?.indicationColor?.buttons) {
+                mainOutputs.indicationColor = {
+                    ...mainOutputs.indicationColor,
+                    buttons: current.indicationColor.buttons
+                };
             }
 
             // demoTimer++;
@@ -1169,7 +1778,9 @@ export default function FrontPanel({
                             if (animTimer < 13) animateSourceSelect(animTimer);
                             else {
                                 mainInputs.sourceData[1].allowReading = false;
+                                mainInputs.sourceData[2].allowReading = false;
                                 if (mainOutputs.currentSource === 1) mainInputs.sourceData[1].allowReading = true;
+                                if (mainOutputs.currentSource === 2) mainInputs.sourceData[2].allowReading = true;
                                 // else {
                                 // }
                                 updateDisplayAction(`MAIN INFO`);
@@ -1238,6 +1849,17 @@ export default function FrontPanel({
                                         displayMode.folder = null;
                                     }
                                     displayMode.selectedSource = mainOutputs.currentSource;
+                                } else if (mainOutputs.currentSource === 2) {
+                                    if (displayMode.volume) {
+                                        displayMode.volume = false;
+                                    } else if (displayMode.default) {
+                                        displayMode.default = false;
+                                        displayMode.clockTime = true;
+                                    } else {
+                                        displayMode.folder = null;
+                                        displayMode.default = true;
+                                    }
+                                    displayMode.selectedSource = mainOutputs.currentSource;
                                 }
                             }
                         }
@@ -1248,6 +1870,52 @@ export default function FrontPanel({
                     if (isDemoAnimating) {
                         animateDemo(updateTimer);
                     } else {
+
+                        mainOutputs.indicationColor = {
+                            display: mainOutputs.settings.indication.display.color || "#0088ff",
+                            buttons: mainOutputs.settings.indication.buttons.color || "#0088ff"
+                        };
+
+                        if (demoTimer > 0) {
+                            demoTimer--;
+                        } else {
+                            // alert('Start DEMO (state before): ' + `
+                            //     isDemoAnimating: ${isDemoAnimating}
+                            //     mainInputs.isDemoAnimating: ${mainInputs.isDemoAnimating};
+                            //     demoTimer: ${demoTimer};
+                            //     demoTopLeftTimer: ${demoTopLeftTimer};
+                            //     updateTimer: ${updateTimer};
+                            //     demoPosition: ${demoPosition};
+                            //     animTimer: ${animTimer};
+                            //     `);
+
+                            isDemoAnimating = true;
+                            mainInputs.isDemoAnimating = true;
+                            demoTimer = 0;
+                            demoTopLeftTimer = 0;
+                            updateTimer = 0;
+                            demoPosition = 0;
+                            nextDemoTimer = 0;
+                            animTimer = 0;
+
+                            updateDisplayData({
+                                main: [],
+                                topLeft: [],
+                                otherIndication: {}
+                            });
+
+                            // alert('Start DEMO (state after): ' + `
+                            //     isDemoAnimating: ${isDemoAnimating}
+                            //     mainInputs.isDemoAnimating: ${mainInputs.isDemoAnimating};
+                            //     demoTimer: ${demoTimer};
+                            //     demoTopLeftTimer: ${demoTopLeftTimer};
+                            //     updateTimer: ${updateTimer};
+                            //     demoPosition: ${demoPosition};
+                            //     animTimer: ${animTimer};
+                            //     `);
+
+                            return frameId = requestAnimationFrame(update);
+                        }
 
                         if ([1, 2].includes(mainOutputs.currentSource || 0)) updateDisplayData({
                             ...displayDataRef.current,
@@ -1266,6 +1934,11 @@ export default function FrontPanel({
                                 }
                             }
                             displayMode.selectedSource = mainOutputs.currentSource;
+                        }
+
+                        if (displayMode._volume !== mainOutputs.mainVolume) {
+                            displayMode._volume = mainOutputs.mainVolume;
+                            displayMode.volume = true; // Activate volume disp mode; 
                         }
 
                         if (mainOutputs.discState) {
@@ -1357,11 +2030,12 @@ export default function FrontPanel({
                                     const artist = sourceData.playbackData.artist;
 
                                     const currentTime = (trackName && sourceData.playbackData.currentTime) ? formatTime(sourceData.playbackData.currentTime) : undefined;
+                                    const duration = (sourceData.playbackData.trackDuration) ? formatTime(sourceData.playbackData.trackDuration) : undefined;
 
-                                    if (displayMode._volume !== mainOutputs.mainVolume) {
-                                        displayMode._volume = mainOutputs.mainVolume;
-                                        displayMode.volume = true; // Activate volume disp mode; 
-                                    }
+                                    // if (displayMode._volume !== mainOutputs.mainVolume) {
+                                    //     displayMode._volume = mainOutputs.mainVolume;
+                                    //     displayMode.volume = true; // Activate volume disp mode; 
+                                    // }
 
                                     if (sourceData.playbackData) {
                                         if (displayMode._folder !== sourceData.playbackData.folderNumber) {
@@ -1380,6 +2054,9 @@ export default function FrontPanel({
                                     // let main = ` ${trackNumber}`;
                                     // let topLeft = folderNumber;
                                     // let other: DisplayOtherIndication = {};
+
+                                    //  ВЫНЕСТИ ЛОГИКУ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ В ОТДЕЛЬНЫЙ БЛОК КОДА //
+
                                     if (displayMode.volume === true) {
                                         updateDisplayData({
                                             main: [],
@@ -1471,7 +2148,10 @@ export default function FrontPanel({
 
                                     } else {
                                         if (displayMode.default) {
-                                            const main = ` ${trackNumber}       ${currentTime ?? ""}`;
+                                            const main = ` ${trackNumber}       ${(
+                                                (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ?
+                                                `${currentTime} / ${duration}` : currentTime
+                                            ) ?? ""}`;
 
                                             updateDisplayData({
                                                 ...displayDataRef.current,
@@ -1533,6 +2213,100 @@ export default function FrontPanel({
                                         topLeft: []
                                     })
                                 }
+                            } else if (mainOutputs.currentSource === 2) {
+                                const radioData = mainOutputs.sourceData[2];
+                                const station = JAZZ_RADIO_STATIONS[radioData.currentStationIndex ?? 0];
+
+                                if (radioData.error) {
+                                    updateDisplayData({
+                                        main: centerMainText(radioData.error),
+                                        topLeft: [],
+                                        otherIndication: {}
+                                    });
+                                } else if (radioData.isBuffering) {
+                                    if (updateTimer % 60 < 30) {
+                                        updateDisplayData({
+                                            main: centerMainText('LOADING'),
+                                            topLeft: [],
+                                            otherIndication: {}
+                                        });
+                                    } else {
+                                        updateDisplayData({ main: [], topLeft: [], otherIndication: {} });
+                                    }
+                                } else {
+                                    // updateDisplayData({
+                                    //     main: [],
+                                    //     topLeft: 'FM'.split(''),
+                                    //     otherIndication: {
+                                    //         topRightData: {
+                                    //             AUDIO: true,
+                                    //         }
+                                    //     }
+                                    // });
+
+                                    // animateScrollingText(animTimer, station?.name || 'RADIO', () => {
+                                    //     animTimer = 0;
+                                    // });
+                                    // animTimer++;
+                                }
+
+
+                                //  ВЫНЕСТИ ЛОГИКУ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ В ОТДЕЛЬНЫЙ БЛОК КОДА //
+
+                                if (displayMode.volume === true) {
+                                    updateDisplayData({
+                                        main: [],
+                                        topLeft: [],
+                                        otherIndication: {}
+                                    })
+                                    animateScrollingText(animTimer, (
+                                        centerMainText(`VOLUME ${String(mainOutputs.mainVolume).padStart(2, "0")}`).join('')
+                                    ), () => {
+                                        animTimer = 0;
+                                        displayMode.volume = false;
+                                        displayMode.default = true;
+                                    });
+                                    animTimer++;
+                                } else if (radioData.isPaused) {
+                                    if (updateTimer % 60 < 30) updateDisplayData({
+                                        main: centerMainText('PAUSE'),
+                                        topLeft: [],
+                                        otherIndication: {}
+                                    });
+                                    else updateDisplayData({
+                                        main: [],
+                                        topLeft: [],
+                                        otherIndication: {}
+                                    });
+                                } else if (!radioData.isBuffering && !radioData.error) {
+                                    if (displayMode.default) {
+                                        updateDisplayData({
+                                            main: [],
+                                            topLeft: 'FM'.split(''),
+                                            otherIndication: {
+                                                topRightData: {
+                                                    AUDIO: true,
+                                                }
+                                            }
+                                        });
+
+                                        animateScrollingText(animTimer, station?.name || 'RADIO', () => {
+                                            animTimer = 0;
+                                        });
+                                        animTimer++;
+
+                                    } else if (displayMode.clockTime) {
+
+                                        const main = `RADIO   ${timeFromDate(new Date(), (updateTimer % 60 > 30)) ?? ""}`;
+
+                                        updateDisplayData({
+                                            ...displayDataRef.current,
+                                            main: main.split(''),
+                                            topLeft: 'FM'.split(''),
+                                        });
+                                    }
+                                }
+
                             } else if (mainOutputs.currentSource === 5) {
                                 // MyLift
                                 const sourceData = mainOutputs.sourceData?.[5];
@@ -1785,21 +2559,52 @@ export default function FrontPanel({
                         }
 
 
+                        if (mainOutputs.menu.navigation.menuOpened) {
 
-                        if (demoTimer > 0) {
-                            demoTimer--;
-                        } else {
-                            isDemoAnimating = true;
-                            mainInputs.isDemoAnimating = true;
-                            demoTimer = 0;
-                            updateTimer = 0;
-                            demoPosition = 0;
-                            updateDisplayData({
-                                main: [],
-                                topLeft: [],
-                                otherIndication: {}
-                            });
+                            const navigation = mainOutputs.menu.navigation;
+                            const currentIdx = navigation.currentIdx;
+
+                            // const currentElement = mainOutputs.menu.options[currentIdx];
+                            const currentElement = getCurrentMenuElement(mainOutputs.menu);
+
+                            const currentValue = (currentElement?.type === 'property' && navigation.isValueSelect) ? (
+                                currentElement.values[navigation.valueIdx || 0]
+                            ) : undefined;
+
+
+                            if (currentElement) {
+                                let displayText = currentElement.label;
+
+                                if (currentValue) {
+                                    displayText = `${currentValue.shortPropName || currentElement.label} ${currentValue.label}`
+                                }
+
+                                updateDisplayData({
+                                    main: centerMainText(displayText),
+                                    topLeft: 'MENU'.split(''),
+                                    otherIndication: {
+                                        topLeftDecorationLine: true,
+                                    }
+                                });
+                            }
                         }
+
+
+
+                        // if (demoTimer > 0) {
+                        //     demoTimer--;
+                        // } else {
+                        //     isDemoAnimating = true;
+                        //     mainInputs.isDemoAnimating = true;
+                        //     demoTimer = 0;
+                        //     updateTimer = 0;
+                        //     demoPosition = 0;
+                        //     updateDisplayData({
+                        //         main: [],
+                        //         topLeft: [],
+                        //         otherIndication: {}
+                        //     });
+                        // }
                     }
 
                 }
@@ -1830,6 +2635,7 @@ export default function FrontPanel({
                     animTimer = 0;
                     isDemoAnimating = false;
                     mainInputs.sourceData[1].allowReading = false;
+                    mainInputs.sourceData[2].allowReading = false;
                     resetDemo();
                 }
 
@@ -1888,7 +2694,7 @@ export default function FrontPanel({
 
                         <image x="1325.55644" y="808.91449" transform="scale(0.27279,0.27279)" width="376" height="70" xlinkHref="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXgAAABGCAYAAADGmo/PAAADzklEQVR4AezU0UotMQwFUPX//3mkoAjn+NB2GiZt1sBwr9JmkhXZX9dmz8fgs9l41+B4HzvNd/JsbQ9R843WzXC+eez09pr1ztRbb+Zcbw/t3NfMB9whQIAAgfwCAj7/jnRIIKeArtILCPj0K9IgAQIE5gQE/JybWwQIEEgvIODTr6hqg+YmQOCugIC/K+g+AQIEkgoI+KSL0RYBAgTuClQN+Ltu7hMgQCC9gIBPvyINEiBAYE5AwM+5uUWAQFWBjeYeCvjPwCeDWdR4J8/WzE6fr83Y82Zw2LGHHtvoMzu69fQ8FPA9BZ0hQIAAgRwCAj7HHnRB4EfAPwTWCQj4dZYqESBAIJWAgE+1Ds0QIEBgnYCAX2e5QyU9EiBQSEDAF1q2UQkQqCUg4Gvt27QECBQSWBrwhdyMSoAAgfQCAj79ijRIgACBOQEBP+fmFgECSwUUixAQ8BGqahIgQCCBgIBPsAQtECBAIEJAwEeoqplNQD8ESgoI+JJrNzQBAhUEBHyFLZuRAIGSAgJ+wdqVIECAQEYBAZ9xK3oiQIDAAgEBvwBRCQIECMwJxN4aCvgr8Ikds6961Hh9X489FTVbqxvbeV/11sfTb1+nTr0KPL239v3Xnu7+3GpGvSO9DQX8SGFnCRAgQOBZAQH/rL+vE4gUULu4gIAv/gdgfAIEzhUQ8Ofu1mQECBQXEPDF/wDujO8uAQK5BQR87v3ojgABAtMCAn6azkUCBAjkFsgb8LnddEeAAIH0AgI+/Yo0SIAAgTmBoYD/DHzm2l97K3C87tJrJ/qr1t1A4MG/btb/L7Dt7tLrp6pRsRu4/+DwyV7p4cIBF3p7beeGAr5d8BIgQIDAHgICfo896ZIAAQLDAgJ+mMyF6gLmJ7CLgIDfZVP6JECAwKCAgB8Ec5wAAQK7CAj4bJvSDwECBBYJCPhFkMoQIEAgm4CAz7YR/RAgQGBO4O2WgH8j8QsCBAicISDgz9ijKQgQIPAmIODfSPyCAIH/BPxuPwEBv9/OdEyAAIEuAQHfxeQQAQIE9hMQ8Pvt7MyOTUWAwHIBAb+cVEECBAjkEBDwOfagCwIECCwXKBLwy90UJECAQHoBAZ9+RRokQIDAnICAn3NzK5nAleCJIkkw2hU1W6ubfb7W4++7U6+tZwHfFLwECBA4UEDAH7hUIxEgQKAJCPim4CXwlIDvEggUEPCBuEoTIEDgSQEB/6S+bxMgQCBQQMAH4j5fWgcECFQWEPCVt292AgSOFhDwR6/XcAQIVBa4E/CV3cxOgACB9AICPv2KNEiAAIE5gW8AAAD//xxuBtAAAAAGSURBVAMAsWJpoU0RHk8AAAAASUVORK5CYII=" fill="none" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
 
-                        {/* <path d="M21.36827,186.09175v-26.21743h39.51692v14.01293l-17.33694,12.20449z" fill="#000000" stroke="#72bdff" strokeWidth="0.5" strokeLinecap="butt" /> */}
+                        {/* <path d="M21.36827,186.09175v-26.21743h39.51692v14.01293l-17.33694,12.20449z" fill="#000000" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="0.5" strokeLinecap="butt" /> */}
 
                         <g className="on_off_button"
                             onMouseDown={() => mainInputs.buttons = {
@@ -1906,22 +2712,22 @@ export default function FrontPanel({
                                 powerOnOff: false
                             }}
                         >
-                            <path d="M21.36827,186.09175v-26.21743h39.51692v14.01293l-17.33694,12.20449z" fill="#000000" stroke="#72bdff" strokeWidth="0.5" strokeLinecap="butt" />
-                            <g fill="none" stroke="#72bdff" strokeWidth="2.5">
+                            <path d="M21.36827,186.09175v-26.21743h39.51692v14.01293l-17.33694,12.20449z" fill="#000000" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="0.5" strokeLinecap="butt" />
+                            <g fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2.5">
                                 <path d="M37.90628,168.12837c1.20925,0.97584 1.98274,2.47007 1.98274,4.14498c0,2.94005 -2.38338,5.32345 -5.32343,5.32345c-2.94007,0 -5.32345,-2.38338 -5.32345,-5.32345c0,-1.54676 0.65968,-2.93946 1.71302,-3.91207" strokeLinecap="butt" />
                                 <path d="M34.46363,172.85177v-9.44677" strokeLinecap="round" />
                             </g>
-                            <text transform="translate(26.6853,183.66108) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <text transform="translate(26.6853,183.66108) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">ON/OFF</tspan>
                             </text>
                         </g>
 
-                        <path d="M44.62796,144.35214z" fill="none" stroke="#72bdff" strokeWidth="2" strokeLinecap="butt" />
-                        {/* <g fill="none" stroke="#72bdff" strokeWidth="2.5">
+                        <path d="M44.62796,144.35214z" fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="butt" />
+                        {/* <g fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2.5">
                             <path d="M37.90628,168.12837c1.20925,0.97584 1.98274,2.47007 1.98274,4.14498c0,2.94005 -2.38338,5.32345 -5.32343,5.32345c-2.94007,0 -5.32345,-2.38338 -5.32345,-5.32345c0,-1.54676 0.65968,-2.93946 1.71302,-3.91207" strokeLinecap="butt" />
                             <path d="M34.46363,172.85177v-9.44677" strokeLinecap="round" />
                         </g>
-                        <text transform="translate(26.6853,183.66108) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                        <text transform="translate(26.6853,183.66108) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">ON/OFF</tspan>
                         </text> */}
                         {/* <!-- DISPLAY (Main Window) --> */}
@@ -1932,7 +2738,7 @@ export default function FrontPanel({
 
                         {/* Encoder */}
                         <Encoder
-                            indicationColor={(outputValues?.powerOn) ? (outputValues?.display?.color1) : (outputValues?.display?.color2)}
+                            indicationColor={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)}
 
                             onButtonClick={() => mainInputs.buttons = {
                                 ...mainInputs.buttons,
@@ -2055,40 +2861,40 @@ export default function FrontPanel({
 
                         <Display powerOn={powerOn} mainData={displayData.main || []} topLeftData={displayData.topLeft || []} otherIndication={{
                             ...displayData.otherIndication
-                        }} />
+                        }} indicationColor1={outputValues?.indicationColor?.display} />
 
                         {/* New Buttons */}
 
 
-                        <path d="M314.78551,386.56898l20.90032,-15.94654h26.9943v15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt"
+                        <path d="M314.78551,386.56898l20.90032,-15.94654h26.9943v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
                             onMouseDown={() => setNumberButtonState(1, true)}
 
                             onMouseUp={() => setNumberButtonState(1, false)}
 
                             onMouseLeave={() => setNumberButtonState(1, false)}
                         />
-                        <path d="M374.80695,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt"
+                        <path d="M374.80695,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
                             onMouseDown={() => setNumberButtonState(2, true)}
 
                             onMouseUp={() => setNumberButtonState(2, false)}
 
                             onMouseLeave={() => setNumberButtonState(2, false)}
                         />
-                        <path d="M423.03846,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt"
+                        <path d="M423.03846,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
                             onMouseDown={() => setNumberButtonState(3, true)}
 
                             onMouseUp={() => setNumberButtonState(3, false)}
 
                             onMouseLeave={() => setNumberButtonState(3, false)}
                         />
-                        <path d="M471.26997,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt"
+                        <path d="M471.26997,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
                             onMouseDown={() => setNumberButtonState(4, true)}
 
                             onMouseUp={() => setNumberButtonState(4, false)}
 
                             onMouseLeave={() => setNumberButtonState(4, false)}
                         />
-                        <path d="M519.50149,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt"
+                        <path d="M519.50149,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
                             onMouseDown={() => setNumberButtonState(5, true)}
 
                             onMouseUp={() => setNumberButtonState(5, false)}
@@ -2096,7 +2902,7 @@ export default function FrontPanel({
                             onMouseLeave={() => setNumberButtonState(5, false)}
                         />
 
-                        <path d="M567.73299,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt"
+                        <path d="M567.73299,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
                             onMouseDown={() => setNumberButtonState(6, true)}
 
                             onMouseUp={() => setNumberButtonState(6, false)}
@@ -2104,7 +2910,7 @@ export default function FrontPanel({
                             onMouseLeave={() => setNumberButtonState(6, false)}
                         />
 
-                        <path d="M615.96451,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt"
+                        <path d="M615.96451,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
                             onMouseDown={() => setNumberButtonState(7, true)}
 
                             onMouseUp={() => setNumberButtonState(7, false)}
@@ -2112,7 +2918,7 @@ export default function FrontPanel({
                             onMouseLeave={() => setNumberButtonState(7, false)}
                         />
 
-                        <path d="M712.42753,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt"
+                        <path d="M712.42753,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
                             onMouseDown={() => setNumberButtonState(9, true)}
 
                             onMouseUp={() => setNumberButtonState(9, false)}
@@ -2120,48 +2926,48 @@ export default function FrontPanel({
                             onMouseLeave={() => setNumberButtonState(9, false)}
                         />
 
-                        <path d="M664.19602,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt"
+                        <path d="M664.19602,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
                             onMouseDown={() => setNumberButtonState(8, true)}
 
                             onMouseUp={() => setNumberButtonState(8, false)}
 
                             onMouseLeave={() => setNumberButtonState(8, false)}
                         />
-                        <path d="M760.12314,386.56898v-15.94654h26.9943l20.90032,15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt"
+                        <path d="M760.12314,386.56898v-15.94654h26.9943l20.90032,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
                             onMouseDown={() => setNumberButtonState(0, true)}
 
                             onMouseUp={() => setNumberButtonState(0, false)}
 
                             onMouseLeave={() => setNumberButtonState(0, false)}
                         />
-                        <text style={{ userSelect: 'none' }} transform="translate(342.28565,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                        <text style={{ userSelect: 'none' }} transform="translate(342.28565,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">1</tspan>
                         </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(388.90636,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                        <text style={{ userSelect: 'none' }} transform="translate(388.90636,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">2</tspan>
                         </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(437.13787,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                        <text style={{ userSelect: 'none' }} transform="translate(437.13787,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">3</tspan>
                         </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(485.36938,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                        <text style={{ userSelect: 'none' }} transform="translate(485.36938,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">4</tspan>
                         </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(533.60088,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                        <text style={{ userSelect: 'none' }} transform="translate(533.60088,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">5</tspan>
                         </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(581.8324,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                        <text style={{ userSelect: 'none' }} transform="translate(581.8324,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">6</tspan>
                         </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(630.06391,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                        <text style={{ userSelect: 'none' }} transform="translate(630.06391,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">7</tspan>
                         </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(678.29542,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                        <text style={{ userSelect: 'none' }} transform="translate(678.29542,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">8</tspan>
                         </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(726.52694,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                        <text style={{ userSelect: 'none' }} transform="translate(726.52694,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">9</tspan>
                         </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(772.2174,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                        <text style={{ userSelect: 'none' }} transform="translate(772.2174,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">0</tspan>
                         </text>
 
@@ -2183,8 +2989,8 @@ export default function FrontPanel({
                                 eject: false
                             }}
                         >
-                            <path d="M784.07045,191.39962v-26.23561h59.4761l-32.54389,26.23561z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt" />
-                            <g fill="#72bdff" stroke="none" strokeWidth="0" strokeLinecap="butt">
+                            <path d="M784.07045,191.39962v-26.23561h59.4761l-32.54389,26.23561z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <g fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="0" strokeLinecap="butt">
                                 <path d="M794.12055,178.82562l6.66351,-7.92912l6.6635,7.92912z" />
                                 <path d="M794.12055,183.02175v-2.47191h13.32702v2.47191z" />
                             </g>
@@ -2209,8 +3015,8 @@ export default function FrontPanel({
                                 srcSelect: false
                             }}
                         >
-                            <path d="M20.00585,383.15799l-0.04979,-15.94654h44.33409l19.39423,15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" />
-                            <text transform="translate(23.6884,378.88225) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <path d="M20.00585,383.15799l-0.04979,-15.94654h44.33409l19.39423,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" />
+                            <text transform="translate(23.6884,378.88225) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">SOURCE</tspan>
                             </text>
                         </g>
@@ -2232,8 +3038,8 @@ export default function FrontPanel({
                                 disp: false
                             }}
                         >
-                            <path d="M94.81812,383.15799l-19.39423,-15.94654h56.96734l19.39423,15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" />
-                            <text transform="translate(100.99737,378.88225) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <path d="M94.81812,383.15799l-19.39423,-15.94654h56.96734l19.39423,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" />
+                            <text transform="translate(100.99737,378.88225) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">DISP</tspan>
                             </text>
                         </g>
@@ -2255,9 +3061,9 @@ export default function FrontPanel({
                                 menu: false
                             }}
                         >
-                            <path d="M144.86696,258.49572l-4.39119,30.58669h-84.01073l21.64225,-30.58669z" fill="#2b3439" stroke="#72bdff" strokeWidth="2" />
-                            <path d="M139.04958,262.7642l-3.59411,22.04973h-69.20245l15.06673,-22.04973z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="2" />
-                            <text transform="translate(82.89284,278.48479) scale(0.33052,0.33052)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <path d="M144.86696,258.49572l-4.39119,30.58669h-84.01073l21.64225,-30.58669z" fill="#2b3439" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" />
+                            <path d="M139.04958,262.7642l-3.59411,22.04973h-69.20245l15.06673,-22.04973z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" />
+                            <text transform="translate(82.89284,278.48479) scale(0.33052,0.33052)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">MENU</tspan>
                             </text>
                         </g> */}
@@ -2279,9 +3085,9 @@ export default function FrontPanel({
                                 back: false
                             }}
                         >
-                            <path d="M78.10729,328.46726l-21.64225,-30.58669h84.01073l4.39119,30.58669z" fill="#2b3439" stroke="#72bdff" strokeWidth="2" />
-                            <path d="M81.31975,324.19878l-15.06673,-22.04973h69.20245l3.59411,22.04973z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="2" />
-                            <text transform="translate(85.76175,317.523) scale(0.33052,0.33052)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <path d="M78.10729,328.46726l-21.64225,-30.58669h84.01073l4.39119,30.58669z" fill="#2b3439" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" />
+                            <path d="M81.31975,324.19878l-15.06673,-22.04973h69.20245l3.59411,22.04973z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" />
+                            <text transform="translate(85.76175,317.523) scale(0.33052,0.33052)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">BACK</tspan>
                             </text>
                         </g> */}
@@ -2304,8 +3110,8 @@ export default function FrontPanel({
                                 menu: false
                             }}
                         >
-                            <path d="M83.68439,215.49771l-19.39423,15.94654h-44.33409l0.04979,-15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt" />
-                            <text transform="translate(27.21783,226.96182) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <path d="M83.68439,215.49771l-19.39423,15.94654h-44.33409l0.04979,-15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text transform="translate(27.21783,226.96182) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">MENU</tspan>
                             </text>
                         </g>
@@ -2327,15 +3133,15 @@ export default function FrontPanel({
                                 back: false
                             }}
                         >
-                            <path d="M75.42391,231.44425l19.39423,-15.94654h56.96734l-19.39423,15.94654z" fill="#7e7e7e" stroke="#72bdff" strokeWidth="1.5" strokeLinecap="butt" />
-                            <text transform="translate(100.51709,227.02132) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill="#72bdff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <path d="M75.42391,231.44425l19.39423,-15.94654h56.96734l-19.39423,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text transform="translate(100.51709,227.02132) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">BACK</tspan>
                             </text>
                         </g>
 
-                        <path d="M32.61318,340.10761v-84.7712h84.77119v84.7712z" fill="#2b3439" stroke="#72bdff" strokeWidth="2" strokeLinecap="butt" />
-                        <path d="M33.38338,339.0635l41.90378,-41.90377l41.25712,41.25712" fill="none" stroke="#72bdff" strokeWidth="2" strokeLinecap="round" />
-                        <path d="M116.97138,256.16127l-41.25711,41.25712l-41.90377,-41.90377" fill="none" stroke="#72bdff" strokeWidth="2" strokeLinecap="round" />
+                        <path d="M32.61318,340.10761v-84.7712h84.77119v84.7712z" fill="#2b3439" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="butt" />
+                        <path d="M33.38338,339.0635l41.90378,-41.90377l41.25712,41.25712" fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="round" />
+                        <path d="M116.97138,256.16127l-41.25711,41.25712l-41.90377,-41.90377" fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="round" />
 
                         {/* <!-- Next Folder Button --> */}
                         <g
@@ -2357,7 +3163,7 @@ export default function FrontPanel({
                                 nextFolder: false
                             }}
                         >
-                            <path d="M32.61318,255.33642h84.77119l-41.93724,41.5235z" fill="#72bdff" stroke="#72bdff" />
+                            <path d="M32.61318,255.33642h84.77119l-41.93724,41.5235z" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
                             <path d="M68.05183,278.86107l7.03489,-15.60482l6.859,15.60482z" fill="#ffffff" stroke="#e6e6e6" />
                         </g>
                         {/* <!-- Next Track Button --> */}
@@ -2380,7 +3186,7 @@ export default function FrontPanel({
                                 nextTrack: false
                             }}
                         >
-                            <path d="M116.97138,254.92343v84.77119l-41.22046,-42.24027z" fill="#45adf8" stroke="#72bdff" />
+                            <path d="M116.97138,254.92343v84.77119l-41.22046,-42.24027z" fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
                             <path d="M102.30795,291.64505l3.6593,-6.28808l3.5678,6.28808l-3.62331,-3.60625z" fill="#ffffff" stroke="#e6e6e6" />
                             <g fill="#ffffff" stroke="#e6e6e6">
                                 <path d="M89.56821,294.07748l9.11211,3.66958l-9.11211,3.57783z" />
@@ -2408,7 +3214,7 @@ export default function FrontPanel({
                                 prevTrack: false
                             }}
                         >
-                            <path d="M33.02617,339.69462v-84.77119l41.22046,42.24028z" fill="#45adf8" stroke="#72bdff" />
+                            <path d="M33.02617,339.69462v-84.77119l41.22046,42.24028z" fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
                             <path d="M50.75127,285.35697l-3.65929,6.28808l-3.5678,-6.28808l3.62331,3.60624z" fill="#ffffff" stroke="#e6e6e6" />
                             <g fill="#ffffff" stroke="#e6e6e6">
                                 <path d="M60.89068,301.32489l-9.11212,-3.57783l9.11212,-3.66958z" />
@@ -2436,7 +3242,7 @@ export default function FrontPanel({
                                 prevFolder: false
                             }}
                         >
-                            <path d="M117.38437,339.28163h-84.77119l42.67506,-41.87264z" fill="#72bdff" stroke="#72bdff" />
+                            <path d="M117.38437,339.28163h-84.77119l42.67506,-41.87264z" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
                             <path d="M81.94572,317.57596l-6.859,15.60482l-7.03489,-15.60482z" fill="#ffffff" stroke="#e6e6e6" />
                         </g>
 
