@@ -19,7 +19,7 @@ export default function USBSelectModal({ connectedDevice, onSelect, onClose }: {
     const [updated, setUpdated] = useState(false);
 
     const [connected, setConnected] = useState<USBFlashInfo | undefined>(connectedDevice);
-    
+
     useEffect(() => setConnected(connectedDevice), [connectedDevice]);
 
     const updateState = () => {
@@ -55,10 +55,72 @@ export default function USBSelectModal({ connectedDevice, onSelect, onClose }: {
 
     }
 
+    async function* getFilesRecursively(entry: any): any {
+        if (entry.kind === "file") {
+            const file = await entry.getFile();
+            if (file !== null) {
+                // file.relativePath = getRelativePath(entry);
+                yield file;
+            }
+        } else if (entry.kind === "directory") {
+            for await (const handle of entry.values()) {
+                yield* getFilesRecursively(handle);
+            }
+        }
+    }
+
+    // for await (const fileHandle of getFilesRecursively(directoryHandle)) {
+    //     console.log(fileHandle);
+    // }
+
+    const handleDeviceConnect = async () => {
+        if (typeof window === 'undefined') return;
+
+        if (!('showDirectoryPicker' in window)) {
+            alert('Ваш браузер не поддерживает выбор папки. Используйте Chrome, Edge или Opera.');
+            return;
+        }
+
+        try {
+            const directoryHandle: FileSystemDirectoryHandle = await (window as any).showDirectoryPicker({
+                mode: 'read',
+            });
+
+            const permission = await (directoryHandle as any).queryPermission({ mode: 'read' });
+            if (permission !== 'granted') {
+                const requested = await (directoryHandle as any).requestPermission({ mode: 'read' });
+                if (requested !== 'granted') {
+                    alert('Разрешение на чтение папки не получено');
+                    return;
+                }
+            }
+
+            const localUSB: USBFlashInfo = {
+                kind: 'local',
+                name: directoryHandle.name,
+                style: {
+                    primaryColor: '#0088ff',
+                    secondaryColor: '#00eeff',
+                },
+                directoryHandle,
+            };
+
+            onSelect?.(localUSB);
+            setConnected(localUSB);
+            onClose?.();
+
+            console.log('✅ Локальная папка подключена:', directoryHandle.name);
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
+            console.error('Ошибка выбора папки:', err);
+            alert(`Ошибка: ${err.message}`);
+        }
+    };
+
     if (!updated) return (
         <div className="usb-select-modal__overlay">
             <div className="usb-select-modal">
-                <h1 className="usb-select-modal__title">Выберите USB-накопитель для подключения</h1>
+                <h1 className="usb-select-modal__title">Выберите устройство для подключения</h1>
                 <div className="usb-select-modal__content">{
                     isLoading ? (
                         <span className="usb-select-modal__message">Загрузка данных...</span>
@@ -112,6 +174,7 @@ export default function USBSelectModal({ connectedDevice, onSelect, onClose }: {
                 <div className="usb-select-modal__buttons">
                     <button className="usb-select-modal__button" onClick={() => onClose?.()}>Назад</button>
                     <button className="usb-select-modal__button" onClick={() => setModalOpened(true)}>Создать USB-накопитель</button>
+                    <button className="usb-select-modal__button" onClick={handleDeviceConnect}>Подключить устройство</button>
                 </div>
             </div>
 

@@ -144,13 +144,24 @@ export async function loadData() {
 
 
 
+// export interface USBFlashInfo {
+//     id?: number;
+//     name: string;
+//     style: {
+//         primaryColor: string;
+//         secondaryColor: string;
+//     },
+// }
+
 export interface USBFlashInfo {
+    kind?: 'remote' | 'local';
     id?: number;
     name: string;
     style: {
         primaryColor: string;
         secondaryColor: string;
-    },
+    };
+    directoryHandle?: FileSystemDirectoryHandle; 
 }
 
 export async function getUSBData(): Promise<{ success: boolean; data?: USBFlashInfo[]; error?: any }> {

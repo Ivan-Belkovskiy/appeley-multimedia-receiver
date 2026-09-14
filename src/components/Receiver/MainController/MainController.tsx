@@ -3,6 +3,7 @@ import beeper from "@/utils/beeper";
 import { Dispatch, RefObject, SetStateAction, useEffect, useRef } from "react";
 import { getCurrentMenuElement } from "../FrontPanel/FrontPanel";
 import { Prisma } from "@prisma/client";
+import { buildNavigationFromDirectoryHandle } from "@/utils/localNavigation";
 
 export interface MainControllerInputButtons {
     powerOnOff?: boolean;
@@ -478,12 +479,31 @@ export default function MainController({
             }
         });
 
+        // const getNavigation = () => new Promise(async (resolve, reject) => {
+        //     try {
+        //         const usbId = inputsRef.current.sourceData[1].connectedUSBDevice?.id;
+        //         if (!usbId) throw new Error("No USB device connected!");
+        //         const data = await getNavigationData(usbId);
+        //         resolve(data.data);
+        //     } catch (error) {
+        //         reject(error);
+        //     }
+        // });
+
         const getNavigation = () => new Promise(async (resolve, reject) => {
             try {
-                const usbId = inputsRef.current.sourceData[1].connectedUSBDevice?.id;
-                if (!usbId) throw new Error("No USB device connected!");
-                const data = await getNavigationData(usbId);
-                resolve(data.data);
+                const connected = inputsRef.current.sourceData[1].connectedUSBDevice;
+                if (!connected) throw new Error('No USB device connected!');
+
+                if (connected.kind === 'local' && connected.directoryHandle) {
+                    const data = await buildNavigationFromDirectoryHandle(connected.directoryHandle);
+                    resolve(data);
+                } else if (connected.id) {
+                    const res = await getNavigationData(connected.id);
+                    resolve(res.data);
+                } else {
+                    throw new Error('Invalid USB device');
+                }
             } catch (error) {
                 reject(error);
             }
@@ -495,43 +515,53 @@ export default function MainController({
 
                 const sourceData = outputsRef.current.sourceData[1];
 
-                if (!sourceData.playbackData || !sourceData.navigationData) throw new Error('Playback or navigation data not provided!');
+                if (!sourceData.playbackData || !sourceData.navigationData) {
+                    throw new Error('Playback or navigation data not provided!');
+                }
 
                 const currentFolder = sourceData.navigationData.find(
                     v => v.number === sourceData.playbackData!.folderNumber
                 );
                 const track = currentFolder?.trackList[sourceData.playbackData.trackNumber];
-                if (!track) throw new Error("Track not found!");
+                if (!track) throw new Error('Track not found!');
 
-                const { id3 } = await getTrackID3(track.url);
+                let id3: any = null;
 
-                if (!id3) throw new Error('ID3 Tag reading error!');
-
-                // resolve({
-                //     trackName: id3.common.title || trackName,
-                //     albumName: id3.common.album || sourceData.navigationData[sourceData.playbackData.folderNumber].name,
-                //     artist: id3.common.artist,
-                //     // ...id3,
-
-                // });
-                resolve(true);
+                if (track.url?.startsWith('blob:')) {
+                    const { readID3FromBlobUrl } = await import('@/utils/id3Client');
+                    try {
+                        id3 = await readID3FromBlobUrl(track.url);
+                    } catch (err) {
+                        console.warn('Локальный ID3 не прочитан:', err);
+                        id3 = null;
+                    }
+                } else {
+                    const res = await getTrackID3(track.url);
+                    id3 = res.id3;
+                }
 
                 sourceData.playbackData.trackName = {
-                    isID3Tag: (id3.common.title ? true : false),
-                    data: (id3.common.title || track.name)
+                    isID3Tag: !!id3?.common?.title,
+                    data: id3?.common?.title || track.name,
                 };
                 sourceData.playbackData.albumName = {
-                    isID3Tag: (id3.common.album ? true : false),
-                    data: (id3.common.album || sourceData.navigationData[sourceData.playbackData.folderNumber].name)
+                    isID3Tag: !!id3?.common?.album,
+                    data: id3?.common?.album || currentFolder!.name,
                 };
-                sourceData.playbackData.artist = id3.common.artist;
+                sourceData.playbackData.artist = id3?.common?.artist;
 
+                if (id3?.format?.duration) {
+                    sourceData.playbackData.trackDuration = id3.format.duration;
+                }
+
+                resolve(true);
             } catch (error) {
+                console.warn('getCurrentID3 error:', error);
                 reject(error);
             }
         });
 
-        const tryReadTrack = (folder: number, track: number, folderOffset?: "next" | "prev") => new Promise((resolve, reject) => {
+        const tryReadTrack = (folder: number, track: number, folderOffset?: "next" | "prev") => new Promise(async (resolve, reject) => {
             try {
                 const navigationData = outputsRef.current.sourceData[1].navigationData;
                 if (!navigationData) throw new Error('Navigation data not provided!');
@@ -595,8 +625,26 @@ export default function MainController({
 
                 const trackData = current.trackList[trackNumber];
 
-                const encodedPath = encodeURIComponent(current.path);
-                const encodedName = encodeURIComponent(trackData.name);
+                let trackUrl = trackData.url;
+                if (!trackUrl && (trackData as any).fileHandle) {
+                    const fileHandle: FileSystemFileHandle = (trackData as any).fileHandle;
+
+                    const permission = await (fileHandle as any).queryPermission({ mode: 'read' });
+                    if (permission !== 'granted') {
+                        const requested = await (fileHandle as any).requestPermission({ mode: 'read' });
+                        if (requested !== 'granted') {
+                            throw new Error('PERMISSION DENIED');
+                        }
+                    }
+
+                    const file = await fileHandle.getFile();
+                    trackUrl = URL.createObjectURL(file);
+
+                    (trackData as any).url = trackUrl;
+                }
+
+                if (!trackUrl) throw new Error('Track URL is empty');
+
 
                 if (trackData.type === 'audio') {
                     if (audioPlayerRef.current) {
@@ -609,12 +657,12 @@ export default function MainController({
                     const audio = new Audio();
                     audio.preload = 'metadata';
                     audio.volume = outputsRef.current.mainVolume / 100;
-                    audio.src = trackData.url;
+                    audio.src = trackUrl;
 
                     audioPlayerRef.current = audio;
 
                     const onCanPlay = () => {
-                        console.log('AUDIO LOADED:', trackData.url);
+                        console.log('AUDIO LOADED:', trackUrl);
                         audio.removeEventListener('canplay', onCanPlay);
                         audio.play().then(() => resolve(true)).catch(reject);
                         outputsRef.current.sourceData[1].playbackData = {
@@ -649,7 +697,7 @@ export default function MainController({
                     if (videoOutputRef.current) {
 
                         if (audioPlayerRef.current) audioPlayerRef.current.src = '';
-                        videoOutputRef.current.src = trackData.url;
+                        videoOutputRef.current.src = trackUrl;
                         videoOutputRef.current.play();
                         setVideoPowerOn(true);
 
@@ -1807,8 +1855,12 @@ export default function MainController({
                                     // } else if (clickedEncoderBtn === 'center') clickedEncoderBtn = null;
 
                                 } else if (!d[1].isReadingID3) {
-                                    getCurrentID3();
                                     d[1].isReadingID3 = true;
+                                    getCurrentID3()
+                                        .catch((err) => {
+                                            console.warn('ID3 read failed:', err);
+                                            d[1].isReadingID3 = false;
+                                        });
                                 } else {
 
 
@@ -2374,7 +2426,24 @@ export default function MainController({
 
         frameId = requestAnimationFrame(update);
 
-        return () => cancelAnimationFrame(frameId);
+        // return () => cancelAnimationFrame(frameId);
+
+        return () => {
+            cancelAnimationFrame(frameId);
+
+            const connected = inputsRef.current.sourceData[1].connectedUSBDevice;
+            if (connected?.kind === 'local') {
+                const navigationData = outputsRef.current.sourceData[1].navigationData || [];
+                navigationData.forEach(folder => {
+                    folder.trackList.forEach(track => {
+                        if (track.url?.startsWith('blob:')) {
+                            URL.revokeObjectURL(track.url);
+                        }
+                    });
+                });
+            }
+        };
+
 
     }, []);
 
