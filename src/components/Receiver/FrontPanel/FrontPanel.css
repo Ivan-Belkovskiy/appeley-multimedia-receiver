@@ -1,11 +1,19 @@
 .front-panel {
     position: relative;
     /* width: 700px; */
-    width: 1400px;
+    width: 100%;
     height: auto;
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+@media (min-width: 1024px) {
+    
+    .front-panel {
+        width: 1400px;
+    }
+
 }
 
 .front-panel__main {
@@ -39,4 +47,17 @@
         cursor: pointer;
         outline-color: #0967d3;
     }
+}
+
+
+
+.encoder {
+    touch-action: none;      
+    -webkit-user-select: none;  
+    user-select: none;
+    /* cursor: grab; */
+}
+
+.encoder:active {
+    /* cursor: grabbing; */
 }

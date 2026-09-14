@@ -18,3 +18,22 @@ model usb_devices {
   primaryColor    String  @db.VarChar(9)
   secondaryColor  String  @db.VarChar(9)
 }
+
+model internet_radio_stations {
+  id              Int     @id @default(autoincrement())
+  order           Int?
+  name            String  @db.VarChar(60)
+  url             String  @db.VarChar(250)
+
+  playedTracks    internet_radio_tracks[]
+}
+
+model internet_radio_tracks {
+  id              Int       @id @default(autoincrement())
+  station_id      Int
+
+  title           String    @db.VarChar(250)
+  loaded_at       DateTime  @default(now())
+
+  station       internet_radio_stations    @relation(fields: [station_id], references: [id])
+}

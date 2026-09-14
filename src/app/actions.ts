@@ -49,7 +49,7 @@ export async function getNavigationData(usbId: number) {
             const ext = path.posix.extname(fileName).toLowerCase();
             const isAudio = EXTENSIONS_AUDIO.includes(ext);
             const isVideo = EXTENSIONS_VIDEO.includes(ext);
-            if (!isAudio && !isVideo) continue; 
+            if (!isAudio && !isVideo) continue;
 
             if (!foldersMap.has(folderPath)) {
                 foldersMap.set(folderPath, {
@@ -61,7 +61,7 @@ export async function getNavigationData(usbId: number) {
 
             foldersMap.get(folderPath)!.trackList.push({
                 name: fileName,
-                url: blob.url,                    
+                url: blob.url,
                 type: isAudio ? "audio" : "video",
             });
         }
@@ -337,7 +337,7 @@ export async function createUSBFolder(
 
         const cleanNext = nextPath.replace(/^\/+|\/+$/g, "");
         const folderPath = cleanNext
-            ? `${USB_ROOT}${usbId}/${cleanNext}/${folderName}/`  
+            ? `${USB_ROOT}${usbId}/${cleanNext}/${folderName}/`
             : `${USB_ROOT}${usbId}/${folderName}/`;
 
         await createFolder(folderPath);
@@ -411,5 +411,44 @@ export async function uploadFilesToUSBFolder(
     } catch (error) {
         console.error("uploadFilesToUSBFolder error:", error);
         return { success: false, error: String(error) };
+    }
+}
+
+export type InternetRadioStation = Prisma.internet_radio_stationsGetPayload<{}>;
+
+export async function getInternetRadioStations() {
+    // return await prisma.internet_radio_stations.findMany({});
+    try {
+        const data = await prisma.internet_radio_stations.findMany({
+            orderBy: [
+                {
+                    order: 'asc'
+                }
+            ]
+        });
+
+        return { success: true, data };
+    } catch (error: any) {
+        return { success: false, error: error?.message || "" }
+    }
+
+}
+
+export async function createRadioTrackRecord(stationId: number, streamText: string) {
+    try {
+
+        if (typeof stationId !== 'number') return { success: false, error: "Station ID not provided!"};
+
+        if (typeof streamText !== 'string') return { success: false, error: "Album - Track Text not provided!"};
+
+        const created = await prisma.internet_radio_tracks.create({
+            data: {
+                station_id: stationId,
+                title: streamText
+            }
+        });
+
+    } catch (error) {
+        return { success: false, error: "Error creating radio track record!"};
     }
 }

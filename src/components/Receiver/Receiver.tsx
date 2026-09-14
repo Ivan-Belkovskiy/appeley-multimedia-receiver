@@ -3,10 +3,17 @@
 import { Dispatch, RefObject, SetStateAction, useEffect, useRef, useState } from "react";
 import FrontPanel from "./FrontPanel/FrontPanel";
 import MainController, { MainControllerInputs, MainControllerOutputs, MenuOptionValue } from "./MainController/MainController";
-import { loadData, saveData } from "@/app/actions";
+import { getInternetRadioStations, InternetRadioStation, loadData, saveData } from "@/app/actions";
 import { applyColorOffset } from "@/utils/color";
 
-export default function AppeleyReceiver({ videoOutputRef, setVideoPowerOn }: { videoOutputRef: RefObject<HTMLVideoElement | null>; setVideoPowerOn: Dispatch<SetStateAction<boolean | undefined>>; }) {
+export default function AppeleyReceiver({ internetRadioStations, videoOutputRef, setVideoPowerOn }: {
+    videoOutputRef: RefObject<HTMLVideoElement | null>;
+    setVideoPowerOn: Dispatch<SetStateAction<boolean | undefined>>;
+
+    internetRadioStations: InternetRadioStation[];
+}) {
+
+    // const [internetRadioStations, setInternetRadioStations] = useState<InternetRadioStation[]>([]);
 
     const generateColorItems = (property: "buttons" | "display", count: number, step: number = 2) => {
         let result: MenuOptionValue[] = [];
@@ -215,7 +222,7 @@ export default function AppeleyReceiver({ videoOutputRef, setVideoPowerOn }: { v
                                     shortPropName: "PTF",
                                 },
                                 {
-                                    label: "CURRENT / DURATION",
+                                    label: "CURRENT/ALL",
                                     onSelect: (s) => ({
                                         ...s,
                                         display: {
@@ -343,8 +350,18 @@ export default function AppeleyReceiver({ videoOutputRef, setVideoPowerOn }: { v
             //     controllerOutputsRef.current.sourceData[5] = res.data.outputs.sourceData[5];
             // }
         }
+
+        // await loadInternetRadioStations();
         // console.log(res.data);
     }
+
+    // const loadInternetRadioStations = async () => {
+    //     const res = await getInternetRadioStations();
+
+    //     if (res.success && res.data) {
+    //         setInternetRadioStations(res.data);
+    //     }
+    // };
 
     function beforeUnloadHandler(this: Window, e: BeforeUnloadEvent) {
         saveData(controllerInputsRef.current, controllerOutputsRef.current);
@@ -357,14 +374,17 @@ export default function AppeleyReceiver({ videoOutputRef, setVideoPowerOn }: { v
 
         loadSavedData();
 
+        // loadInternetRadioStations();
+
         return () => window.removeEventListener('beforeunload', beforeUnloadHandler);
 
     }, []);
 
     return (
         <div className="appeley-receiver">
-            <MainController inputsRef={controllerInputsRef} outputsRef={controllerOutputsRef} videoOutputRef={videoOutputRef} setVideoPowerOn={setVideoPowerOn} />
+            <MainController internetRadioStations={internetRadioStations} inputsRef={controllerInputsRef} outputsRef={controllerOutputsRef} videoOutputRef={videoOutputRef} setVideoPowerOn={setVideoPowerOn} />
             <FrontPanel
+                internetRadioStations={internetRadioStations}
                 mainControllerInputsRef={controllerInputsRef}
                 mainControllerOutputsRef={controllerOutputsRef}
             />

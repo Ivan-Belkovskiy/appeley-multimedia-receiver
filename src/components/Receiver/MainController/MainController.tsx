@@ -1,7 +1,8 @@
-import { getNavigationData, getTrackID3, USBFlashInfo } from "@/app/actions";
+import { createRadioTrackRecord, getNavigationData, getTrackID3, InternetRadioStation, USBFlashInfo } from "@/app/actions";
 import beeper from "@/utils/beeper";
 import { Dispatch, RefObject, SetStateAction, useEffect, useRef } from "react";
 import { getCurrentMenuElement } from "../FrontPanel/FrontPanel";
+import { Prisma } from "@prisma/client";
 
 export interface MainControllerInputButtons {
     powerOnOff?: boolean;
@@ -107,21 +108,21 @@ export interface FolderInfo {
     }[];
 }
 
-export interface RadioStation {
-    id: number;
-    name: string;
-    url: string;
-    genre: string;
-}
+// export interface RadioStation {
+//     id: number;
+//     name: string;
+//     url: string;
+//     genre?: string;
+// }
 
-export const JAZZ_RADIO_STATIONS: RadioStation[] = [
-    { id: 0, name: "101 SMOOTH JAZZ", url: "https://jking.cdnstream1.com/b22139_128mp3", genre: "Smooth Jazz" },
-    { id: 1, name: "101 MELLOW MIX", url: "https://streaming.live365.com/b48071_128mp3", genre: "Mellow Jazz" },
-    { id: 2, name: "SMOOTH JAZZ 247", url: "https://jking.cdnstream1.com/b75154_128mp3", genre: "Smooth Jazz" },
-    { id: 3, name: "SMOOTHJAZZ.COM", url: "https://smoothjazz.cdnstream1.com/2585_128.mp3", genre: "Smooth Jazz" },
-    { id: 4, name: "RADIO SWISS JAZZ", url: "http://stream.srg-ssr.ch/m/rsj/mp3_128", genre: "Jazz" },
-    { id: 5, name: "JAZZ24", url: "https://live.wostreaming.net/direct/ppm-jazz24aac256-ibc1", genre: "Jazz" },
-];
+// export const JAZZ_RADIO_STATIONS: RadioStation[] = [
+//     { id: 0, name: "101 SMOOTH JAZZ", url: "https://jking.cdnstream1.com/b22139_128mp3", genre: "Smooth Jazz" },
+//     { id: 1, name: "101 MELLOW MIX", url: "https://streaming.live365.com/b48071_128mp3", genre: "Mellow Jazz" },
+//     { id: 2, name: "SMOOTH JAZZ 247", url: "https://jking.cdnstream1.com/b75154_128mp3", genre: "Smooth Jazz" },
+//     { id: 3, name: "SMOOTHJAZZ.COM", url: "https://smoothjazz.cdnstream1.com/2585_128.mp3", genre: "Smooth Jazz" },
+//     { id: 4, name: "RADIO SWISS JAZZ", url: "http://stream.srg-ssr.ch/m/rsj/mp3_128", genre: "Jazz" },
+//     { id: 5, name: "JAZZ24", url: "https://live.wostreaming.net/direct/ppm-jazz24aac256-ibc1", genre: "Jazz" },
+// ];
 
 export interface MyLiftElevatorAction {
     value: string;
@@ -268,7 +269,7 @@ export interface MainControllerOutputs {
         2: {
             // FM / Radio
             isPaused?: boolean;
-            currentStationIndex?: number;
+            currentStationId?: number;
             isBuffering?: boolean;
             error?: string;
 
@@ -349,13 +350,17 @@ export default function MainController({
     outputsRef,
 
     videoOutputRef, // В дальнейшем переместить в outputsRef
-    setVideoPowerOn
+    setVideoPowerOn,
+
+    internetRadioStations
 }: {
     inputsRef: RefObject<MainControllerInputs>;
     outputsRef: RefObject<MainControllerOutputs>;
 
     videoOutputRef: RefObject<HTMLVideoElement | null>;
     setVideoPowerOn: Dispatch<SetStateAction<boolean | undefined>>;
+
+    internetRadioStations: InternetRadioStation[];
 }) {
 
     const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -368,13 +373,14 @@ export default function MainController({
 
     // }
     // }, [inputsRef.current]);
+    const metadataSourceRef = useRef<EventSource | null>(null);
+
 
     useEffect(() => {
         let frameId: number;
 
         let powerBtnTimer = 0;
 
-        // const metadataSourceRef = useRef<EventSource | null>(null);
 
         let srcBtnTimer = 0;
 
@@ -386,45 +392,59 @@ export default function MainController({
 
         let displayUpdateTimer = 0;
 
-        // const startMetadataListener = (streamUrl: string) => {
-        //     if (metadataSourceRef.current) {
-        //         metadataSourceRef.current.close();
-        //     }
+        let _radioStreamText = false;
+        let _radioStationId: number | null = null;
 
-        //     const eventSource = new EventSource(
-        //         `/api/radio-metadata?url=${encodeURIComponent(streamUrl)}`
-        //     );
+        const saveRadioTrackToDb = async (id: number, text: string) => {
+            await createRadioTrackRecord(id, text);
+        }
 
-        //     eventSource.onmessage = (event) => {
-        //         try {
-        //             const data = JSON.parse(event.data);
-        //             if (data.error) {
-        //                 console.error('Metadata error:', data.error);
-        //                 return;
-        //             }
-        //             if (data.title || data.artist) {
-        //                 outputsRef.current.sourceData[2].currentTitle = data.title;
-        //                 outputsRef.current.sourceData[2].currentArtist = data.artist;
-        //                 outputsRef.current.sourceData[2].streamTitle = data.raw;
-        //             }
-        //         } catch (e) {
-        //             console.error('Failed to parse metadata:', e);
-        //         }
-        //     };
+        const startMetadataListener = (streamUrl: string) => {
+            if (metadataSourceRef.current) {
+                metadataSourceRef.current.close();
+            }
 
-        //     eventSource.onerror = (err) => {
-        //         console.error('EventSource error:', err);
-        //     };
+            const eventSource = new EventSource(
+                `/api/radio-metadata?url=${encodeURIComponent(streamUrl)}`
+            );
 
-        //     metadataSourceRef.current = eventSource;
-        // };
+            eventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.error) {
+                        console.error('Metadata error:', data.error);
+                        return;
+                    }
+                    if (data.title || data.artist) {
+                        outputsRef.current.sourceData[2].currentTitle = data.title;
+                        outputsRef.current.sourceData[2].currentArtist = data.artist;
+                        outputsRef.current.sourceData[2].streamTitle = data.raw;
+                        if (_radioStreamText !== data.raw && _radioStationId !== outputsRef.current.sourceData[2].currentStationId) {
+                            if (outputsRef.current.sourceData[2].currentStationId) {
+                                saveRadioTrackToDb(outputsRef.current.sourceData[2].currentStationId, data.raw);
+                            }
+                            _radioStreamText = data.raw;
+                            _radioStationId = outputsRef.current.sourceData[2].currentStationId || null;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to parse metadata:', e);
+                }
+            };
 
-        // const stopMetadataListener = () => {
-        //     if (metadataSourceRef.current) {
-        //         metadataSourceRef.current.close();
-        //         metadataSourceRef.current = null;
-        //     }
-        // };
+            eventSource.onerror = (err) => {
+                console.error('EventSource error:', err);
+            };
+
+            metadataSourceRef.current = eventSource;
+        };
+
+        const stopMetadataListener = () => {
+            if (metadataSourceRef.current) {
+                metadataSourceRef.current.close();
+                metadataSourceRef.current = null;
+            }
+        };
 
         const getMyLiftData = (ip: string, port: string) => new Promise(async (resolve, reject) => {
             try {
@@ -678,8 +698,9 @@ export default function MainController({
             }
         });
 
-        const playRadio = (stationIndex: number) => {
-            const station = JAZZ_RADIO_STATIONS[stationIndex];
+        const playRadio = (stationIdx: number) => {
+
+            const station = internetRadioStations[stationIdx];
             if (!station) return;
 
             if (audioPlayerRef.current) {
@@ -698,6 +719,8 @@ export default function MainController({
             audio.src = station.url;
 
             audioPlayerRef.current = audio;
+
+            startMetadataListener(station.url);
 
             audio.addEventListener('waiting', () => {
                 outputsRef.current.sourceData[2].isBuffering = true;
@@ -720,12 +743,12 @@ export default function MainController({
                 outputsRef.current.sourceData[2].isBuffering = false;
             });
 
-            outputsRef.current.sourceData[2].currentStationIndex = stationIndex;
+            outputsRef.current.sourceData[2].currentStationId = station.id;
             outputsRef.current.sourceData[2].isBuffering = true;
 
-            if (outputsRef.current.sourceData[1]) {
-                outputsRef.current.sourceData[1].playbackData = undefined;
-            }
+            // if (outputsRef.current.sourceData[1]) {
+            //     outputsRef.current.sourceData[1].playbackData = undefined;
+            // }
 
             beeper.singleBeep(1);
         };
@@ -858,10 +881,12 @@ export default function MainController({
 
         const update = () => {
             // alert(outputsRef.current.powerOn)
+            // alert(123)
             if (inputsRef.current.buttons) {
 
                 if (inputsRef.current.buttons.powerOnOff) {
                     powerBtnTimer++;
+                    // alert(123)
                     if (powerBtnTimer > (
                         20
                         // outputsRef.current.powerOn ? 5 : 20
@@ -907,6 +932,11 @@ export default function MainController({
                                     outputsRef.current.sourceData[1].playbackData.isPlaying = false;
                                 }
                             }
+
+                            if (outputsRef.current.currentSource === 2) {
+                                stopMetadataListener();
+                            }
+
                             resetDemo();
                             srcBtnTimer = -20;
                         }
@@ -1833,28 +1863,28 @@ export default function MainController({
 
                         if (audioPlayerRef.current && !d2.isPaused) audioPlayerRef.current.play().catch(console.error);
 
-                        if (typeof d2.currentStationIndex !== 'number') {
+                        if (typeof d2.currentStationId !== 'number') {
                             playRadio(0);
                             return frameId = requestAnimationFrame(update);
                         }
 
                         processButtonClick('nextTrack', () => {
-                            const next = ((d2.currentStationIndex ?? 0) + 1) % JAZZ_RADIO_STATIONS.length;
+                            const next = ((d2.currentStationId ?? 0) + 1) % internetRadioStations.length;
                             playRadio(next);
                         });
 
                         processButtonClick('prevTrack', () => {
-                            const prev = ((d2.currentStationIndex ?? 0) - 1 + JAZZ_RADIO_STATIONS.length) % JAZZ_RADIO_STATIONS.length;
+                            const prev = ((d2.currentStationId ?? 0) - 1 + internetRadioStations.length) % internetRadioStations.length;
                             playRadio(prev);
                         });
 
                         processButtonClick('nextFolder', () => {
-                            const next = ((d2.currentStationIndex ?? 0) + 1) % JAZZ_RADIO_STATIONS.length;
+                            const next = ((d2.currentStationId ?? 0) + 1) % internetRadioStations.length;
                             playRadio(next);
                         });
 
                         processButtonClick('prevFolder', () => {
-                            const prev = ((d2.currentStationIndex ?? 0) - 1 + JAZZ_RADIO_STATIONS.length) % JAZZ_RADIO_STATIONS.length;
+                            const prev = ((d2.currentStationId ?? 0) - 1 + internetRadioStations.length) % internetRadioStations.length;
                             playRadio(prev);
                         });
 

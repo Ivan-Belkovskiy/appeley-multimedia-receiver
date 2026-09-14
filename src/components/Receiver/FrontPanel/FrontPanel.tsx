@@ -3,7 +3,7 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from "react";
 import Display, { DisplayMainIndication, DisplayOtherIndication } from "./Display/Display";
 import "./FrontPanel.css";
-import { JAZZ_RADIO_STATIONS, MainControllerInputs, MainControllerMenuDefinition, MainControllerOutputs, MainControllerSource, MainControllerSources, MenuOption } from "../MainController/MainController";
+import { MainControllerInputButtons, MainControllerInputs, MainControllerMenuDefinition, MainControllerOutputs, MainControllerSource, MainControllerSources, MenuOption } from "../MainController/MainController";
 import { centerMainText } from "@/utils/display";
 import { formatTime, timeFromDate } from "@/utils/time";
 import beeper from "@/utils/beeper";
@@ -11,6 +11,7 @@ import Encoder from "./Encoder/Encoder";
 import { parseMyLiftSelectorString } from "@/utils/string";
 import USBSelectModal from "@/components/USBSelectModal/USBSelectModal";
 import { applyColorOffset, brightnessFilter } from "@/utils/color";
+import { InternetRadioStation } from "@/app/actions";
 
 interface DisplayData {
     main: DisplayMainIndication[];
@@ -96,10 +97,14 @@ export default function FrontPanel({
     mainControllerInputsRef,
     mainControllerOutputsRef,
 
+    internetRadioStations
+
     // indicationColor
 }: {
     mainControllerInputsRef: RefObject<MainControllerInputs>,
-    mainControllerOutputsRef: RefObject<MainControllerOutputs>
+    mainControllerOutputsRef: RefObject<MainControllerOutputs>,
+
+    internetRadioStations: InternetRadioStation[];
 
     // indicationColor?: {
     //     display?: string;
@@ -130,6 +135,35 @@ export default function FrontPanel({
     const handleUSBSelect = () => {
         setOpenedModal('usb-select');
     }
+
+
+    const buttonHandlers = (
+        name: keyof MainControllerInputButtons,
+        onActivate?: () => void,
+        onDeactivate?: () => void,
+    ) => ({
+        onPointerDown: (e: React.PointerEvent) => {
+            (e.currentTarget as Element).setPointerCapture(e.pointerId);
+
+            e.preventDefault();
+
+            mainInputs.buttons = { ...mainInputs.buttons, [name]: true };
+            onActivate?.();
+        },
+        onPointerUp: (e: React.PointerEvent) => {
+            try {
+                (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+            } catch { }
+            mainInputs.buttons = { ...mainInputs.buttons, [name]: false };
+            onDeactivate?.();
+        },
+        onPointerCancel: () => {
+            mainInputs.buttons = { ...mainInputs.buttons, [name]: false };
+            onDeactivate?.();
+        },
+        onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    });
+
 
     const demoTopLeftAnimCallback = useCallback((t: number, startPoint: number = 37) => {
         // return String(t).split('')
@@ -1850,14 +1884,28 @@ export default function FrontPanel({
                                     }
                                     displayMode.selectedSource = mainOutputs.currentSource;
                                 } else if (mainOutputs.currentSource === 2) {
+                                    // if (displayMode.volume) {
+                                    //     displayMode.volume = false;
+                                    //     displayMode.track = 1;
+                                    // } else if (displayMode.track === null) {
+                                    //     displayMode.track = 1;
+                                    //     displayMode.default = false;
+                                    //     displayMode.clockTime = false;
+                                    // } else 
                                     if (displayMode.volume) {
                                         displayMode.volume = false;
+                                        displayMode.track = 1;
+                                    } else if (displayMode.track === 1) {
+                                        displayMode.track = null;
+                                        displayMode.default = true;
+                                        displayMode.clockTime = false;
                                     } else if (displayMode.default) {
                                         displayMode.default = false;
                                         displayMode.clockTime = true;
                                     } else {
-                                        displayMode.folder = null;
-                                        displayMode.default = true;
+                                        displayMode.track = 1;
+                                        displayMode.default = false;
+                                        displayMode.clockTime = false;
                                     }
                                     displayMode.selectedSource = mainOutputs.currentSource;
                                 }
@@ -2148,10 +2196,10 @@ export default function FrontPanel({
 
                                     } else {
                                         if (displayMode.default) {
-                                            const main = ` ${trackNumber}       ${(
-                                                (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ?
-                                                `${currentTime} / ${duration}` : currentTime
-                                            ) ?? ""}`;
+                                            const main = (
+                                                (currentTime === undefined || duration === undefined) ? ` ${trackNumber}`
+                                                : (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${trackNumber}  ${currentTime}/${duration}` : ` ${trackNumber}       ${currentTime}`
+                                            );
 
                                             updateDisplayData({
                                                 ...displayDataRef.current,
@@ -2214,8 +2262,9 @@ export default function FrontPanel({
                                     })
                                 }
                             } else if (mainOutputs.currentSource === 2) {
+
                                 const radioData = mainOutputs.sourceData[2];
-                                const station = JAZZ_RADIO_STATIONS[radioData.currentStationIndex ?? 0];
+                                const station = internetRadioStations[radioData.currentStationId ?? 0];
 
                                 if (radioData.error) {
                                     updateDisplayData({
@@ -2253,6 +2302,7 @@ export default function FrontPanel({
 
                                 //  ВЫНЕСТИ ЛОГИКУ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ В ОТДЕЛЬНЫЙ БЛОК КОДА //
 
+
                                 if (displayMode.volume === true) {
                                     updateDisplayData({
                                         main: [],
@@ -2279,7 +2329,34 @@ export default function FrontPanel({
                                         otherIndication: {}
                                     });
                                 } else if (!radioData.isBuffering && !radioData.error) {
-                                    if (displayMode.default) {
+                                    updateDisplayData({
+                                        main: [],
+                                        topLeft: 'FM'.split(''),
+                                        otherIndication: {
+                                            topRightData: {
+                                                AUDIO: true,
+                                            }
+                                        }
+                                    });
+                                    if (displayMode.track === 1) {
+                                        if (radioData.streamTitle) {
+                                            updateDisplayData({
+                                                main: [],
+                                                topLeft: 'FM'.split(''),
+                                                otherIndication: {
+                                                    topRightData: {
+                                                        AUDIO: true,
+                                                    }
+                                                }
+                                            });
+
+                                            animateScrollingText(animTimer, radioData.streamTitle, () => {
+                                                animTimer = 0;
+                                            });
+                                            animTimer++;
+
+                                        }
+                                    } else if (displayMode.default) {
                                         updateDisplayData({
                                             main: [],
                                             topLeft: 'FM'.split(''),
@@ -2697,20 +2774,37 @@ export default function FrontPanel({
                         {/* <path d="M21.36827,186.09175v-26.21743h39.51692v14.01293l-17.33694,12.20449z" fill="#000000" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="0.5" strokeLinecap="butt" /> */}
 
                         <g className="on_off_button"
-                            onMouseDown={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                powerOnOff: true
-                            }}
+                            {...buttonHandlers('powerOnOff')}
+                        // onMouseDown={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     powerOnOff: true
+                        // }}
 
-                            onMouseUp={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                powerOnOff: false
-                            }}
+                        // onMouseUp={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     powerOnOff: false
+                        // }}
 
-                            onMouseLeave={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                powerOnOff: false
-                            }}
+                        // onMouseLeave={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     powerOnOff: false
+                        // }}
+
+
+                        // onTouchStart={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     powerOnOff: true
+                        // }}
+
+                        // onTouchEnd={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     powerOnOff: false
+                        // }}
+
+                        // onTouchCancel={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     powerOnOff: false
+                        // }}
                         >
                             <path d="M21.36827,186.09175v-26.21743h39.51692v14.01293l-17.33694,12.20449z" fill="#000000" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="0.5" strokeLinecap="butt" />
                             <g fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2.5">
@@ -2867,78 +2961,88 @@ export default function FrontPanel({
 
 
                         <path d="M314.78551,386.56898l20.90032,-15.94654h26.9943v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            onMouseDown={() => setNumberButtonState(1, true)}
+                            {...buttonHandlers('num_1')}
+                        // onMouseDown={() => setNumberButtonState(1, true)}
 
-                            onMouseUp={() => setNumberButtonState(1, false)}
+                        // onMouseUp={() => setNumberButtonState(1, false)}
 
-                            onMouseLeave={() => setNumberButtonState(1, false)}
+                        // onMouseLeave={() => setNumberButtonState(1, false)}
                         />
                         <path d="M374.80695,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            onMouseDown={() => setNumberButtonState(2, true)}
+                            {...buttonHandlers('num_2')}
+                        // onMouseDown={() => setNumberButtonState(2, true)}
 
-                            onMouseUp={() => setNumberButtonState(2, false)}
+                        // onMouseUp={() => setNumberButtonState(2, false)}
 
-                            onMouseLeave={() => setNumberButtonState(2, false)}
+                        // onMouseLeave={() => setNumberButtonState(2, false)}
                         />
                         <path d="M423.03846,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            onMouseDown={() => setNumberButtonState(3, true)}
+                            {...buttonHandlers('num_3')}
+                        // onMouseDown={() => setNumberButtonState(3, true)}
 
-                            onMouseUp={() => setNumberButtonState(3, false)}
+                        // onMouseUp={() => setNumberButtonState(3, false)}
 
-                            onMouseLeave={() => setNumberButtonState(3, false)}
+                        // onMouseLeave={() => setNumberButtonState(3, false)}
                         />
                         <path d="M471.26997,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            onMouseDown={() => setNumberButtonState(4, true)}
+                            {...buttonHandlers('num_4')}
+                        // onMouseDown={() => setNumberButtonState(4, true)}
 
-                            onMouseUp={() => setNumberButtonState(4, false)}
+                        // onMouseUp={() => setNumberButtonState(4, false)}
 
-                            onMouseLeave={() => setNumberButtonState(4, false)}
+                        // onMouseLeave={() => setNumberButtonState(4, false)}
                         />
                         <path d="M519.50149,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            onMouseDown={() => setNumberButtonState(5, true)}
+                            {...buttonHandlers('num_5')}
+                        // onMouseDown={() => setNumberButtonState(5, true)}
 
-                            onMouseUp={() => setNumberButtonState(5, false)}
+                        // onMouseUp={() => setNumberButtonState(5, false)}
 
-                            onMouseLeave={() => setNumberButtonState(5, false)}
+                        // onMouseLeave={() => setNumberButtonState(5, false)}
                         />
 
                         <path d="M567.73299,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            onMouseDown={() => setNumberButtonState(6, true)}
+                            {...buttonHandlers('num_6')}
+                        // onMouseDown={() => setNumberButtonState(6, true)}
 
-                            onMouseUp={() => setNumberButtonState(6, false)}
+                        // onMouseUp={() => setNumberButtonState(6, false)}
 
-                            onMouseLeave={() => setNumberButtonState(6, false)}
+                        // onMouseLeave={() => setNumberButtonState(6, false)}
                         />
 
                         <path d="M615.96451,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            onMouseDown={() => setNumberButtonState(7, true)}
+                            {...buttonHandlers('num_7')}
+                        // onMouseDown={() => setNumberButtonState(7, true)}
 
-                            onMouseUp={() => setNumberButtonState(7, false)}
+                        // onMouseUp={() => setNumberButtonState(7, false)}
 
-                            onMouseLeave={() => setNumberButtonState(7, false)}
+                        // onMouseLeave={() => setNumberButtonState(7, false)}
                         />
 
                         <path d="M712.42753,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            onMouseDown={() => setNumberButtonState(9, true)}
+                            {...buttonHandlers('num_9')}
+                        // onMouseDown={() => setNumberButtonState(9, true)}
 
-                            onMouseUp={() => setNumberButtonState(9, false)}
+                        // onMouseUp={() => setNumberButtonState(9, false)}
 
-                            onMouseLeave={() => setNumberButtonState(9, false)}
+                        // onMouseLeave={() => setNumberButtonState(9, false)}
                         />
 
                         <path d="M664.19602,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            onMouseDown={() => setNumberButtonState(8, true)}
+                            {...buttonHandlers('num_8')}
+                        // onMouseDown={() => setNumberButtonState(8, true)}
 
-                            onMouseUp={() => setNumberButtonState(8, false)}
+                        // onMouseUp={() => setNumberButtonState(8, false)}
 
-                            onMouseLeave={() => setNumberButtonState(8, false)}
+                        // onMouseLeave={() => setNumberButtonState(8, false)}
                         />
                         <path d="M760.12314,386.56898v-15.94654h26.9943l20.90032,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            onMouseDown={() => setNumberButtonState(0, true)}
+                            {...buttonHandlers('num_0')}
+                        // onMouseDown={() => setNumberButtonState(0, true)}
 
-                            onMouseUp={() => setNumberButtonState(0, false)}
+                        // onMouseUp={() => setNumberButtonState(0, false)}
 
-                            onMouseLeave={() => setNumberButtonState(0, false)}
+                        // onMouseLeave={() => setNumberButtonState(0, false)}
                         />
                         <text style={{ userSelect: 'none' }} transform="translate(342.28565,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">1</tspan>
@@ -2974,20 +3078,21 @@ export default function FrontPanel({
                         {/* Eject Button */}
                         <g
                             className="front-panel__button"
-                            onMouseDown={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                eject: true
-                            }}
+                            {...buttonHandlers('eject')}
+                        // onMouseDown={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     eject: true
+                        // }}
 
-                            onMouseUp={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                eject: false
-                            }}
+                        // onMouseUp={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     eject: false
+                        // }}
 
-                            onMouseLeave={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                eject: false
-                            }}
+                        // onMouseLeave={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     eject: false
+                        // }}
                         >
                             <path d="M784.07045,191.39962v-26.23561h59.4761l-32.54389,26.23561z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
                             <g fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="0" strokeLinecap="butt">
@@ -3000,20 +3105,22 @@ export default function FrontPanel({
                         <g
                             strokeLinecap="butt"
                             className="front-panel__button"
-                            onMouseDown={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                srcSelect: true
-                            }}
 
-                            onMouseUp={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                srcSelect: false
-                            }}
+                            {...buttonHandlers('srcSelect')}
+                        // onMouseDown={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     srcSelect: true
+                        // }}
 
-                            onMouseLeave={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                srcSelect: false
-                            }}
+                        // onMouseUp={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     srcSelect: false
+                        // }}
+
+                        // onMouseLeave={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     srcSelect: false
+                        // }}
                         >
                             <path d="M20.00585,383.15799l-0.04979,-15.94654h44.33409l19.39423,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" />
                             <text transform="translate(23.6884,378.88225) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
@@ -3023,20 +3130,21 @@ export default function FrontPanel({
                         <g
                             strokeLinecap="butt"
                             className="front-panel__button"
-                            onMouseDown={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                disp: true
-                            }}
+                            {...buttonHandlers('disp')}
+                        // onMouseDown={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     disp: true
+                        // }}
 
-                            onMouseUp={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                disp: false
-                            }}
+                        // onMouseUp={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     disp: false
+                        // }}
 
-                            onMouseLeave={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                disp: false
-                            }}
+                        // onMouseLeave={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     disp: false
+                        // }}
                         >
                             <path d="M94.81812,383.15799l-19.39423,-15.94654h56.96734l19.39423,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" />
                             <text transform="translate(100.99737,378.88225) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
@@ -3095,20 +3203,21 @@ export default function FrontPanel({
                         {/* <!-- Menu Button --> */}
                         <g
                             className="front-panel__button"
-                            onMouseDown={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                menu: true
-                            }}
+                            {...buttonHandlers('menu')}
+                        // onMouseDown={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     menu: true
+                        // }}
 
-                            onMouseUp={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                menu: false
-                            }}
+                        // onMouseUp={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     menu: false
+                        // }}
 
-                            onMouseLeave={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                menu: false
-                            }}
+                        // onMouseLeave={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     menu: false
+                        // }}
                         >
                             <path d="M83.68439,215.49771l-19.39423,15.94654h-44.33409l0.04979,-15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
                             <text transform="translate(27.21783,226.96182) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
@@ -3118,20 +3227,21 @@ export default function FrontPanel({
                         {/* <!-- Back Button --> */}
                         <g
                             className="front-panel__button"
-                            onMouseDown={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                back: true
-                            }}
+                            {...buttonHandlers('back')}
+                        // onMouseDown={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     back: true
+                        // }}
 
-                            onMouseUp={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                back: false
-                            }}
+                        // onMouseUp={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     back: false
+                        // }}
 
-                            onMouseLeave={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                back: false
-                            }}
+                        // onMouseLeave={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     back: false
+                        // }}
                         >
                             <path d="M75.42391,231.44425l19.39423,-15.94654h56.96734l-19.39423,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
                             <text transform="translate(100.51709,227.02132) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
@@ -3148,20 +3258,21 @@ export default function FrontPanel({
                             strokeWidth="0"
                             strokeLinecap="butt"
                             className="front-panel__button"
-                            onMouseDown={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                nextFolder: true
-                            }}
+                            {...buttonHandlers('nextFolder')}
+                        // onMouseDown={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     nextFolder: true
+                        // }}
 
-                            onMouseUp={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                nextFolder: false
-                            }}
+                        // onMouseUp={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     nextFolder: false
+                        // }}
 
-                            onMouseLeave={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                nextFolder: false
-                            }}
+                        // onMouseLeave={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     nextFolder: false
+                        // }}
                         >
                             <path d="M32.61318,255.33642h84.77119l-41.93724,41.5235z" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
                             <path d="M68.05183,278.86107l7.03489,-15.60482l6.859,15.60482z" fill="#ffffff" stroke="#e6e6e6" />
@@ -3171,20 +3282,21 @@ export default function FrontPanel({
                             strokeWidth="0"
                             strokeLinecap="butt"
                             className="front-panel__button"
-                            onMouseDown={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                nextTrack: true
-                            }}
+                            {...buttonHandlers('nextTrack')}
+                        // onMouseDown={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     nextTrack: true
+                        // }}
 
-                            onMouseUp={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                nextTrack: false
-                            }}
+                        // onMouseUp={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     nextTrack: false
+                        // }}
 
-                            onMouseLeave={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                nextTrack: false
-                            }}
+                        // onMouseLeave={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     nextTrack: false
+                        // }}
                         >
                             <path d="M116.97138,254.92343v84.77119l-41.22046,-42.24027z" fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
                             <path d="M102.30795,291.64505l3.6593,-6.28808l3.5678,6.28808l-3.62331,-3.60625z" fill="#ffffff" stroke="#e6e6e6" />
@@ -3199,20 +3311,21 @@ export default function FrontPanel({
                             strokeWidth="0"
                             strokeLinecap="butt"
                             className="front-panel__button"
-                            onMouseDown={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                prevTrack: true
-                            }}
+                            {...buttonHandlers('prevTrack')}
+                        // onMouseDown={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     prevTrack: true
+                        // }}
 
-                            onMouseUp={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                prevTrack: false
-                            }}
+                        // onMouseUp={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     prevTrack: false
+                        // }}
 
-                            onMouseLeave={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                prevTrack: false
-                            }}
+                        // onMouseLeave={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     prevTrack: false
+                        // }}
                         >
                             <path d="M33.02617,339.69462v-84.77119l41.22046,42.24028z" fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
                             <path d="M50.75127,285.35697l-3.65929,6.28808l-3.5678,-6.28808l3.62331,3.60624z" fill="#ffffff" stroke="#e6e6e6" />
@@ -3227,20 +3340,21 @@ export default function FrontPanel({
                             strokeWidth="0"
                             strokeLinecap="butt"
                             className="front-panel__button"
-                            onMouseDown={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                prevFolder: true
-                            }}
+                            {...buttonHandlers('prevFolder')}
+                        // onMouseDown={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     prevFolder: true
+                        // }}
 
-                            onMouseUp={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                prevFolder: false
-                            }}
+                        // onMouseUp={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     prevFolder: false
+                        // }}
 
-                            onMouseLeave={() => mainInputs.buttons = {
-                                ...mainInputs.buttons,
-                                prevFolder: false
-                            }}
+                        // onMouseLeave={() => mainInputs.buttons = {
+                        //     ...mainInputs.buttons,
+                        //     prevFolder: false
+                        // }}
                         >
                             <path d="M117.38437,339.28163h-84.77119l42.67506,-41.87264z" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
                             <path d="M81.94572,317.57596l-6.859,15.60482l-7.03489,-15.60482z" fill="#ffffff" stroke="#e6e6e6" />
