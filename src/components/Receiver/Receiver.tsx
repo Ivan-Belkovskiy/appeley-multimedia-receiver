@@ -2,9 +2,11 @@
 
 import { Dispatch, RefObject, SetStateAction, useEffect, useRef, useState } from "react";
 import FrontPanel from "./FrontPanel/FrontPanel";
-import MainController, { MainControllerInputs, MainControllerOutputs, MenuOptionValue } from "./MainController/MainController";
+import MainController, { MainControllerInputButtons, MainControllerInputs, MainControllerOutputs, MainControllerSettings, MenuOptionValue } from "./MainController/MainController";
 import { getInternetRadioStations, InternetRadioStation, loadData, saveData } from "@/app/actions";
 import { applyColorOffset } from "@/utils/color";
+import "./Receiver.css";
+import AppeleyRC from "./RemoteController/AppeleyRC";
 
 export default function AppeleyReceiver({ internetRadioStations, videoOutputRef, setVideoPowerOn }: {
     videoOutputRef: RefObject<HTMLVideoElement | null>;
@@ -35,6 +37,41 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                 displayPreview: true
             });
         }
+
+        // alert(JSON.stringify(result[0].onSelect));
+        
+        return result;
+    }
+
+    const generateNumberItems = (count: number, startValue: number = 0, step: number = 2, onSelect: (s: MainControllerSettings, value: number) => any, reference: (s: MainControllerSettings, value: number) => any) => {
+        let result: MenuOptionValue[] = [];
+
+        for (let i = (startValue); i < (count + (startValue)); i++) {
+            result.push({
+                label: `${String((i + 1) * step).padStart(2, "0")}`,
+                onSelect: (s) => {
+                    return onSelect(s, ((i + 1) * step));
+                },
+                reference: (s) => {
+                    return reference(s, ((i + 1) * step));
+                },
+                // onSelect: (s) => ({
+                //     ...s,
+                //     indication: {
+                //         ...s.indication,
+                //         [property]: {
+                //             type: 'static',
+                //             color: applyColorOffset('#0088ff', (i * step)),
+                //         }
+                //     }
+                // }),
+                // reference: (s) => s.indication[property].color === applyColorOffset('#0088ff', (i * step)),
+                displayPreview: true
+            });
+        }
+
+        // alert(JSON.stringify(result[0].onSelect));
+
         return result;
     }
 
@@ -52,6 +89,94 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                 currentIdx: 0,
                 // optionValues: []
             },
+            encoderMenuOptions: [
+                {
+                    type: "property",
+                    label: "REPEAT",
+
+                    values: [
+                        {
+                            label: "RPT OFF",
+                            onSelect: (s) => ({
+                                ...s,
+                                playMode: {
+                                    ...s.playMode,
+                                    repeat: null,
+                                }
+                            }),
+                            reference: (s) => !s.playMode.repeat,
+                            shortPropName: "",
+                        },
+                        {
+                            label: "TRACK RPT",
+                            onSelect: (s) => ({
+                                ...s,
+                                playMode: {
+                                    ...s.playMode,
+                                    repeat: "TRACK",
+                                }
+                            }),
+                            reference: (s) => s.playMode.repeat === 'TRACK',
+                            shortPropName: "",
+                        },
+                        {
+                            label: "FOLDER RPT",
+                            onSelect: (s) => ({
+                                ...s,
+                                playMode: {
+                                    ...s.playMode,
+                                    repeat: "FOLDER",
+                                }
+                            }),
+                            reference: (s) => s.playMode.repeat === 'FOLDER',
+                            shortPropName: "",
+                        },
+                    ],
+                },
+                {
+                    type: "property",
+                    label: "RANDOM",
+
+                    values: [
+                        {
+                            label: "RND OFF",
+                            onSelect: (s) => ({
+                                ...s,
+                                playMode: {
+                                    ...s.playMode,
+                                    random: null,
+                                }
+                            }),
+                            reference: (s) => !s.playMode.random,
+                            shortPropName: "",
+                        },
+                        {
+                            label: "FOLDER RND",
+                            onSelect: (s) => ({
+                                ...s,
+                                playMode: {
+                                    ...s.playMode,
+                                    random: "FOLDER",
+                                }
+                            }),
+                            reference: (s) => s.playMode.random === 'FOLDER',
+                            shortPropName: "",
+                        },
+                        {
+                            label: "ALL RND",
+                            onSelect: (s) => ({
+                                ...s,
+                                playMode: {
+                                    ...s.playMode,
+                                    random: "ALL",
+                                }
+                            }),
+                            reference: (s) => s.playMode.random === 'ALL',
+                            shortPropName: "",
+                        },
+                    ],
+                },
+            ],
             options: [
                 {
                     type: "property",
@@ -274,6 +399,98 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                                     shortPropName: "VOL CONTROL",
                                 }
                             ]
+                        },
+                        {
+                            type: "block",
+                            label: "BEEP",
+
+                            innerOptions: [
+                                {
+                                    type: "property",
+                                    label: "BEEP ON/OFF",
+
+                                    values: [
+                                        {
+                                            label: "ON",
+                                            onSelect: (s) => ({
+                                                ...s,
+                                                audio: {
+                                                    ...s.audio,
+                                                    beeper: {
+                                                        ...s.audio.beeper,
+                                                        on: true,
+                                                    }
+                                                }
+                                            }),
+                                            reference: (s) => s.audio.beeper.on,
+                                            shortPropName: "BEEP",
+                                        },
+                                        {
+                                            label: "OFF",
+                                            onSelect: (s) => ({
+                                                ...s,
+                                                audio: {
+                                                    ...s.audio,
+                                                    beeper: {
+                                                        ...s.audio.beeper,
+                                                        on: false,
+                                                    }
+                                                }
+                                            }),
+                                            reference: (s) => !s.audio.beeper.on,
+                                            shortPropName: "BEEP",
+                                        }
+                                    ],
+                                },
+                                {
+                                    type: "property",
+                                    label: "BEEP VOLUME",
+
+                                    values: [
+                                        ...generateNumberItems(4, 0, 25, (s, val) => ({
+                                            ...s,
+                                            audio: {
+                                                ...s.audio,
+                                                beeper: {
+                                                    ...s.audio.beeper,
+                                                    volume: (val / 100)
+                                                }
+                                            }
+                                        }), (s, val) => s.audio.beeper.volume === (val / 100))
+                                    ]
+                                }
+                            ],
+
+                            // values: [
+                            //     {
+                            //         label: "ON",
+                            //         onSelect: (s) => ({
+                            //             ...s,
+                            //             audio: {
+                            //                 ...s.audio,
+                            //                 beeper: {
+                            //                     ...s.audio.beeper,
+                            //                     on: true,
+                            //                 }
+                            //             }
+                            //         }),
+                            //         reference: (s) => s.audio.beeper.on
+                            //     },
+                            //     {
+                            //         label: "OFF",
+                            //         onSelect: (s) => ({
+                            //             ...s,
+                            //             audio: {
+                            //                 ...s.audio,
+                            //                 beeper: {
+                            //                     ...s.audio.beeper,
+                            //                     on: false,
+                            //                 }
+                            //             }
+                            //         }),
+                            //         reference: (s) => !s.audio.beeper.on
+                            //     }
+                            // ],
                         }
                     ]
                 },
@@ -299,6 +516,14 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
             },
             audio: {
                 volumeControl: "NONE",
+                beeper: {
+                    on: true,
+                    volume: 1
+                }
+            },
+
+            playMode: {
+
             }
         },
         currentSource: 1,
@@ -313,7 +538,7 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
             2: {},
             // 3: {}, // uncomment after adding to interface MainControllerOutputs
             // 4: {}, // uncomment after adding to interface MainControllerOutputs
-            5: {},
+            6: {},
         }
     });
 
@@ -343,7 +568,7 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
             // }
 
             if (res.data.outputs.sourceData[5].connectionInfo) {
-                controllerOutputsRef.current.sourceData[5].connectionInfo = res.data.outputs.sourceData[5].connectionInfo;
+                controllerOutputsRef.current.sourceData["6"].connectionInfo = res.data.outputs.sourceData[5].connectionInfo;
             }
 
             // if (res.data.outputs.sourceData[5]) {
@@ -376,9 +601,40 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
 
         // loadInternetRadioStations();
 
+        // alert(JSON.stringify(internetRadioStations));
+
         return () => window.removeEventListener('beforeunload', beforeUnloadHandler);
 
     }, []);
+
+    // const buttonHandlers = (
+    //     name: keyof MainControllerInputButtons,
+    //     onActivate?: () => void,
+    //     onDeactivate?: () => void,
+    // ) => ({
+    //     onPointerDown: (e: React.PointerEvent) => {
+    //         (e.currentTarget as Element).setPointerCapture(e.pointerId);
+
+    //         e.preventDefault();
+
+    //         controllerInputsRef.current.buttons = { ...controllerInputsRef.current.buttons, [name]: true };
+    //         onActivate?.();
+    //     },
+    //     onPointerUp: (e: React.PointerEvent) => {
+    //         try {
+    //             (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+    //         } catch { }
+    //         controllerInputsRef.current.buttons = { ...controllerInputsRef.current.buttons, [name]: false };
+    //         onDeactivate?.();
+    //     },
+    //     onPointerCancel: () => {
+    //         controllerInputsRef.current.buttons = { ...controllerInputsRef.current.buttons, [name]: false };
+    //         onDeactivate?.();
+    //     },
+    //     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    // });
+
+    const [isRCModalOpened, setRCModalOpened] = useState(false);
 
     return (
         <div className="appeley-receiver">
@@ -388,6 +644,23 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                 mainControllerInputsRef={controllerInputsRef}
                 mainControllerOutputsRef={controllerOutputsRef}
             />
+
+            <div className="appeley-receiver__container">
+                <button className="appeley-receiver__ui-button" onClick={() => setRCModalOpened(true)}>Remote Control</button>
+            </div>
+
+            {isRCModalOpened && (
+                <div className="remote-control-modal">
+                    <div className="remote-control-modal__left">
+                        <AppeleyRC
+                            mainControllerInputsRef={controllerInputsRef}
+                        />
+                    </div>
+                    <div className="remote-control-modal__right">
+                        <button className="remote-control-modal__button" onClick={() => setRCModalOpened(false)}>Close Window</button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

@@ -9,6 +9,22 @@ export interface DisplayOtherIndication {
     Tr?: boolean;
     Elevator?: boolean;
 
+    RND?: {
+        on: boolean;
+        folder?: boolean;
+        track?: boolean;
+    };
+    RPT?: {
+        on: boolean;
+        folder?: boolean;
+        track?: boolean;
+    };
+
+    timeMove?: {
+        left?: boolean;
+        right?: boolean;
+    }
+
     topRightData?: {
         decorationLine?: boolean;
         AUDIO?: boolean;
@@ -227,8 +243,8 @@ export default function Display({
         <g className="display" style={{ filter: (powerOn === true) ? 'brightness(1)' : 'brightness(0)', transition: 'all 0.15s ease 0s' }}>
             {/* // <!-- DISPLAY (Main Window) --> */}
             <path d="M339.34911,339.10312v-91.24327h423.7256v91.24327z" fill="#000000" stroke="none" strokeWidth="0" strokeLinecap="butt" />
-            {/* // <!-- Display (Top-Left Decoration Line) --> */}
-            <path d="M467.83354,250.08056l-27.23683,27.23684h-95.26316" fill="none" stroke={(otherIndication?.topLeftDecorationLine) ? indicationColor1 : setBrightness(indicationColor1, 0.1)} strokeWidth="1" strokeLinecap="round" />
+            {/* // <!-- Display (TopLeft Decoration Line) --> */}
+            <path d="M487.83354,250.08056l-27.23683,27.23684h-115.26316" fill="none" stroke={(otherIndication?.topLeftDecorationLine) ? indicationColor1 : setBrightness(indicationColor1, 0.1)} strokeWidth="1" strokeLinecap="round" />
 
             {/* // <!-- Display (Indicator Places) --> */}
             {/* <g fill="#395e7e" stroke="none" strokeWidth="0" strokeLinecap="butt">
@@ -316,7 +332,7 @@ export default function Display({
                 />
             ))}
 
-            {Array(4).fill(0).map((_, idx) => (
+            {Array(5).fill(0).map((_, idx) => (
                 <MainIndicator
                     offsetX={(160 + (18 * idx))}
                     offsetY={74}
@@ -327,60 +343,60 @@ export default function Display({
                 />
             ))}
 
-            {/* <g fill="#8c72ff" stroke="none" stroke-linecap="butt">
-                <path d="M365.39072,263.06786v-1.30487h3.03335v1.30487z" stroke-width="NaN" />
-                <path d="M372.23105,263.06786v-1.30487h3.03335v1.30487z" stroke-width="NaN" />
-                <path d="M368.81089,263.06786v-1.30487h3.03335v1.30487z" stroke-width="NaN" />
-                <path d="M375.65123,263.06786v-1.30487h3.03335v1.30487z" stroke-width="NaN" />
-                <path d="M366.66243,272.89376h-1.30487v-2.89529h1.30487z" stroke-width="NaN" />
-                <path d="M366.66243,266.36475h-1.30487v-2.8953h1.30487z" stroke-width="NaN" />
-                <path d="M366.66243,269.62926h-1.30487v-2.89529h1.30487z" stroke-width="NaN" />
-                <path d="M372.69008,272.86949h-1.30488v-2.89529h1.30488z" stroke-width="NaN" />
-                <path d="M372.69008,266.34047h-1.30488v-2.89529h1.30488z" stroke-width="NaN" />
-                <path d="M372.69008,269.60498h-1.30488v-2.8953h1.30488z" stroke-width="NaN" />
-                <path d="M378.65663,272.89376h-1.30487v-2.89529h1.30487z" stroke-width="NaN" />
-                <path d="M378.65663,266.36475h-1.30487v-2.8953h1.30487z" stroke-width="NaN" />
-                <path d="M378.65663,269.62926h-1.30487v-2.89529h1.30487z" stroke-width="NaN" />
-                <path d="M366.66243,261.40995h-1.30487v-2.89529h1.30487z" stroke-width="NaN" />
-                <path d="M366.66243,254.88093h-1.30487v-2.8953h1.30487z" stroke-width="NaN" />
-                <path d="M366.66243,258.14544h-1.30487v-2.8953h1.30487z" stroke-width="NaN" />
-                <path d="M372.69008,261.38568h-1.30488v-2.8953h1.30488z" stroke-width="NaN" />
-                <path d="M372.69008,254.85666h-1.30488v-2.89529h1.30488z" stroke-width="NaN" />
-                <path d="M372.69008,258.12117h-1.30488v-2.8953h1.30488z" stroke-width="NaN" />
-                <path d="M378.65663,261.40995h-1.30487v-2.89529h1.30487z" stroke-width="NaN" />
-                <path d="M378.65663,254.88093h-1.30487v-2.8953h1.30487z" stroke-width="NaN" />
-                <path d="M378.65663,258.14544h-1.30487v-2.8953h1.30487z" stroke-width="NaN" />
-                <path d="M375.08909,269.68744l-0.65985,-1.44187l0.66001,-1.45342l0.64486,1.45342z" stroke-width="NaN" />
-                <path d="M375.80152,267.95137l-0.56223,-1.07934l0.67174,-3.55282l0.80694,1.30896z" stroke-width="NaN" />
-                <path d="M374.34294,268.45796l0.59666,1.2171l-0.70618,3.41506l-0.80694,-1.30896z" stroke-width="NaN" />
-                <path d="M373.42649,264.62817l0.80694,-1.30896l0.67174,3.55282l-0.56223,1.07934z" stroke-width="NaN" />
-                <path d="M376.71797,271.78116l-0.80694,1.30896l-0.70619,-3.41506l0.59667,-1.2171z" stroke-width="NaN" />
-                <path d="M375.08909,258.08068l-0.65985,-1.44187l0.66001,-1.45343l0.64486,1.45343z" stroke-width="NaN" />
-                <path d="M375.80152,256.34461l-0.56223,-1.07934l0.67174,-3.55282l0.80694,1.30896z" stroke-width="NaN" />
-                <path d="M374.34294,256.8512l0.59666,1.2171l-0.70618,3.41505l-0.80694,-1.30896z" stroke-width="NaN" />
-                <path d="M373.42649,253.02141l0.80694,-1.30896l0.67174,3.55282l-0.56223,1.07934z" stroke-width="NaN" />
-                <path d="M376.71797,260.1744l-0.80694,1.30896l-0.70619,-3.41505l0.59667,-1.2171z" stroke-width="NaN" />
-                <path d="M369.06753,269.68744l-0.65984,-1.44187l0.66,-1.45342l0.64487,1.45342z" stroke-width="NaN" />
-                <path d="M369.77997,267.95137l-0.56223,-1.07934l0.67174,-3.55282l0.80694,1.30896z" stroke-width="NaN" />
-                <path d="M368.32139,268.45796l0.59666,1.2171l-0.70619,3.41506l-0.80694,-1.30896z" stroke-width="NaN" />
-                <path d="M367.40494,264.62817l0.80694,-1.30896l0.67174,3.55282l-0.56223,1.07934z" stroke-width="NaN" />
-                <path d="M370.69642,271.78116l-0.80694,1.30896l-0.70618,-3.41506l0.59666,-1.2171z" stroke-width="NaN" />
-                <path d="M369.06753,258.08068l-0.65984,-1.44187l0.66,-1.45343l0.64487,1.45343z" stroke-width="NaN" />
-                <path d="M369.77997,256.34461l-0.56223,-1.07934l0.67174,-3.55282l0.80694,1.30896z" stroke-width="NaN" />
-                <path d="M368.32139,256.8512l0.59666,1.2171l-0.70619,3.41505l-0.80694,-1.30896z" stroke-width="NaN" />
-                <path d="M367.40494,253.02141l0.80694,-1.30896l0.67174,3.55282l-0.56223,1.07934z" stroke-width="NaN" />
-                <path d="M370.69642,260.1744l-0.80694,1.30896l-0.70618,-3.41505l0.59666,-1.2171z" stroke-width="NaN" />
-                <path d="M365.39072,273.93045v-0.64827h3.03335v1.30487h-1.51617z" stroke-width="NaN" />
-                <path d="M368.81089,274.58705v-1.30487h3.03335v1.30487z" stroke-width="NaN" />
-                <path d="M377.16741,274.58705h-1.51618v-1.30487h3.03335v0.64827z" stroke-width="NaN" />
-                <path d="M372.23106,274.58705v-1.30487h3.03335v1.30487z" stroke-width="NaN" />
-                <path d="M366.87472,250.22427h1.51618v1.30487h-3.03335v-0.64827z" stroke-width="NaN" />
-                <path d="M371.81107,250.22427v1.30487h-3.03335v-1.30487z" stroke-width="NaN" />
-                <path d="M378.65141,250.88088v0.64827h-3.03335v-1.30487h1.51618z" stroke-width="NaN" />
-                <path d="M375.23124,250.22427v1.30487h-3.03335v-1.30487z" stroke-width="NaN" />
+            {/* <g fill="#8c72ff" stroke="none" strokeLinecap="butt">
+                <path d="M365.39072,263.06786v-1.30487h3.03335v1.30487z" strokeWidth="NaN" />
+                <path d="M372.23105,263.06786v-1.30487h3.03335v1.30487z" strokeWidth="NaN" />
+                <path d="M368.81089,263.06786v-1.30487h3.03335v1.30487z" strokeWidth="NaN" />
+                <path d="M375.65123,263.06786v-1.30487h3.03335v1.30487z" strokeWidth="NaN" />
+                <path d="M366.66243,272.89376h-1.30487v-2.89529h1.30487z" strokeWidth="NaN" />
+                <path d="M366.66243,266.36475h-1.30487v-2.8953h1.30487z" strokeWidth="NaN" />
+                <path d="M366.66243,269.62926h-1.30487v-2.89529h1.30487z" strokeWidth="NaN" />
+                <path d="M372.69008,272.86949h-1.30488v-2.89529h1.30488z" strokeWidth="NaN" />
+                <path d="M372.69008,266.34047h-1.30488v-2.89529h1.30488z" strokeWidth="NaN" />
+                <path d="M372.69008,269.60498h-1.30488v-2.8953h1.30488z" strokeWidth="NaN" />
+                <path d="M378.65663,272.89376h-1.30487v-2.89529h1.30487z" strokeWidth="NaN" />
+                <path d="M378.65663,266.36475h-1.30487v-2.8953h1.30487z" strokeWidth="NaN" />
+                <path d="M378.65663,269.62926h-1.30487v-2.89529h1.30487z" strokeWidth="NaN" />
+                <path d="M366.66243,261.40995h-1.30487v-2.89529h1.30487z" strokeWidth="NaN" />
+                <path d="M366.66243,254.88093h-1.30487v-2.8953h1.30487z" strokeWidth="NaN" />
+                <path d="M366.66243,258.14544h-1.30487v-2.8953h1.30487z" strokeWidth="NaN" />
+                <path d="M372.69008,261.38568h-1.30488v-2.8953h1.30488z" strokeWidth="NaN" />
+                <path d="M372.69008,254.85666h-1.30488v-2.89529h1.30488z" strokeWidth="NaN" />
+                <path d="M372.69008,258.12117h-1.30488v-2.8953h1.30488z" strokeWidth="NaN" />
+                <path d="M378.65663,261.40995h-1.30487v-2.89529h1.30487z" strokeWidth="NaN" />
+                <path d="M378.65663,254.88093h-1.30487v-2.8953h1.30487z" strokeWidth="NaN" />
+                <path d="M378.65663,258.14544h-1.30487v-2.8953h1.30487z" strokeWidth="NaN" />
+                <path d="M375.08909,269.68744l-0.65985,-1.44187l0.66001,-1.45342l0.64486,1.45342z" strokeWidth="NaN" />
+                <path d="M375.80152,267.95137l-0.56223,-1.07934l0.67174,-3.55282l0.80694,1.30896z" strokeWidth="NaN" />
+                <path d="M374.34294,268.45796l0.59666,1.2171l-0.70618,3.41506l-0.80694,-1.30896z" strokeWidth="NaN" />
+                <path d="M373.42649,264.62817l0.80694,-1.30896l0.67174,3.55282l-0.56223,1.07934z" strokeWidth="NaN" />
+                <path d="M376.71797,271.78116l-0.80694,1.30896l-0.70619,-3.41506l0.59667,-1.2171z" strokeWidth="NaN" />
+                <path d="M375.08909,258.08068l-0.65985,-1.44187l0.66001,-1.45343l0.64486,1.45343z" strokeWidth="NaN" />
+                <path d="M375.80152,256.34461l-0.56223,-1.07934l0.67174,-3.55282l0.80694,1.30896z" strokeWidth="NaN" />
+                <path d="M374.34294,256.8512l0.59666,1.2171l-0.70618,3.41505l-0.80694,-1.30896z" strokeWidth="NaN" />
+                <path d="M373.42649,253.02141l0.80694,-1.30896l0.67174,3.55282l-0.56223,1.07934z" strokeWidth="NaN" />
+                <path d="M376.71797,260.1744l-0.80694,1.30896l-0.70619,-3.41505l0.59667,-1.2171z" strokeWidth="NaN" />
+                <path d="M369.06753,269.68744l-0.65984,-1.44187l0.66,-1.45342l0.64487,1.45342z" strokeWidth="NaN" />
+                <path d="M369.77997,267.95137l-0.56223,-1.07934l0.67174,-3.55282l0.80694,1.30896z" strokeWidth="NaN" />
+                <path d="M368.32139,268.45796l0.59666,1.2171l-0.70619,3.41506l-0.80694,-1.30896z" strokeWidth="NaN" />
+                <path d="M367.40494,264.62817l0.80694,-1.30896l0.67174,3.55282l-0.56223,1.07934z" strokeWidth="NaN" />
+                <path d="M370.69642,271.78116l-0.80694,1.30896l-0.70618,-3.41506l0.59666,-1.2171z" strokeWidth="NaN" />
+                <path d="M369.06753,258.08068l-0.65984,-1.44187l0.66,-1.45343l0.64487,1.45343z" strokeWidth="NaN" />
+                <path d="M369.77997,256.34461l-0.56223,-1.07934l0.67174,-3.55282l0.80694,1.30896z" strokeWidth="NaN" />
+                <path d="M368.32139,256.8512l0.59666,1.2171l-0.70619,3.41505l-0.80694,-1.30896z" strokeWidth="NaN" />
+                <path d="M367.40494,253.02141l0.80694,-1.30896l0.67174,3.55282l-0.56223,1.07934z" strokeWidth="NaN" />
+                <path d="M370.69642,260.1744l-0.80694,1.30896l-0.70618,-3.41505l0.59666,-1.2171z" strokeWidth="NaN" />
+                <path d="M365.39072,273.93045v-0.64827h3.03335v1.30487h-1.51617z" strokeWidth="NaN" />
+                <path d="M368.81089,274.58705v-1.30487h3.03335v1.30487z" strokeWidth="NaN" />
+                <path d="M377.16741,274.58705h-1.51618v-1.30487h3.03335v0.64827z" strokeWidth="NaN" />
+                <path d="M372.23106,274.58705v-1.30487h3.03335v1.30487z" strokeWidth="NaN" />
+                <path d="M366.87472,250.22427h1.51618v1.30487h-3.03335v-0.64827z" strokeWidth="NaN" />
+                <path d="M371.81107,250.22427v1.30487h-3.03335v-1.30487z" strokeWidth="NaN" />
+                <path d="M378.65141,250.88088v0.64827h-3.03335v-1.30487h1.51618z" strokeWidth="NaN" />
+                <path d="M375.23124,250.22427v1.30487h-3.03335v-1.30487z" strokeWidth="NaN" />
             </g> */}
 
-            <text transform="translate(355.05362,256.1348) scale(0.19262,0.19262)" fontSize="40" xmlSpace="preserve" fill={otherIndication?.Tr ? indicationColor1 : setBrightness(indicationColor1, 0.1)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+            <text transform="translate(355.05362,256.1348) scale(0.19262,0.19262)" fontSize="40" xmlSpace="preserve" fill={otherIndication?.Tr ? indicationColor1 : setBrightness(indicationColor1, 0.1)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sansSerif" fontWeight="normal" textAnchor="start">
                 <tspan x="0" dy="0">Tr</tspan>
             </text>
             <g strokeLinecap="butt">
@@ -428,20 +444,54 @@ export default function Display({
             </g>
 
 
-            <text transform="translate(705.61815,263.77012) scale(0.11371,0.11371)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.topRightData?.TAG)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+            <text transform="translate(705.61815,263.77012) scale(0.11371,0.11371)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.topRightData?.TAG)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sansSerif" fontWeight="normal" textAnchor="start">
                 <tspan x="0" dy="0">TAG</tspan>
             </text>
 
 
-            <text transform="translate(696.69084,254.97283) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.topRightData?.AUDIO)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+            <text transform="translate(696.69084,254.97283) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.topRightData?.AUDIO)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sansSerif" fontWeight="normal" textAnchor="start">
                 <tspan x="0" dy="0">AUDIO</tspan>
             </text>
-            <text transform="translate(712.74076,254.97283) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.topRightData?.VIDEO)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+            <text transform="translate(712.74076,254.97283) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.topRightData?.VIDEO)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sansSerif" fontWeight="normal" textAnchor="start">
                 <tspan x="0" dy="0">VIDEO</tspan>
             </text>
-            <text transform="translate(727.99629,254.97283) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.topRightData?.ELEVATOR)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+            <text transform="translate(727.99629,254.97283) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.topRightData?.ELEVATOR)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sansSerif" fontWeight="normal" textAnchor="start">
                 <tspan x="0" dy="0">ELEVATOR</tspan>
             </text>
+
+            <g transform="translate(20,0)">
+                <path d="M496.48809,255.94712v-4.7674h2.21062l0.81818,1.0878l4.0031,-0.02362v3.70323z" fill={staticColor(otherIndication?.RND?.folder)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
+                <path d="M496.48809,262.88809v-4.7674h2.21062l0.81818,1.0878l4.0031,-0.02361v3.70323z" fill={staticColor(otherIndication?.RPT?.folder)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
+                <g>
+                    <path d="M488.05462,261.98807l1.02217,-4.13512h3.94926l-0.74339,4.04172" fill="none" stroke={staticColor(otherIndication?.RPT?.track)} strokeWidth="0.75" strokeLinecap="round" />
+                    <path d="M485.77044,261.6409c0,-0.75628 0.61308,-1.36937 1.36936,-1.36937c0.75627,0 1.36937,0.61309 1.36937,1.36937c0,0.75628 -0.61309,1.36935 -1.36937,1.36935c-0.75627,0 -1.36936,-0.61308 -1.36936,-1.36935z" fill={staticColor(otherIndication?.RPT?.track)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
+                    <path d="M490.0095,261.6409c0,-0.75628 0.61308,-1.36937 1.36936,-1.36937c0.75627,0 1.36935,0.61309 1.36935,1.36937c0,0.75628 -0.61308,1.36935 -1.36935,1.36935c-0.75627,0 -1.36936,-0.61308 -1.36936,-1.36935z" fill={staticColor(otherIndication?.RPT?.track)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
+                </g>
+                <text transform="translate(472.64754,255.03158) scale(0.12842,0.12842)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.RND?.on)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                    <tspan x="0" dy="0">RND</tspan>
+                </text>
+                <text transform="translate(472.64754,261.97256) scale(0.12842,0.12842)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.RPT?.on)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                    <tspan x="0" dy="0">RPT</tspan>
+                </text>
+                <g>
+                    <g strokeLinecap="butt">
+                        <path d="M493.64225,252.36569c0.04979,0.38135 -1.37577,0.88185 -3.18407,1.11791c-1.8083,0.23606 -3.31457,0.11829 -3.36434,-0.26306c-0.04979,-0.38135 1.37577,-0.88184 3.18407,-1.1179c1.8083,-0.23606 3.31456,-0.1183 3.36435,0.26305z" fill={staticColor(otherIndication?.RND?.track)} stroke="none" strokeWidth="0" />
+                        <path d="M492.09023,252.29147c0.02673,0.20472 -0.73858,0.47342 -1.70935,0.60014c-0.97077,0.12672 -1.77938,0.0635 -1.80611,-0.14122c-0.02673,-0.20472 0.73857,-0.4734 1.70934,-0.60013c0.97077,-0.12672 1.7794,-0.06351 1.80612,0.14121z" fill="#000000" stroke="none" strokeWidth="0" />
+                        <path d="M493.98729,252.49181c0.06192,0.47429 -1.49845,1.06901 -3.48518,1.32837c-1.98672,0.25935 -3.64746,0.08511 -3.70938,-0.38917c-0.06192,-0.47429 1.49844,-1.06901 3.48517,-1.32836c1.98672,-0.25935 3.64747,-0.08513 3.70938,0.38916z" fill="none" stroke={staticColor(otherIndication?.RND?.track)} strokeWidth="0.15" />
+                    </g>
+                    <path d="M494.43493,254.09425v0.68358h-8.25552v-0.57841" fill="none" stroke={staticColor(otherIndication?.RND?.track)} strokeWidth="0.1" strokeLinecap="round" />
+                </g>
+            </g>
+            <g transform="translate(20,0)" fill="none" stroke={staticColor(otherIndication?.timeMove?.right)} strokeWidth="1" strokeLinecap="round">
+                <path d="M479.43697,268.24926l5.68387,3.00878l-5.69331,2.98804" />
+                <path d="M485.20506,268.24926l5.68387,3.00878l-5.69333,2.98804" />
+                <path d="M490.97318,268.24926l5.68387,3.00878l-5.69333,2.98804" />
+            </g>
+            <g transform="translate(20,0)" fill="none" stroke={staticColor(otherIndication?.timeMove?.left)} strokeWidth="1" strokeLinecap="round">
+                <path d="M474.36966,274.24608l-5.69331,-2.98804l5.68387,-3.00878" />
+                <path d="M468.60156,274.24608l-5.69333,-2.98804l5.68387,-3.00878" />
+                <path d="M462.83346,274.24608l-5.69333,-2.98804l5.68387,-3.00878" />
+            </g>
             {/* <MainIndicator data={data?.[0]} />
             <MainIndicator offset={((26) * 1)} data={data?.[1]} /> */}
         </g>

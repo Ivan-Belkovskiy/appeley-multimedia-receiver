@@ -56,7 +56,7 @@ export const getCurrentMenuElement = (menuData: MainControllerMenuDefinition, pa
     const currentIdx = menuData.navigation.currentIdx;
     const openedIdxArray = menuData.navigation.openedIdxArray;
 
-    let currentLevel = menuData.options;
+    let currentLevel = (menuData.navigation.menuType === 'encoderMenu') ? menuData.encoderMenuOptions : menuData.options;
 
     if (openedIdxArray.length === 0) return currentLevel[currentIdx];
 
@@ -654,23 +654,57 @@ export default function FrontPanel({
                 }
             ],
         },
+        // {
+        //     main: "FRONT AV-IN",
+        //     animation: "default",
+        //     delayBeforeNext: 100,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0 && t < 30,
+        //             data: (t) => demoTopLeftAnimCallback(t, 12),
+        //         }
+        //         // {
+        //         //     active: (t) => t > ((94 + 14 + 16) + 0) && t < (
+        //         //         ((94 + 14 + 16) + 0) + 18
+        //         //     ),
+        //         //     data: (t) => demoTopLeftAnimCallback(t, (94 + 14 + 16) + 0),
+        //         // }
+        //     ],
+        // },
         {
-            main: "FRONT AV-IN",
+            main: "DUAL AV-IN:",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 75,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
+                    active: (t) => t > 12,
                     data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
-                // {
-                //     active: (t) => t > ((94 + 14 + 16) + 0) && t < (
-                //         ((94 + 14 + 16) + 0) + 18
-                //     ),
-                //     data: (t) => demoTopLeftAnimCallback(t, (94 + 14 + 16) + 0),
-                // }
             ],
         },
+        {
+            main: "FRONT, REAR",
+            animation: "scroll-left",
+            delayBeforeNext: 75,
+            topLeft: [
+                {
+                    active: (t) => t > 0,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                }
+            ],
+        },
+        {
+            main: "",
+            animation: "scroll-left",
+            delayBeforeNext: 20,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 6,
+                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                }
+            ],
+        },
+        // Проверить демо выше
         {
             main: "BUILT-IN",
             animation: "default",
@@ -1839,7 +1873,7 @@ export default function FrontPanel({
 
                     if (mainInputs.buttons?.disp) {
                         if (clickedButton !== 'disp') {
-                            beeper.singleBeep(1);
+                            beeper.singleBeep(1, mainOutputs.settings.audio.beeper.volume, mainOutputs.settings.audio.beeper.on);
                             if (isDemoAnimating) resetDemo();
                             else {
                                 if (mainOutputs.currentSource === 1) {
@@ -1924,45 +1958,47 @@ export default function FrontPanel({
                             buttons: mainOutputs.settings.indication.buttons.color || "#0088ff"
                         };
 
-                        if (demoTimer > 0) {
-                            demoTimer--;
-                        } else {
-                            // alert('Start DEMO (state before): ' + `
-                            //     isDemoAnimating: ${isDemoAnimating}
-                            //     mainInputs.isDemoAnimating: ${mainInputs.isDemoAnimating};
-                            //     demoTimer: ${demoTimer};
-                            //     demoTopLeftTimer: ${demoTopLeftTimer};
-                            //     updateTimer: ${updateTimer};
-                            //     demoPosition: ${demoPosition};
-                            //     animTimer: ${animTimer};
-                            //     `);
+                        if (mainOutputs.settings.demo.on) {
+                            if (demoTimer > 0) {
+                                demoTimer--;
+                            } else {
+                                // alert('Start DEMO (state before): ' + `
+                                //     isDemoAnimating: ${isDemoAnimating}
+                                //     mainInputs.isDemoAnimating: ${mainInputs.isDemoAnimating};
+                                //     demoTimer: ${demoTimer};
+                                //     demoTopLeftTimer: ${demoTopLeftTimer};
+                                //     updateTimer: ${updateTimer};
+                                //     demoPosition: ${demoPosition};
+                                //     animTimer: ${animTimer};
+                                //     `);
 
-                            isDemoAnimating = true;
-                            mainInputs.isDemoAnimating = true;
-                            demoTimer = 0;
-                            demoTopLeftTimer = 0;
-                            updateTimer = 0;
-                            demoPosition = 0;
-                            nextDemoTimer = 0;
-                            animTimer = 0;
+                                isDemoAnimating = true;
+                                mainInputs.isDemoAnimating = true;
+                                demoTimer = 0;
+                                demoTopLeftTimer = 0;
+                                updateTimer = 0;
+                                demoPosition = 0;
+                                nextDemoTimer = 0;
+                                animTimer = 0;
 
-                            updateDisplayData({
-                                main: [],
-                                topLeft: [],
-                                otherIndication: {}
-                            });
+                                updateDisplayData({
+                                    main: [],
+                                    topLeft: [],
+                                    otherIndication: {}
+                                });
 
-                            // alert('Start DEMO (state after): ' + `
-                            //     isDemoAnimating: ${isDemoAnimating}
-                            //     mainInputs.isDemoAnimating: ${mainInputs.isDemoAnimating};
-                            //     demoTimer: ${demoTimer};
-                            //     demoTopLeftTimer: ${demoTopLeftTimer};
-                            //     updateTimer: ${updateTimer};
-                            //     demoPosition: ${demoPosition};
-                            //     animTimer: ${animTimer};
-                            //     `);
+                                // alert('Start DEMO (state after): ' + `
+                                //     isDemoAnimating: ${isDemoAnimating}
+                                //     mainInputs.isDemoAnimating: ${mainInputs.isDemoAnimating};
+                                //     demoTimer: ${demoTimer};
+                                //     demoTopLeftTimer: ${demoTopLeftTimer};
+                                //     updateTimer: ${updateTimer};
+                                //     demoPosition: ${demoPosition};
+                                //     animTimer: ${animTimer};
+                                //     `);
 
-                            return frameId = requestAnimationFrame(update);
+                                return frameId = requestAnimationFrame(update);
+                            }
                         }
 
                         if ([1, 2].includes(mainOutputs.currentSource || 0)) updateDisplayData({
@@ -2085,152 +2121,187 @@ export default function FrontPanel({
                                     //     displayMode.volume = true; // Activate volume disp mode; 
                                     // }
 
-                                    if (sourceData.playbackData) {
-                                        if (displayMode._folder !== sourceData.playbackData.folderNumber) {
-                                            displayMode.folder = null; // Reset folder disp mode;
-                                            displayMode.track = null;
-                                            animTimer = 0;
-                                            displayMode._folder = sourceData.playbackData.folderNumber;
+                                    if (sourceData.timeMove?.on) {
+                                        let rightPart = (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${currentTime}/${duration}` : currentTime;
+
+
+                                        if (!sourceData.timeMove.isMoving && (updateTimer % 60 > 30)) {
+                                            rightPart = '';
                                         }
 
-                                        if (displayMode._track !== sourceData.playbackData.trackNumber) {
-                                            displayMode.track = null; // Reset track disp mode;
-                                            animTimer = 0;
-                                            displayMode._track = sourceData.playbackData.trackNumber;
-                                        }
-                                    }
-                                    // let main = ` ${trackNumber}`;
-                                    // let topLeft = folderNumber;
-                                    // let other: DisplayOtherIndication = {};
+                                        // const main = (
+                                        //     (currentTime === undefined || duration === undefined) ? ` ${trackNumber}`
+                                        //         : (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${trackNumber}  ${currentTime}/${duration}` : ` ${trackNumber}       ${currentTime}`
+                                        // );
 
-                                    //  ВЫНЕСТИ ЛОГИКУ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ В ОТДЕЛЬНЫЙ БЛОК КОДА //
-
-                                    if (displayMode.volume === true) {
-                                        updateDisplayData({
-                                            main: [],
-                                            topLeft: [],
-                                            otherIndication: {}
-                                        })
-                                        animateScrollingText(animTimer, (
-                                            centerMainText(`VOLUME ${String(mainOutputs.mainVolume).padStart(2, "0")}`).join('')
-                                        ), () => {
-                                            animTimer = 0;
-                                            displayMode.volume = false;
-                                        });
-                                        animTimer++;
-                                    } else if (sourceData.playbackData?.isPaused) {
-                                        if (updateTimer % 60 < 30) updateDisplayData({
-                                            main: centerMainText('PAUSE'),
-                                            topLeft: [],
-                                            otherIndication: {}
-                                        });
-                                        else updateDisplayData({
-                                            main: [],
-                                            topLeft: [],
-                                            otherIndication: {}
-                                        });
-                                    } else if (displayMode.playTrackAfterSrcSelect === true) {
-                                        animateScrollingText(animTimer, (
-                                            centerMainText(`PLAY ${trackNumber}`).join('')
-                                        ), () => {
-                                            animTimer = 0;
-                                            displayMode.playTrackAfterSrcSelect = false;
-                                        });
+                                        const main = (
+                                            (currentTime === undefined || duration === undefined) ? ` ${trackNumber}`
+                                                : (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${trackNumber}  ${rightPart}` : ` ${trackNumber}       ${rightPart}`
+                                        );
 
                                         updateDisplayData({
                                             ...displayDataRef.current,
-                                            topLeft: folderNumber.split(''),
-                                            otherIndication: {}
-                                        });
-
-                                        animTimer++;
-                                    } else if (displayMode.folder === null && folderName) {
-
-                                        animateScrollingText(animTimer, (
-                                            `${folderName.data}${artist ? ` / ${artist}` : ''}`
-                                        ), () => {
-                                            animTimer = 0;
-                                            displayMode.folder = sourceData.playbackData?.folderNumber || 0;
-                                        });
-
-                                        updateDisplayData({
-                                            ...displayDataRef.current,
+                                            main: main.split(''),
                                             topLeft: folderNumber.split(''),
                                             otherIndication: {
+                                                timeMove: {
+                                                    left: (sourceData.timeMove.direction === 'left'),
+                                                    right: (sourceData.timeMove.direction === 'right')
+                                                },
                                                 topRightData: {
                                                     AUDIO: (sourceData.playbackData.dataType === 'audio'),
                                                     VIDEO: (sourceData.playbackData.dataType === 'video'),
-                                                    TAG: folderName.isID3Tag,
-                                                    folderTagIcon: true,
-                                                }
+                                                },
                                             }
                                         });
-
-                                        animTimer++;
-
-                                    } else if (displayMode.track === null && trackName) {
-
-                                        animateScrollingText(animTimer, (
-                                            trackName.data
-                                        ), () => {
-                                            animTimer = 0;
-                                            displayMode.track = sourceData.playbackData?.trackNumber || 0;
-                                            displayMode.default = true;
-                                        });
-
-                                        updateDisplayData({
-                                            ...displayDataRef.current,
-                                            topLeft: trackNumber.split(''),
-                                            otherIndication: {
-                                                Tr: true,
-                                                topRightData: {
-                                                    AUDIO: (sourceData.playbackData.dataType === 'audio'),
-                                                    VIDEO: (sourceData.playbackData.dataType === 'video'),
-                                                    TAG: trackName.isID3Tag,
-                                                    trackTagIcon: true,
-                                                }
-                                            }
-                                        });
-
-                                        animTimer++;
-
                                     } else {
-                                        if (displayMode.default) {
-                                            const main = (
-                                                (currentTime === undefined || duration === undefined) ? ` ${trackNumber}`
-                                                : (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${trackNumber}  ${currentTime}/${duration}` : ` ${trackNumber}       ${currentTime}`
-                                            );
 
-                                            updateDisplayData({
-                                                ...displayDataRef.current,
-                                                main: main.split(''),
-                                                topLeft: folderNumber.split(''),
-                                                otherIndication: {
-                                                    topRightData: {
-                                                        AUDIO: (sourceData.playbackData.dataType === 'audio'),
-                                                        VIDEO: (sourceData.playbackData.dataType === 'video'),
-                                                    }
-                                                }
-                                            });
-                                        } else if (displayMode.clockTime) {
+                                        if (sourceData.playbackData) {
+                                            if (displayMode._folder !== sourceData.playbackData.folderNumber) {
+                                                displayMode.folder = null; // Reset folder disp mode;
+                                                displayMode.track = null;
+                                                animTimer = 0;
+                                                displayMode._folder = sourceData.playbackData.folderNumber;
+                                            }
 
-                                            const main = ` ${trackNumber}     ${timeFromDate(new Date(), (updateTimer % 60 > 30)) ?? ""}`;
-
-                                            updateDisplayData({
-                                                ...displayDataRef.current,
-                                                main: main.split(''),
-                                                topLeft: folderNumber.split(''),
-                                                otherIndication: {
-                                                    topRightData: {
-                                                        AUDIO: (sourceData.playbackData.dataType === 'audio'),
-                                                        VIDEO: (sourceData.playbackData.dataType === 'video'),
-                                                    }
-                                                }
-                                            });
+                                            if (displayMode._track !== sourceData.playbackData.trackNumber) {
+                                                displayMode.track = null; // Reset track disp mode;
+                                                animTimer = 0;
+                                                displayMode._track = sourceData.playbackData.trackNumber;
+                                            }
                                         }
+                                        // let main = ` ${trackNumber}`;
+                                        // let topLeft = folderNumber;
+                                        // let other: DisplayOtherIndication = {};
+
+                                        //  ВЫНЕСТИ ЛОГИКУ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ В ОТДЕЛЬНЫЙ БЛОК КОДА //
+
+                                        if (displayMode.volume === true) {
+                                            updateDisplayData({
+                                                main: [],
+                                                topLeft: [],
+                                                otherIndication: {}
+                                            })
+                                            animateScrollingText(animTimer, (
+                                                centerMainText(`VOLUME ${String(mainOutputs.mainVolume).padStart(2, "0")}`).join('')
+                                            ), () => {
+                                                animTimer = 0;
+                                                displayMode.volume = false;
+                                            });
+                                            animTimer++;
+                                        } else if (sourceData.playbackData?.isPaused) {
+                                            if (updateTimer % 60 < 30) updateDisplayData({
+                                                main: centerMainText('PAUSE'),
+                                                topLeft: [],
+                                                otherIndication: {}
+                                            });
+                                            else updateDisplayData({
+                                                main: [],
+                                                topLeft: [],
+                                                otherIndication: {}
+                                            });
+                                        } else if (displayMode.playTrackAfterSrcSelect === true) {
+                                            animateScrollingText(animTimer, (
+                                                centerMainText(`PLAY ${trackNumber}`).join('')
+                                            ), () => {
+                                                animTimer = 0;
+                                                displayMode.playTrackAfterSrcSelect = false;
+                                            });
+
+                                            updateDisplayData({
+                                                ...displayDataRef.current,
+                                                topLeft: folderNumber.split(''),
+                                                otherIndication: {}
+                                            });
+
+                                            animTimer++;
+                                        } else if (displayMode.folder === null && folderName) {
+
+                                            animateScrollingText(animTimer, (
+                                                `${folderName.data}${artist ? ` / ${artist}` : ''}`
+                                            ), () => {
+                                                animTimer = 0;
+                                                displayMode.folder = sourceData.playbackData?.folderNumber || 0;
+                                            });
+
+                                            updateDisplayData({
+                                                ...displayDataRef.current,
+                                                topLeft: folderNumber.split(''),
+                                                otherIndication: {
+                                                    topRightData: {
+                                                        AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                        VIDEO: (sourceData.playbackData.dataType === 'video'),
+                                                        TAG: folderName.isID3Tag,
+                                                        folderTagIcon: true,
+                                                    }
+                                                }
+                                            });
+
+                                            animTimer++;
+
+                                        } else if (displayMode.track === null && trackName) {
+
+                                            animateScrollingText(animTimer, (
+                                                trackName.data
+                                            ), () => {
+                                                animTimer = 0;
+                                                displayMode.track = sourceData.playbackData?.trackNumber || 0;
+                                                displayMode.default = true;
+                                            });
+
+                                            updateDisplayData({
+                                                ...displayDataRef.current,
+                                                topLeft: trackNumber.split(''),
+                                                otherIndication: {
+                                                    Tr: true,
+                                                    topRightData: {
+                                                        AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                        VIDEO: (sourceData.playbackData.dataType === 'video'),
+                                                        TAG: trackName.isID3Tag,
+                                                        trackTagIcon: true,
+                                                    }
+                                                }
+                                            });
+
+                                            animTimer++;
+
+                                        } else {
+                                            if (displayMode.default) {
+                                                const main = (
+                                                    (currentTime === undefined || duration === undefined) ? ` ${trackNumber}`
+                                                        : (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${trackNumber}  ${currentTime}/${duration}` : ` ${trackNumber}       ${currentTime}`
+                                                );
+
+                                                updateDisplayData({
+                                                    ...displayDataRef.current,
+                                                    main: main.split(''),
+                                                    topLeft: folderNumber.split(''),
+                                                    otherIndication: {
+                                                        topRightData: {
+                                                            AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                            VIDEO: (sourceData.playbackData.dataType === 'video'),
+                                                        }
+                                                    }
+                                                });
+                                            } else if (displayMode.clockTime) {
+
+                                                const main = ` ${trackNumber}     ${timeFromDate(new Date(), (updateTimer % 60 > 30)) ?? ""}`;
+
+                                                updateDisplayData({
+                                                    ...displayDataRef.current,
+                                                    main: main.split(''),
+                                                    topLeft: folderNumber.split(''),
+                                                    otherIndication: {
+                                                        topRightData: {
+                                                            AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                            VIDEO: (sourceData.playbackData.dataType === 'video'),
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        }
+
                                     }
-
-
 
                                     // updateDisplayData({
                                     //     ...displayDataRef.current,
@@ -2261,88 +2332,161 @@ export default function FrontPanel({
                                         topLeft: []
                                     })
                                 }
+
+                                updateDisplayData({
+                                    ...displayDataRef.current,
+                                    otherIndication: {
+                                        ...displayDataRef.current.otherIndication,
+                                        RND: {
+                                            on: (!!mainOutputs.settings.playMode.random),
+                                            track: (mainOutputs.settings.playMode.random === 'ALL'),
+                                            folder: (mainOutputs.settings.playMode.random === 'FOLDER')
+                                        },
+                                        RPT: {
+                                            on: (!!mainOutputs.settings.playMode.repeat),
+                                            track: (mainOutputs.settings.playMode.repeat === 'TRACK'),
+                                            folder: (mainOutputs.settings.playMode.repeat === 'FOLDER')
+                                        },
+                                    }
+                                })
                             } else if (mainOutputs.currentSource === 2) {
 
                                 const radioData = mainOutputs.sourceData[2];
-                                const station = internetRadioStations[radioData.currentStationId ?? 0];
+                                const station = internetRadioStations[radioData.currentStationIndex ?? 0];
 
-                                if (radioData.error) {
+                                if (radioData.navigation) {
+
+                                    displayMode.volume = false;
+
+                                    // if (radioData.menu.error) {
+                                    //     updateDisplayData({
+                                    //         main: centerMainText(radioData.menu.error),
+                                    //         topLeft: [],
+                                    //         otherIndication: {
+                                    //             topLeftDecorationLine: true
+                                    //         },
+                                    //     });
+                                    // } else 
+
+                                    const data = internetRadioStations[radioData.navigation.stationIdx].name;
+
                                     updateDisplayData({
-                                        main: centerMainText(radioData.error),
-                                        topLeft: [],
-                                        otherIndication: {}
+                                        main: [],
+                                        topLeft: ('LIST').split(''),
+                                        otherIndication: {
+                                            topLeftDecorationLine: true,
+                                            topRightData: {
+                                                decorationLine: true,
+                                                leftData: String(radioData.navigation.stationIdx + 1).padStart(4, "0").split(''),
+                                                separator: true,
+                                                rightData: String(internetRadioStations.length).padStart(4, "0").split(''),
+                                            }
+                                        },
                                     });
-                                } else if (radioData.isBuffering) {
-                                    if (updateTimer % 60 < 30) {
+
+                                    animateScrollingText(animTimer, data, () => {
+                                        animTimer = 0;
+                                    });
+
+                                    animTimer++;
+
+
+                                } else {
+
+                                    if (radioData.error) {
                                         updateDisplayData({
-                                            main: centerMainText('LOADING'),
+                                            main: centerMainText(radioData.error),
                                             topLeft: [],
                                             otherIndication: {}
                                         });
-                                    } else {
-                                        updateDisplayData({ main: [], topLeft: [], otherIndication: {} });
-                                    }
-                                } else {
-                                    // updateDisplayData({
-                                    //     main: [],
-                                    //     topLeft: 'FM'.split(''),
-                                    //     otherIndication: {
-                                    //         topRightData: {
-                                    //             AUDIO: true,
-                                    //         }
-                                    //     }
-                                    // });
-
-                                    // animateScrollingText(animTimer, station?.name || 'RADIO', () => {
-                                    //     animTimer = 0;
-                                    // });
-                                    // animTimer++;
-                                }
-
-
-                                //  ВЫНЕСТИ ЛОГИКУ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ В ОТДЕЛЬНЫЙ БЛОК КОДА //
-
-
-                                if (displayMode.volume === true) {
-                                    updateDisplayData({
-                                        main: [],
-                                        topLeft: [],
-                                        otherIndication: {}
-                                    })
-                                    animateScrollingText(animTimer, (
-                                        centerMainText(`VOLUME ${String(mainOutputs.mainVolume).padStart(2, "0")}`).join('')
-                                    ), () => {
-                                        animTimer = 0;
-                                        displayMode.volume = false;
-                                        displayMode.default = true;
-                                    });
-                                    animTimer++;
-                                } else if (radioData.isPaused) {
-                                    if (updateTimer % 60 < 30) updateDisplayData({
-                                        main: centerMainText('PAUSE'),
-                                        topLeft: [],
-                                        otherIndication: {}
-                                    });
-                                    else updateDisplayData({
-                                        main: [],
-                                        topLeft: [],
-                                        otherIndication: {}
-                                    });
-                                } else if (!radioData.isBuffering && !radioData.error) {
-                                    updateDisplayData({
-                                        main: [],
-                                        topLeft: 'FM'.split(''),
-                                        otherIndication: {
-                                            topRightData: {
-                                                AUDIO: true,
-                                            }
+                                    } else if (radioData.isBuffering) {
+                                        if (updateTimer % 60 < 30) {
+                                            updateDisplayData({
+                                                main: centerMainText('LOADING'),
+                                                topLeft: [],
+                                                otherIndication: {}
+                                            });
+                                        } else {
+                                            updateDisplayData({ main: [], topLeft: [], otherIndication: {} });
                                         }
-                                    });
-                                    if (displayMode.track === 1) {
-                                        if (radioData.streamTitle) {
+                                    } else {
+                                        // updateDisplayData({
+                                        //     main: [],
+                                        //     topLeft: 'RADIO'.split(''),
+                                        //     otherIndication: {
+                                        //         topRightData: {
+                                        //             AUDIO: true,
+                                        //         }
+                                        //     }
+                                        // });
+
+                                        // animateScrollingText(animTimer, station?.name || 'RADIO', () => {
+                                        //     animTimer = 0;
+                                        // });
+                                        // animTimer++;
+                                    }
+
+
+                                    //  ВЫНЕСТИ ЛОГИКУ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ В ОТДЕЛЬНЫЙ БЛОК КОДА //
+
+
+                                    if (displayMode.volume === true) {
+                                        updateDisplayData({
+                                            main: [],
+                                            topLeft: [],
+                                            otherIndication: {}
+                                        })
+                                        animateScrollingText(animTimer, (
+                                            centerMainText(`VOLUME ${String(mainOutputs.mainVolume).padStart(2, "0")}`).join('')
+                                        ), () => {
+                                            animTimer = 0;
+                                            displayMode.volume = false;
+                                            displayMode.default = true;
+                                        });
+                                        animTimer++;
+                                    } else if (radioData.isPaused) {
+                                        if (updateTimer % 60 < 30) updateDisplayData({
+                                            main: centerMainText('PAUSE'),
+                                            topLeft: [],
+                                            otherIndication: {}
+                                        });
+                                        else updateDisplayData({
+                                            main: [],
+                                            topLeft: [],
+                                            otherIndication: {}
+                                        });
+                                    } else if (!radioData.isBuffering && !radioData.error) {
+                                        updateDisplayData({
+                                            main: [],
+                                            topLeft: 'RADIO'.split(''),
+                                            otherIndication: {
+                                                topRightData: {
+                                                    AUDIO: true,
+                                                }
+                                            }
+                                        });
+                                        if (displayMode.track === 1) {
+                                            if (radioData.streamTitle) {
+                                                updateDisplayData({
+                                                    main: [],
+                                                    topLeft: 'RADIO'.split(''),
+                                                    otherIndication: {
+                                                        topRightData: {
+                                                            AUDIO: true,
+                                                        }
+                                                    }
+                                                });
+
+                                                animateScrollingText(animTimer, radioData.streamTitle, () => {
+                                                    animTimer = 0;
+                                                });
+                                                animTimer++;
+
+                                            }
+                                        } else if (displayMode.default) {
                                             updateDisplayData({
                                                 main: [],
-                                                topLeft: 'FM'.split(''),
+                                                topLeft: 'RADIO'.split(''),
                                                 otherIndication: {
                                                     topRightData: {
                                                         AUDIO: true,
@@ -2350,43 +2494,27 @@ export default function FrontPanel({
                                                 }
                                             });
 
-                                            animateScrollingText(animTimer, radioData.streamTitle, () => {
+                                            animateScrollingText(animTimer, station?.name || 'RADIO', () => {
                                                 animTimer = 0;
                                             });
                                             animTimer++;
 
+                                        } else if (displayMode.clockTime) {
+
+                                            const main = `RADIO   ${timeFromDate(new Date(), (updateTimer % 60 > 30)) ?? ""}`;
+
+                                            updateDisplayData({
+                                                ...displayDataRef.current,
+                                                main: main.split(''),
+                                                topLeft: 'RADIO'.split(''),
+                                            });
                                         }
-                                    } else if (displayMode.default) {
-                                        updateDisplayData({
-                                            main: [],
-                                            topLeft: 'FM'.split(''),
-                                            otherIndication: {
-                                                topRightData: {
-                                                    AUDIO: true,
-                                                }
-                                            }
-                                        });
-
-                                        animateScrollingText(animTimer, station?.name || 'RADIO', () => {
-                                            animTimer = 0;
-                                        });
-                                        animTimer++;
-
-                                    } else if (displayMode.clockTime) {
-
-                                        const main = `RADIO   ${timeFromDate(new Date(), (updateTimer % 60 > 30)) ?? ""}`;
-
-                                        updateDisplayData({
-                                            ...displayDataRef.current,
-                                            main: main.split(''),
-                                            topLeft: 'FM'.split(''),
-                                        });
                                     }
                                 }
 
-                            } else if (mainOutputs.currentSource === 5) {
+                            } else if (mainOutputs.currentSource === 6) {
                                 // MyLift
-                                const sourceData = mainOutputs.sourceData?.[5];
+                                const sourceData = mainOutputs.sourceData?.["6"];
                                 if (!sourceData?.connectionInfo?.ip) {
                                     updateTimer = (360 * 3);
                                     if (updateTimer < (360 * 3)) {
@@ -2653,7 +2781,7 @@ export default function FrontPanel({
                                 let displayText = currentElement.label;
 
                                 if (currentValue) {
-                                    displayText = `${currentValue.shortPropName || currentElement.label} ${currentValue.label}`
+                                    displayText = `${typeof currentValue.shortPropName === 'string' ? currentValue.shortPropName : currentElement.label} ${currentValue.label}`
                                 }
 
                                 updateDisplayData({
@@ -2663,6 +2791,10 @@ export default function FrontPanel({
                                         topLeftDecorationLine: true,
                                     }
                                 });
+
+                                if (navigation.menuType !== 'main') {
+                                    animateTopLeftSelection(Math.floor((updateTimer / 30)));
+                                }
                             }
                         }
 
@@ -2945,7 +3077,12 @@ export default function FrontPanel({
                         <text transform="translate(844.04395,369.64661) scale(0.20293,0.20293)" fontSize="40" xmlSpace="preserve" fill="#000000" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">AV-IN</tspan>
                         </text>
-                        <path d="M805.16474,306.83312v-78.42678l7.22347,-8.92462h65.13191l-0.10335,95.71498h-65.37253z" fill="#ffffff" stroke="none" strokeWidth="0" strokeLinecap="butt" />
+
+                        {/* <path d="M804.16474,306.83312v-78.42678l7.22347,-8.92462h65.13191l-0.10335,95.71498h-65.37253z" fill="#ffffff" stroke="none" strokeWidth="0" strokeLinecap="butt" /> */}
+
+                        <path d="M805.16484,306.83315v-78.42678l5.79252,-8.92462h22.22375l-0.08288,95.71498h-22.4167z" fill="#ffffff" stroke="none" strokeWidth="0" strokeLinecap="butt" />
+                        <path d="M858.5528,315.19673h-28.44242l-0.08287,-95.71498h28.24947l5.79253,8.92462v78.42678z" fill="#ffffff" stroke="none" strokeWidth="0" strokeLinecap="butt" />
+
                         {/* USB Input */}
                         <path onClick={handleUSBSelect} className="front-panel__usb-port" d="M812.73223,304.31676v-77.39484h43.34111v77.39484z" fill="#000000" stroke="none" strokeWidth="0" strokeLinecap="butt" />
 
@@ -3359,6 +3496,11 @@ export default function FrontPanel({
                             <path d="M117.38437,339.28163h-84.77119l42.67506,-41.87264z" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
                             <path d="M81.94572,317.57596l-6.859,15.60482l-7.03489,-15.60482z" fill="#ffffff" stroke="#e6e6e6" />
                         </g>
+
+
+                        <text transform="translate(591.49148,351.48429) scale(0.2914,0.2914) skewX(-14.49376)" fontSize="40" xmlSpace="preserve" fill="#ffffff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <tspan x="0" dy="0">AP-L037 Multimedia Receiver</tspan>
+                        </text>
 
 
                     </g>
