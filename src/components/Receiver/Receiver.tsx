@@ -39,7 +39,7 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
         }
 
         // alert(JSON.stringify(result[0].onSelect));
-        
+
         return result;
     }
 
@@ -359,6 +359,122 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                                     shortPropName: "PTF",
                                 }
                             ]
+                        },
+                        {
+                            type: "block",
+                            label: "DATA DISPLAY",
+
+                            innerOptions: [
+                                {
+                                    type: "property",
+                                    label: "DATA DISP MODE",
+
+                                    values: [
+                                        {
+                                            label: "DEFAULT",
+                                            onSelect: (s) => ({
+                                                ...s,
+                                                display: {
+                                                    ...s.display,
+                                                    dataDisplay: {
+                                                        ...s.display.dataDisplay,
+                                                        mode: "DEFAULT",
+                                                    },
+                                                }
+                                            }),
+                                            reference: (s) => s.display.dataDisplay.mode === 'DEFAULT',
+                                            shortPropName: "DDM",
+                                        },
+                                        {
+                                            label: "DYNAMIC",
+                                            onSelect: (s) => ({
+                                                ...s,
+                                                display: {
+                                                    ...s.display,
+                                                    ...s.display,
+                                                    dataDisplay: {
+                                                        ...s.display.dataDisplay,
+                                                        mode: "DYNAMIC",
+                                                    },
+                                                }
+                                            }),
+                                            reference: (s) => s.display.dataDisplay.mode === 'DYNAMIC',
+                                            shortPropName: "DDM",
+                                        }
+                                    ]
+                                },
+                                {
+                                    type: "property",
+                                    label: "DISPLAY INTERVAL",
+
+                                    values: [
+                                        {
+                                            label: "3s",
+                                            onSelect: (s) => ({
+                                                ...s,
+                                                display: {
+                                                    ...s.display,
+                                                    dataDisplay: {
+                                                        ...s.display.dataDisplay,
+                                                        interval: 3,
+                                                    }
+                                                }
+                                            }),
+
+                                            reference: (s) => s.display.dataDisplay.interval === 3,
+                                            shortPropName: 'DISP INT'
+                                        },
+                                        {
+                                            label: "5s",
+                                            onSelect: (s) => ({
+                                                ...s,
+                                                display: {
+                                                    ...s.display,
+                                                    dataDisplay: {
+                                                        ...s.display.dataDisplay,
+                                                        interval: 5,
+                                                    }
+                                                }
+                                            }),
+
+                                            reference: (s) => s.display.dataDisplay.interval === 5,
+                                            shortPropName: 'DISP INT'
+                                        },
+                                        {
+                                            label: "10s",
+                                            onSelect: (s) => ({
+                                                ...s,
+                                                display: {
+                                                    ...s.display,
+                                                    dataDisplay: {
+                                                        ...s.display.dataDisplay,
+                                                        interval: 10,
+                                                    }
+                                                }
+                                            }),
+
+                                            reference: (s) => s.display.dataDisplay.interval === 10,
+                                            shortPropName: 'DISP INT'
+                                        },
+                                        {
+                                            label: "15s",
+                                            onSelect: (s) => ({
+                                                ...s,
+                                                display: {
+                                                    ...s.display,
+                                                    dataDisplay: {
+                                                        ...s.display.dataDisplay,
+                                                        interval: 15,
+                                                    }
+                                                }
+                                            }),
+
+                                            reference: (s) => s.display.dataDisplay.interval === 15,
+                                            shortPropName: 'DISP INT'
+                                        },
+                                    ]
+                                }
+                            ]
                         }
                     ]
                 },
@@ -368,38 +484,205 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
 
                     innerOptions: [
                         {
-                            type: "property",
+                            type: "block",
                             label: "VOLUME CONTROL",
 
-                            values: [
+                            innerOptions: [
                                 {
-                                    label: "NONE",
-                                    onSelect: (s) => ({
-                                        ...s,
-                                        audio: {
-                                            ...s.audio,
-                                            volumeControl: "NONE",
-                                        }
-                                    }),
-                                    reference: (s) => s.audio.volumeControl === 'NONE',
+                                    type: "property",
+                                    label: "VOL CNTRL ON/OFF",
 
-                                    shortPropName: "VOL CONTROL",
+                                    values: [
+                                        {
+                                            label: "ON",
+                                            onSelect: (s) => ({
+                                                ...s,
+                                                audio: {
+                                                    ...s.audio,
+                                                    volumeControl: {
+                                                        ...s.audio.volumeControl,
+                                                        on: true
+                                                    }
+                                                }
+                                            }),
+                                            reference: (s) => s.audio.volumeControl.on,
+                                            shortPropName: "VOL CNTRL",
+                                        },
+                                        {
+                                            label: "OFF",
+                                            onSelect: (s) => ({
+                                                ...s,
+                                                audio: {
+                                                    ...s.audio,
+                                                    volumeControl: {
+                                                        ...s.audio.volumeControl,
+                                                        on: false
+                                                    }
+                                                }
+                                            }),
+                                            reference: (s) => !s.audio.volumeControl.on,
+                                            shortPropName: "VOL CNTRL",
+                                        }
+                                    ]
                                 },
                                 {
-                                    label: "AUTO",
-                                    onSelect: (s) => ({
-                                        ...s,
-                                        audio: {
-                                            ...s.audio,
-                                            volumeControl: "AUTO",
-                                        }
-                                    }),
-                                    reference: (s) => s.audio.volumeControl === 'AUTO',
+                                    type: "block",
+                                    label: "VOL CONTROL DATA",
 
-                                    shortPropName: "VOL CONTROL",
+                                    innerOptions: [
+                                        {
+                                            type: "block",
+                                            label: "DAY VOL CNTRL",
+
+                                            innerOptions: [
+                                                {
+                                                    type: "property",
+                                                    label: "DAY TIME",
+
+                                                    valueType: "input",
+                                                    subType: "time",
+
+                                                    initialValue: (s) => s.audio.volumeControl.settings?.maxVolume.time || [0, 0],
+
+                                                    onInput: (s, hours, minutes) => ({
+                                                        ...s,
+                                                        audio: {
+                                                            ...s.audio,
+                                                            volumeControl: {
+                                                                ...s.audio.volumeControl,
+                                                                settings: {
+                                                                    ...s.audio.volumeControl.settings,
+                                                                    maxVolume: {
+                                                                        ...s.audio.volumeControl.settings.maxVolume,
+                                                                        time: [hours, minutes]
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    })
+                                                },
+                                                {
+                                                    type: "property",
+                                                    label: "DAY VOLUME",
+
+                                                    values: [
+                                                        ...generateNumberItems(100, 0, 1, (s, val) => ({
+                                                            ...s,
+                                                            audio: {
+                                                                ...s.audio,
+                                                                volumeControl: {
+                                                                    ...s.audio.volumeControl,
+                                                                    settings: {
+                                                                        ...s.audio.volumeControl.settings,
+                                                                        maxVolume: {
+                                                                            ...s.audio.volumeControl.settings.maxVolume,
+                                                                            volume: val,
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }), (s, val) => s.audio.volumeControl.settings.maxVolume.volume === val)
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            type: "block",
+                                            label: "NIGHT VOL CNTRL",
+
+                                            innerOptions: [
+                                                {
+                                                    type: "property",
+                                                    label: "NIGHT TIME",
+
+                                                    valueType: "input",
+                                                    subType: "time",
+
+                                                    initialValue: (s) => s.audio.volumeControl.settings?.minVolume.time || [0, 0],
+
+                                                    onInput: (s, hours, minutes) => ({
+                                                        ...s,
+                                                        audio: {
+                                                            ...s.audio,
+                                                            volumeControl: {
+                                                                ...s.audio.volumeControl,
+                                                                settings: {
+                                                                    ...s.audio.volumeControl.settings,
+                                                                    minVolume: {
+                                                                        ...s.audio.volumeControl.settings.minVolume,
+                                                                        time: [hours, minutes]
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    })
+                                                },
+                                                {
+                                                    type: "property",
+                                                    label: "NIGHT VOLUME",
+
+                                                    values: [
+                                                        ...generateNumberItems(100, 0, 1, (s, val) => ({
+                                                            ...s,
+                                                            audio: {
+                                                                ...s.audio,
+                                                                volumeControl: {
+                                                                    ...s.audio.volumeControl,
+                                                                    settings: {
+                                                                        ...s.audio.volumeControl.settings,
+                                                                        minVolume: {
+                                                                            ...s.audio.volumeControl.settings.minVolume,
+                                                                            volume: val,
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }), (s, val) => s.audio.volumeControl.settings.minVolume.volume === val)
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ],
+
+                                    // valueType: "input",
+
+                                    // initialValue: (s) => s.audio.volumeControl.
                                 }
                             ]
                         },
+                        // {
+                        //     type: "property",
+                        //     label: "VOLUME CONTROL",
+
+                        //     values: [
+                        //         {
+                        //             label: "NONE",
+                        //             onSelect: (s) => ({
+                        //                 ...s,
+                        //                 audio: {
+                        //                     ...s.audio,
+                        //                     volumeControl: "NONE",
+                        //                 }
+                        //             }),
+                        //             reference: (s) => s.audio.volumeControl === 'NONE',
+
+                        //             shortPropName: "VOL CONTROL",
+                        //         },
+                        //         {
+                        //             label: "AUTO",
+                        //             onSelect: (s) => ({
+                        //                 ...s,
+                        //                 audio: {
+                        //                     ...s.audio,
+                        //                     volumeControl: "AUTO",
+                        //                 }
+                        //             }),
+                        //             reference: (s) => s.audio.volumeControl === 'AUTO',
+
+                        //             shortPropName: "VOL CONTROL",
+                        //         }
+                        //     ]
+                        // },
                         {
                             type: "block",
                             label: "BEEP",
@@ -494,6 +777,230 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                         }
                     ]
                 },
+                {
+                    type: "block",
+                    label: "ADVANCED",
+
+                    innerOptions: [
+                        {
+                            type: "block",
+                            label: "AUTO-ON-OFF",
+
+                            innerOptions: [
+                                {
+                                    type: "block",
+                                    label: "AUTO POWER ON",
+
+                                    innerOptions: [
+                                        {
+                                            type: "property",
+                                            label: "AUTO-ON ON/OFF",
+
+                                            values: [
+                                                {
+                                                    label: "ON",
+                                                    onSelect: (s) => ({
+                                                        ...s,
+                                                        advanced: {
+                                                            ...s.advanced,
+                                                            autoOnOff: {
+                                                                ...s.advanced.autoOnOff,
+                                                                autoON: {
+                                                                    ...s.advanced.autoOnOff.autoON,
+                                                                    active: true
+                                                                }
+                                                            }
+                                                        }
+                                                    }),
+
+                                                    reference: (s) => s.advanced.autoOnOff.autoON.active,
+                                                    shortPropName: "AUTO-ON",
+                                                },
+                                                {
+                                                    label: "OFF",
+                                                    onSelect: (s) => ({
+                                                        ...s,
+                                                        advanced: {
+                                                            ...s.advanced,
+                                                            autoOnOff: {
+                                                                ...s.advanced.autoOnOff,
+                                                                autoON: {
+                                                                    ...s.advanced.autoOnOff.autoON,
+                                                                    active: false
+                                                                }
+                                                            }
+                                                        }
+                                                    }),
+
+                                                    reference: (s) => !s.advanced.autoOnOff.autoON.active,
+                                                    shortPropName: "AUTO-ON",
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            type: "property",
+                                            label: "AUTO-ON TIME",
+
+                                            shortPropName: "AUTO-ON AT",
+
+                                            valueType: "input",
+                                            subType: "time",
+
+                                            onInput: (settings, h, m) => ({
+                                                ...settings,
+                                                advanced: {
+                                                    ...settings.advanced,
+                                                    autoOnOff: {
+                                                        ...settings.advanced.autoOnOff,
+                                                        autoON: {
+                                                            ...settings.advanced.autoOnOff.autoON,
+                                                            time: [h, m]
+                                                        }
+                                                    }
+                                                }
+                                            }),
+
+                                            initialValue: (s) => s.advanced.autoOnOff.autoON.time
+                                        }
+                                    ]
+                                },
+                                {
+                                    type: "block",
+                                    label: "AUTO POWER OFF",
+
+                                    innerOptions: [
+                                        {
+                                            type: "property",
+                                            label: "AUTO-OFF ON/OFF",
+
+                                            values: [
+                                                {
+                                                    label: "ON",
+                                                    onSelect: (s) => ({
+                                                        ...s,
+                                                        advanced: {
+                                                            ...s.advanced,
+                                                            autoOnOff: {
+                                                                ...s.advanced.autoOnOff,
+                                                                autoOFF: {
+                                                                    ...s.advanced.autoOnOff.autoOFF,
+                                                                    active: true
+                                                                }
+                                                            }
+                                                        }
+                                                    }),
+
+                                                    reference: (s) => s.advanced.autoOnOff.autoOFF.active,
+                                                    shortPropName: "AUTO-OFF",
+                                                },
+                                                {
+                                                    label: "OFF",
+                                                    onSelect: (s) => ({
+                                                        ...s,
+                                                        advanced: {
+                                                            ...s.advanced,
+                                                            autoOnOff: {
+                                                                ...s.advanced.autoOnOff,
+                                                                autoOFF: {
+                                                                    ...s.advanced.autoOnOff.autoOFF,
+                                                                    active: false
+                                                                }
+                                                            }
+                                                        }
+                                                    }),
+
+                                                    reference: (s) => !s.advanced.autoOnOff.autoOFF.active,
+                                                    shortPropName: "AUTO-OFF",
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            type: "property",
+                                            label: "AUTO-OFF TIME",
+
+                                            shortPropName: "AUTO-OFF AT",
+
+                                            valueType: "input",
+                                            subType: "time",
+
+                                            onInput: (settings, h, m) => ({
+                                                ...settings,
+                                                advanced: {
+                                                    ...settings.advanced,
+                                                    autoOnOff: {
+                                                        ...settings.advanced.autoOnOff,
+                                                        autoOFF: {
+                                                            ...settings.advanced.autoOnOff.autoOFF,
+                                                            time: [h, m]
+                                                        }
+                                                    }
+                                                }
+                                            }),
+
+                                            initialValue: (s) => s.advanced.autoOnOff.autoOFF.time
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                        // {
+                        //     type: "block",
+                        //     label: "USB",
+
+                        //     innerOptions: [
+                        //         {
+                        //             type: "property",
+                        //             label: "TAG DISPLAY",
+
+                        //             values: [
+                        //                 {
+                        //                     label: "ON",
+                        //                     onSelect: (s) => ({
+                        //                         ...s,
+                        //                         advanced: {
+                        //                             ...s.advanced,
+                        //                             usb: {
+                        //                                 ...s.advanced.usb,
+                        //                                 tagDisplay: true
+                        //                             }
+                        //                         }
+                        //                     }),
+                        //                     reference: (s) => s.advanced.usb.tagDisplay,
+                        //                     // shortPropName: "TAG DISP",
+                        //                 },
+                        //                 {
+                        //                     label: "OFF",
+                        //                     onSelect: (s) => ({
+                        //                         ...s,
+                        //                         advanced: {
+                        //                             ...s.advanced,
+                        //                             usb: {
+                        //                                 ...s.advanced.usb,
+                        //                                 tagDisplay: false
+                        //                             }
+                        //                         }
+                        //                     }),
+                        //                     reference: (s) => !s.advanced.usb.tagDisplay,
+                        //                     // shortPropName: "TAG DISP",
+                        //                 }
+                        //             ],
+                        //         }
+                        //     ]
+                        // },
+                        // {
+                        //     type: "block",
+                        //     label: "INTERNET RADIO",
+
+                        //     innerOptions: [
+                        //         {
+                        //             type: "property",
+
+
+                        //         }
+                        //     ]
+                        // }
+                    ]
+                }
             ],
         },
         settings: {
@@ -513,19 +1020,131 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
             },
             display: {
                 playTimeFormat: "CURRENT_TIME",
+                dataDisplay: {
+                    mode: "DEFAULT",
+                    interval: 10,
+                },
             },
             audio: {
-                volumeControl: "NONE",
+                volumeControl: {
+                    on: false,
+                    settings: {
+                        maxVolume: {
+                            time: [9, 0],
+                            volume: 100,
+                        },
+                        minVolume: {
+                            time: [0, 0],
+                            volume: 25,
+                        },
+                    }
+                },
                 beeper: {
                     on: true,
                     volume: 1
                 }
             },
 
+            advanced: {
+                autoOnOff: {
+                    autoON: {
+                        active: false,
+                        time: [0, 0]
+                    },
+                    autoOFF: {
+                        active: false,
+                        time: [0, 0]
+                    },
+                },
+                usb: {
+                    tagDisplay: true,
+                },
+            },
+
             playMode: {
 
             }
         },
+
+        autoOnOffMenu: {
+            navigation: {
+                _settingsBeforeUpdate: null,
+                openedIdxArray: [],
+                currentIdx: 0,
+            },
+            options: {
+                autoON: [
+                    {
+                        type: "button",
+                        label: "CANCEL AUTO-ON",
+                        onClick: () => {
+                            if (controllerOutputsRef.current.autoOnOff?.ON) {
+                                controllerOutputsRef.current.autoOnOff.ON = {
+                                    ...controllerOutputsRef.current.autoOnOff.ON,
+                                    activated: false,
+                                    buttonIndication: false,
+                                    isInterrupted: false,
+                                };
+
+                                controllerOutputsRef.current.powerOn = false;
+
+                            }
+                        }
+                    },
+                    {
+                        type: "button",
+                        label: "CONFIRM AUTO-ON",
+                        onClick: () => {
+                            if (controllerOutputsRef.current.autoOnOff?.ON) {
+                                controllerOutputsRef.current.autoOnOff.ON = {
+                                    ...controllerOutputsRef.current.autoOnOff.ON,
+                                    activated: false,
+                                    buttonIndication: false,
+                                    isInterrupted: false,
+                                };
+
+                                controllerOutputsRef.current.powerOn = true;
+                            }
+                        }
+                    }
+                ],
+                autoOFF: [
+                    {
+                        type: "button",
+                        label: "CANCEL AUTO-OFF",
+                        onClick: () => {
+                            if (controllerOutputsRef.current.autoOnOff?.OFF) {
+                                controllerOutputsRef.current.autoOnOff.OFF = {
+                                    ...controllerOutputsRef.current.autoOnOff.OFF,
+                                    activated: false,
+                                    // buttonIndication: false,
+                                    isInterrupted: false,
+                                };
+
+                                controllerOutputsRef.current.powerOn = true;
+                            }
+                        }
+                    },
+                    {
+                        type: "button",
+                        label: "CONFIRM AUTO-OFF",
+                        onClick: () => {
+                            if (controllerOutputsRef.current.autoOnOff?.OFF) {
+                                controllerOutputsRef.current.autoOnOff.OFF = {
+                                    ...controllerOutputsRef.current.autoOnOff.OFF,
+                                    activated: false,
+                                    // buttonIndication: false,
+                                    isInterrupted: false,
+                                };
+
+                                controllerOutputsRef.current.powerOn = false;
+                            }
+                        }
+                    }
+                ],
+            },
+        },
+
         currentSource: 1,
         mainVolume: 10,
         indicationColor: {

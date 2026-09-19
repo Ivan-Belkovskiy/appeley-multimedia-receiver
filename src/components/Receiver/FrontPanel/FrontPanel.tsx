@@ -3,7 +3,7 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from "react";
 import Display, { DisplayMainIndication, DisplayOtherIndication } from "./Display/Display";
 import "./FrontPanel.css";
-import { MainControllerInputButtons, MainControllerInputs, MainControllerMenuDefinition, MainControllerOutputs, MainControllerSource, MainControllerSources, MenuOption } from "../MainController/MainController";
+import { MainControllerExtendedMenu, MainControllerInputButtons, MainControllerInputs, MainControllerMenuDefinition, MainControllerOutputs, MainControllerSource, MainControllerSources, MenuOption } from "../MainController/MainController";
 import { centerMainText } from "@/utils/display";
 import { formatTime, timeFromDate } from "@/utils/time";
 import beeper from "@/utils/beeper";
@@ -57,6 +57,53 @@ export const getCurrentMenuElement = (menuData: MainControllerMenuDefinition, pa
     const openedIdxArray = menuData.navigation.openedIdxArray;
 
     let currentLevel = (menuData.navigation.menuType === 'encoderMenu') ? menuData.encoderMenuOptions : menuData.options;
+
+    if (openedIdxArray.length === 0) return currentLevel[currentIdx];
+
+
+    let openedArray = [...openedIdxArray, currentIdx];
+    if (Array.isArray(path)) openedArray = path;
+
+    for (let i = 0; i < openedArray.length; i++) {
+        const idx = openedArray[i];
+        const element = currentLevel[idx];
+        if (element?.type === 'block' && element?.innerOptions.length > 0) {
+            currentLevel = element.innerOptions;
+            // result = currentLevel[idx];
+        }
+        result = element;
+    }
+
+    // if (result && result.type === 'block' && result.innerOptions.length > 0) {
+    //     result = result.innerOptions[currentIdx];
+    //     // result = currentLevel[idx];
+    // }
+    // openedIdxArray.forEach(idx => {
+    //     const element = currentLevel[idx];
+    //     if (element.type === 'block' && element.innerOptions.length > 0) {
+    //         currentLevel = element.innerOptions;
+    //         // result = currentLevel[idx];
+    //     }
+    //     result = element;
+    // });
+
+    // alert(result?.label);
+
+    return result;
+
+};
+
+export const getCurrentExtendedMenuElement = (menuData: MainControllerExtendedMenu<string>, path?: number[]) => {
+    if (!menuData.navigation.menuOpened || !menuData.navigation.menuType) return;
+
+
+    let result: MenuOption | null = null;
+
+    const navigation = menuData.navigation;
+    const currentIdx = menuData.navigation.currentIdx;
+    const openedIdxArray = menuData.navigation.openedIdxArray;
+
+    let currentLevel = menuData.options[menuData.navigation.menuType];
 
     if (openedIdxArray.length === 0) return currentLevel[currentIdx];
 
@@ -1747,6 +1794,84 @@ export default function FrontPanel({
             // demoTimer++;
         }
 
+        let autoOnOffMenuTimer = 0;
+
+        let dispBtnTimer = 0;
+
+        const processDispClick = () => {
+            beeper.singleBeep(1, mainOutputs.settings.audio.beeper.volume, mainOutputs.settings.audio.beeper.on);
+            if (isDemoAnimating) resetDemo();
+            else {
+                if (mainOutputs.currentSource === 1) {
+
+                    // if (mainOutputs.sourceData[1].playbackData) {
+
+                    //     if (displayMode.folder !== mainOutputs.sourceData[1].playbackData?.folderNumber) {
+                    //         displayMode.folder = mainOutputs.sourceData[1].playbackData.folderNumber;
+                    //         displayMode.track = null;
+                    //     }
+
+                    //     if (displayMode.track !== mainOutputs.sourceData[1].playbackData?.trackNumber) {
+                    //         // displayMode.folder = null;
+                    //         displayMode.track = mainOutputs.sourceData[1].playbackData.trackNumber;
+                    //     }
+
+                    // }
+
+                    if (displayMode.volume) {
+                        displayMode.volume = false;
+                    } else if (displayMode.folder === null && mainOutputs.sourceData[1].playbackData) {
+                        displayMode = {
+                            folder: mainOutputs.sourceData[1].playbackData.folderNumber,
+                            track: null,
+
+                            _folder: displayMode._folder,
+                            _track: displayMode._track,
+
+                            _volume: mainOutputs.mainVolume,
+
+                        };
+                        animTimer = 0;
+                    } else if (displayMode.track === null && mainOutputs.sourceData[1].playbackData) {
+                        displayMode.track = mainOutputs.sourceData[1].playbackData.trackNumber;
+                        displayMode.default = true;
+                        animTimer = 0;
+                    } else if (displayMode.default) {
+                        displayMode.default = false;
+                        displayMode.clockTime = true;
+                    } else {
+                        displayMode.folder = null;
+                    }
+                    displayMode.selectedSource = mainOutputs.currentSource;
+                } else if (mainOutputs.currentSource === 2) {
+                    // if (displayMode.volume) {
+                    //     displayMode.volume = false;
+                    //     displayMode.track = 1;
+                    // } else if (displayMode.track === null) {
+                    //     displayMode.track = 1;
+                    //     displayMode.default = false;
+                    //     displayMode.clockTime = false;
+                    // } else 
+                    if (displayMode.volume) {
+                        displayMode.volume = false;
+                        displayMode.track = 1;
+                    } else if (displayMode.track === 1) {
+                        displayMode.track = null;
+                        displayMode.default = true;
+                        displayMode.clockTime = false;
+                    } else if (displayMode.default) {
+                        displayMode.default = false;
+                        displayMode.clockTime = true;
+                    } else {
+                        displayMode.track = 1;
+                        displayMode.default = false;
+                        displayMode.clockTime = false;
+                    }
+                    displayMode.selectedSource = mainOutputs.currentSource;
+                }
+            }
+        }
+
         const update = () => {
 
             // setDisplayData({
@@ -1769,328 +1894,661 @@ export default function FrontPanel({
 
             // animateDemo(updateTimer);
 
-            if (mainOutputs.powerOn) {
+            if (mainOutputs.autoOnOff?.OFF?.activated || mainOutputs.autoOnOff?.ON?.activated) {
 
-                if (mainOutputs.resetDemo) {
-                    resetDemo();
-                    mainOutputs.resetDemo = false;
-                }
+                // updateDisplayAction('INIT');
 
-                if (displayAction !== "INIT") {
-                    if (displayingSource !== mainOutputs.currentSource) {
-                        updateDisplayAction('SOURCE DISP');
-                        displayingSource = mainOutputs.currentSource;
+                if (mainOutputs.autoOnOffMenu.navigation.menuOpened) {
+
+                    const navigation = mainOutputs.autoOnOffMenu.navigation;
+                    const currentIdx = navigation.currentIdx;
+
+                    // const currentElement = mainOutputs.menu.options[currentIdx];
+                    const currentElement = getCurrentExtendedMenuElement(mainOutputs.autoOnOffMenu);
+
+                    const currentValue = (currentElement?.type === 'property' && navigation.isValueSelect) ? (
+                        (
+                            // navigation._inputData?.type === 'time' &&
+                            currentElement.valueType === 'input'
+                        ) ? (
+                            (navigation._inputData?.type === 'time') ? (
+                                navigation._inputData.currentValue.map((e, i) => (
+                                    (animTimer % 60 > 30 && i === navigation._inputData?.timeArrayIdx) ? `  ` : String(e).padStart(2, "0")
+                                )).join(':')
+                            ) : ``
+                        ) : (
+                            currentElement.values[navigation.valueIdx || 0]
+                        )
+                    ) : undefined;
+
+
+                    autoOnOffMenuTimer++;
+
+
+                    if (currentElement) {
+                        let displayText = currentElement.label;
+
+                        if (currentValue) {
+                            if (typeof currentValue === 'string' && navigation._inputData?.type === 'time' && currentElement.type !== 'button') {
+                                displayText = ((currentElement.shortPropName || currentElement.label).length + 5) === 16 ? (
+                                    `${currentElement.shortPropName || currentElement.label}${currentValue}`
+                                ) : `${currentElement.shortPropName || currentElement.label} ${currentValue}`
+                            } else if (typeof currentValue !== 'string') {
+                                displayText = `${typeof currentValue.shortPropName === 'string' ? currentValue.shortPropName : currentElement.label} ${currentValue.label}`
+                            }
+                        }
+
+                        updateDisplayData({
+                            main: centerMainText(displayText),
+                            topLeft: (currentValue ? 'SET' : 'MENU').split(''),
+                            otherIndication: {
+                                topLeftDecorationLine: true,
+                            }
+                        });
+
+                        // if (navigation.menuType !== 'main') {
+                        animateTopLeftSelection(Math.floor((autoOnOffMenuTimer / 30)));
+                        // }
                     }
+
+                    autoOnOffMenuTimer++;
+
+                } else {
+
+                    autoOnOffMenuTimer = 0;
+
+                    const autoON = mainOutputs.autoOnOff.ON;
+                    const autoOFF = mainOutputs.autoOnOff.OFF;
+
+                    if (autoON?.activatedAt) {
+
+                        let displayText = centerMainText(`POWER ON IN ${String(autoON.timer).padStart(2, "0")}`);
+
+                        updateDisplayData({
+                            main: displayText,
+                            topLeft: [],
+                            otherIndication: {
+                                topLeftDecorationLine: true
+                            }
+                        });
+                    } else if (autoOFF?.activated) {
+
+                        let displayText = centerMainText(`POWER OFF IN ${String(autoOFF.timer).padStart(2, "0")}`);
+
+                        updateDisplayData({
+                            main: displayText,
+                            topLeft: [],
+                            otherIndication: {
+                                topLeftDecorationLine: true
+                            }
+                        });
+                    }
+
                 }
 
-                if (displayAction === "INIT") {
+            } else {
 
-                    if (updateTimer > 20) {
 
-                        if (updateTimer < 140) {
-                            animatePowerOnLogo(Math.floor((updateTimer - 20) / 1));
-                            animTimer = 0;
-                        } else if (animTimer < 14) {
+
+                if (mainOutputs.powerOn) {
+
+                    if (mainOutputs.resetDemo) {
+                        resetDemo();
+                        mainOutputs.resetDemo = false;
+                    }
+
+                    if (displayAction !== "INIT") {
+                        if (displayingSource !== mainOutputs.currentSource) {
+                            updateDisplayAction('SOURCE DISP');
+                            displayingSource = mainOutputs.currentSource;
+                        }
+                    }
+
+                    if (displayAction === "INIT") {
+
+                        if (updateTimer > 20) {
+
+                            if (updateTimer < 140) {
+                                animatePowerOnLogo(Math.floor((updateTimer - 20) / 1));
+                                animTimer = 0;
+                            } else if (animTimer < 14) {
+                                if (updateTimer % 5 === 0) {
+                                    updateDisplayData({
+                                        main: (
+                                            displayDataRef.current.main.map((s, idx) => {
+                                                if (animTimer > 2 && animTimer < 16) {
+                                                    if (idx <= 8) {
+                                                        if ((animTimer - 1) === idx) return [""];
+                                                        if (animTimer === idx) return {
+                                                            directDisplay: true,
+                                                            segments: [7, 6]
+                                                        };
+                                                    }
+                                                    if (idx > 8) {
+                                                        if (((15 - animTimer) + 1) === idx) return [""];
+                                                        if ((15 - animTimer) === idx) return {
+                                                            directDisplay: true,
+                                                            segments: [7, 6]
+                                                        };
+                                                    }
+                                                }
+                                                return s;
+                                            })
+                                        )
+                                    });
+                                    animTimer++;
+                                }
+                            } else if (animTimer >= 14) {
+                                animTimer++;
+                                if (animTimer > 19) {
+                                    animTimer = 0;
+                                    updateTimer = 0;
+                                    displayAction = 'SOURCE DISP';
+                                }
+                            };
+                            // setDisplayData({
+                            //     ...displayData,
+                            //     main: ["", "", "", "", "A", "P", "P", "E", "L", "E", "Y", "", "", "", "", ""]
+                            // });
+                        } else setDisplayData({
+                            main: []
+                            // main: mainOutputs.display.mainData?.split('') || []
+                        });
+                    } else if (displayAction === 'SOURCE DISP') {
+                        if (updateTimer < 100) {
+                            if (typeof mainOutputs.currentSource === 'number') updateDisplayData({
+                                main: centerMainText(
+                                    MainControllerSources[mainOutputs.currentSource]
+                                ),
+                                // main: centerMainText(mainOutputs.currentSource),
+                            });
+                        } else {
                             if (updateTimer % 5 === 0) {
-                                updateDisplayData({
-                                    main: (
-                                        displayDataRef.current.main.map((s, idx) => {
-                                            if (animTimer > 2 && animTimer < 16) {
-                                                if (idx <= 8) {
-                                                    if ((animTimer - 1) === idx) return [""];
-                                                    if (animTimer === idx) return {
-                                                        directDisplay: true,
-                                                        segments: [7, 6]
-                                                    };
-                                                }
-                                                if (idx > 8) {
-                                                    if (((15 - animTimer) + 1) === idx) return [""];
-                                                    if ((15 - animTimer) === idx) return {
-                                                        directDisplay: true,
-                                                        segments: [7, 6]
-                                                    };
-                                                }
-                                            }
-                                            return s;
-                                        })
-                                    )
-                                });
+                                if (animTimer < 13) animateSourceSelect(animTimer);
+                                else {
+                                    mainInputs.sourceData[1].allowReading = false;
+                                    mainInputs.sourceData[2].allowReading = false;
+                                    if (mainOutputs.currentSource === 1) mainInputs.sourceData[1].allowReading = true;
+                                    if (mainOutputs.currentSource === 2) mainInputs.sourceData[2].allowReading = true;
+                                    // else {
+                                    // }
+                                    updateDisplayAction(`MAIN INFO`);
+                                }
                                 animTimer++;
                             }
-                        } else if (animTimer >= 14) {
-                            animTimer++;
-                            if (animTimer > 19) {
-                                animTimer = 0;
-                                updateTimer = 0;
-                                displayAction = 'SOURCE DISP';
-                            }
-                        };
-                        // setDisplayData({
-                        //     ...displayData,
-                        //     main: ["", "", "", "", "A", "P", "P", "E", "L", "E", "Y", "", "", "", "", ""]
-                        // });
-                    } else setDisplayData({
-                        main: []
-                        // main: mainOutputs.display.mainData?.split('') || []
-                    });
-                } else if (displayAction === 'SOURCE DISP') {
-                    if (updateTimer < 100) {
-                        if (typeof mainOutputs.currentSource === 'number') updateDisplayData({
-                            main: centerMainText(
-                                MainControllerSources[mainOutputs.currentSource]
-                            ),
-                            // main: centerMainText(mainOutputs.currentSource),
-                        });
-                    } else {
-                        if (updateTimer % 5 === 0) {
-                            if (animTimer < 13) animateSourceSelect(animTimer);
-                            else {
-                                mainInputs.sourceData[1].allowReading = false;
-                                mainInputs.sourceData[2].allowReading = false;
-                                if (mainOutputs.currentSource === 1) mainInputs.sourceData[1].allowReading = true;
-                                if (mainOutputs.currentSource === 2) mainInputs.sourceData[2].allowReading = true;
-                                // else {
-                                // }
-                                updateDisplayAction(`MAIN INFO`);
-                            }
-                            animTimer++;
                         }
-                    }
 
 
-                } else if (displayAction?.startsWith('MAIN INFO')) {
+                    } else if (displayAction?.startsWith('MAIN INFO')) {
 
-                    if (mainOutputs.sourceData[1].dataToLoad && mainOutputs.currentSource === 1) {
-                        displayMode.playTrackAfterSrcSelect = true;
-                        displayMode.volume = false;
-                        displayMode._volume = mainOutputs.mainVolume;
-                    }
+                        if (mainOutputs.sourceData[1].dataToLoad && mainOutputs.currentSource === 1) {
+                            displayMode.playTrackAfterSrcSelect = true;
+                            displayMode.volume = false;
+                            displayMode._volume = mainOutputs.mainVolume;
+                        }
 
-                    if (mainOutputs.resetAnimationsTimer?.animTimer) {
-                        animTimer = 0;
-                        mainOutputs.resetAnimationsTimer.animTimer = false;
-                    }
+                        if (mainOutputs.resetAnimationsTimer?.animTimer) {
+                            animTimer = 0;
+                            mainOutputs.resetAnimationsTimer.animTimer = false;
+                        }
 
-                    if (mainInputs.buttons?.disp) {
-                        if (clickedButton !== 'disp') {
-                            beeper.singleBeep(1, mainOutputs.settings.audio.beeper.volume, mainOutputs.settings.audio.beeper.on);
-                            if (isDemoAnimating) resetDemo();
-                            else {
+                        if (mainInputs.buttons?.disp) {
+                            if (dispBtnTimer > 45 && !(
+                                (mainOutputs.autoOnOff as any)?.OFF?.activated ||
+                                (mainOutputs.autoOnOff as any)?.ON?.activated
+                            )) {
                                 if (mainOutputs.currentSource === 1) {
-
-                                    // if (mainOutputs.sourceData[1].playbackData) {
-
-                                    //     if (displayMode.folder !== mainOutputs.sourceData[1].playbackData?.folderNumber) {
-                                    //         displayMode.folder = mainOutputs.sourceData[1].playbackData.folderNumber;
-                                    //         displayMode.track = null;
-                                    //     }
-
-                                    //     if (displayMode.track !== mainOutputs.sourceData[1].playbackData?.trackNumber) {
-                                    //         // displayMode.folder = null;
-                                    //         displayMode.track = mainOutputs.sourceData[1].playbackData.trackNumber;
-                                    //     }
-
-                                    // }
-
-                                    if (displayMode.volume) {
-                                        displayMode.volume = false;
-                                    } else if (displayMode.folder === null && mainOutputs.sourceData[1].playbackData) {
-                                        displayMode = {
-                                            folder: mainOutputs.sourceData[1].playbackData.folderNumber,
-                                            track: null,
-
-                                            _folder: displayMode._folder,
-                                            _track: displayMode._track,
-
-                                            _volume: mainOutputs.mainVolume,
-
-                                        };
-                                        animTimer = 0;
-                                    } else if (displayMode.track === null && mainOutputs.sourceData[1].playbackData) {
-                                        displayMode.track = mainOutputs.sourceData[1].playbackData.trackNumber;
-                                        displayMode.default = true;
-                                        animTimer = 0;
-                                    } else if (displayMode.default) {
-                                        displayMode.default = false;
-                                        displayMode.clockTime = true;
-                                    } else {
-                                        displayMode.folder = null;
+                                    if (displayMode.folder === null || displayMode.track === null) {
+                                        // if (animTimer < (60 * 5)) animTimer = (60 * 5);
+                                        // alert('fast-scroll')
+                                        animTimer += 2;
                                     }
-                                    displayMode.selectedSource = mainOutputs.currentSource;
-                                } else if (mainOutputs.currentSource === 2) {
-                                    // if (displayMode.volume) {
-                                    //     displayMode.volume = false;
-                                    //     displayMode.track = 1;
-                                    // } else if (displayMode.track === null) {
-                                    //     displayMode.track = 1;
-                                    //     displayMode.default = false;
-                                    //     displayMode.clockTime = false;
-                                    // } else 
-                                    if (displayMode.volume) {
-                                        displayMode.volume = false;
-                                        displayMode.track = 1;
-                                    } else if (displayMode.track === 1) {
-                                        displayMode.track = null;
-                                        displayMode.default = true;
-                                        displayMode.clockTime = false;
-                                    } else if (displayMode.default) {
-                                        displayMode.default = false;
-                                        displayMode.clockTime = true;
-                                    } else {
-                                        displayMode.track = 1;
-                                        displayMode.default = false;
-                                        displayMode.clockTime = false;
-                                    }
-                                    displayMode.selectedSource = mainOutputs.currentSource;
+                                }
+                                // processDispClick();
+                            }
+
+                            dispBtnTimer++;
+
+                            clickedButton = 'disp';
+                        } else if (clickedButton === 'disp') {
+                            if (dispBtnTimer < 45) {
+                                processDispClick();
+                            }
+                            dispBtnTimer = 0;
+                            clickedButton = null;
+                        }
+
+                        if (isDemoAnimating) {
+                            animateDemo(updateTimer);
+                        } else {
+
+                            mainOutputs.indicationColor = {
+                                display: mainOutputs.settings.indication.display.color || "#0088ff",
+                                buttons: mainOutputs.settings.indication.buttons.color || "#0088ff"
+                            };
+
+                            if (mainOutputs.settings.demo.on) {
+                                if (demoTimer > 0) {
+                                    demoTimer--;
+                                } else {
+                                    // alert('Start DEMO (state before): ' + `
+                                    //     isDemoAnimating: ${isDemoAnimating}
+                                    //     mainInputs.isDemoAnimating: ${mainInputs.isDemoAnimating};
+                                    //     demoTimer: ${demoTimer};
+                                    //     demoTopLeftTimer: ${demoTopLeftTimer};
+                                    //     updateTimer: ${updateTimer};
+                                    //     demoPosition: ${demoPosition};
+                                    //     animTimer: ${animTimer};
+                                    //     `);
+
+                                    isDemoAnimating = true;
+                                    mainInputs.isDemoAnimating = true;
+                                    demoTimer = 0;
+                                    demoTopLeftTimer = 0;
+                                    updateTimer = 0;
+                                    demoPosition = 0;
+                                    nextDemoTimer = 0;
+                                    animTimer = 0;
+
+                                    updateDisplayData({
+                                        main: [],
+                                        topLeft: [],
+                                        otherIndication: {}
+                                    });
+
+                                    // alert('Start DEMO (state after): ' + `
+                                    //     isDemoAnimating: ${isDemoAnimating}
+                                    //     mainInputs.isDemoAnimating: ${mainInputs.isDemoAnimating};
+                                    //     demoTimer: ${demoTimer};
+                                    //     demoTopLeftTimer: ${demoTopLeftTimer};
+                                    //     updateTimer: ${updateTimer};
+                                    //     demoPosition: ${demoPosition};
+                                    //     animTimer: ${animTimer};
+                                    //     `);
+
+                                    return frameId = requestAnimationFrame(update);
                                 }
                             }
-                        }
 
-                        clickedButton = 'disp';
-                    } else if (clickedButton === 'disp') clickedButton = null;
+                            if ([1, 2].includes(mainOutputs.currentSource || 0)) updateDisplayData({
+                                ...displayDataRef.current,
+                                topLeft: (typeof mainOutputs.currentSource === 'number') ? (
+                                    MainControllerSources[mainOutputs.currentSource]
+                                ).split('') : []
+                            });
 
-                    if (isDemoAnimating) {
-                        animateDemo(updateTimer);
-                    } else {
+                            if (displayMode.selectedSource !== mainOutputs.currentSource) {
+                                if (mainOutputs.currentSource === 1) {
+                                    displayMode = {
+                                        folder: null,
+                                        track: null,
+                                        playTrackAfterSrcSelect: (mainOutputs.sourceData[1].playbackData?.isPlaying) ? true : false,
+                                        // playTrackAfterSrcSelect: true,
+                                    }
+                                }
+                                displayMode.selectedSource = mainOutputs.currentSource;
+                            }
 
-                        mainOutputs.indicationColor = {
-                            display: mainOutputs.settings.indication.display.color || "#0088ff",
-                            buttons: mainOutputs.settings.indication.buttons.color || "#0088ff"
-                        };
+                            if (displayMode._volume !== mainOutputs.mainVolume) {
+                                displayMode._volume = mainOutputs.mainVolume;
+                                displayMode.volume = true; // Activate volume disp mode; 
+                            }
 
-                        if (mainOutputs.settings.demo.on) {
-                            if (demoTimer > 0) {
-                                demoTimer--;
-                            } else {
-                                // alert('Start DEMO (state before): ' + `
-                                //     isDemoAnimating: ${isDemoAnimating}
-                                //     mainInputs.isDemoAnimating: ${mainInputs.isDemoAnimating};
-                                //     demoTimer: ${demoTimer};
-                                //     demoTopLeftTimer: ${demoTopLeftTimer};
-                                //     updateTimer: ${updateTimer};
-                                //     demoPosition: ${demoPosition};
-                                //     animTimer: ${animTimer};
-                                //     `);
-
-                                isDemoAnimating = true;
-                                mainInputs.isDemoAnimating = true;
-                                demoTimer = 0;
-                                demoTopLeftTimer = 0;
-                                updateTimer = 0;
-                                demoPosition = 0;
-                                nextDemoTimer = 0;
-                                animTimer = 0;
-
+                            if (mainOutputs.discState) {
+                                // if (mainOutputs.discState === 'eject') {
                                 updateDisplayData({
-                                    main: [],
+                                    main: centerMainText(mainOutputs.discState),
                                     topLeft: [],
                                     otherIndication: {}
                                 });
+                                // }
+                            } else {
+                                if (mainOutputs.currentSource === 0) {
+                                    // CD/DVD
 
-                                // alert('Start DEMO (state after): ' + `
-                                //     isDemoAnimating: ${isDemoAnimating}
-                                //     mainInputs.isDemoAnimating: ${mainInputs.isDemoAnimating};
-                                //     demoTimer: ${demoTimer};
-                                //     demoTopLeftTimer: ${demoTopLeftTimer};
-                                //     updateTimer: ${updateTimer};
-                                //     demoPosition: ${demoPosition};
-                                //     animTimer: ${animTimer};
-                                //     `);
-
-                                return frameId = requestAnimationFrame(update);
-                            }
-                        }
-
-                        if ([1, 2].includes(mainOutputs.currentSource || 0)) updateDisplayData({
-                            ...displayDataRef.current,
-                            topLeft: (typeof mainOutputs.currentSource === 'number') ? (
-                                MainControllerSources[mainOutputs.currentSource]
-                            ).split('') : []
-                        });
-
-                        if (displayMode.selectedSource !== mainOutputs.currentSource) {
-                            if (mainOutputs.currentSource === 1) {
-                                displayMode = {
-                                    folder: null,
-                                    track: null,
-                                    playTrackAfterSrcSelect: (mainOutputs.sourceData[1].playbackData?.isPlaying) ? true : false,
-                                    // playTrackAfterSrcSelect: true,
-                                }
-                            }
-                            displayMode.selectedSource = mainOutputs.currentSource;
-                        }
-
-                        if (displayMode._volume !== mainOutputs.mainVolume) {
-                            displayMode._volume = mainOutputs.mainVolume;
-                            displayMode.volume = true; // Activate volume disp mode; 
-                        }
-
-                        if (mainOutputs.discState) {
-                            // if (mainOutputs.discState === 'eject') {
-                            updateDisplayData({
-                                main: centerMainText(mainOutputs.discState),
-                                topLeft: [],
-                                otherIndication: {}
-                            });
-                            // }
-                        } else {
-                            if (mainOutputs.currentSource === 0) {
-                                // CD/DVD
-
-                                updateDisplayData({
-                                    ...displayDataRef.current,
-                                    main: centerMainText("NO DISC"),
-                                    topLeft: []
-                                });
-                            } else if (mainOutputs.currentSource === 1) {
-                                // USB
-                                const sourceData = mainOutputs.sourceData?.[1];
-
-                                if (!mainInputs.sourceData[1].connectedUSBDevice) {
                                     updateDisplayData({
                                         ...displayDataRef.current,
-                                        main: centerMainText("NO USB"),
+                                        main: centerMainText("NO DISC"),
                                         topLeft: []
-                                    })
-                                } else if (sourceData.menu?.menuType === 'navigation') {
+                                    });
+                                } else if (mainOutputs.currentSource === 1) {
+                                    // USB
+                                    const sourceData = mainOutputs.sourceData?.[1];
 
-                                    displayMode.volume = false;
-
-                                    if (sourceData.menu.error) {
+                                    if (!mainInputs.sourceData[1].connectedUSBDevice) {
                                         updateDisplayData({
-                                            main: centerMainText(sourceData.menu.error),
-                                            topLeft: [],
-                                            otherIndication: {
-                                                topLeftDecorationLine: true
-                                            },
+                                            ...displayDataRef.current,
+                                            main: centerMainText("NO USB"),
+                                            topLeft: []
+                                        })
+                                    } else if (sourceData.menu?.menuType === 'navigation') {
+
+                                        displayMode.volume = false;
+
+                                        if (sourceData.menu.error) {
+                                            updateDisplayData({
+                                                main: centerMainText(sourceData.menu.error),
+                                                topLeft: [],
+                                                otherIndication: {
+                                                    topLeftDecorationLine: true
+                                                },
+                                            });
+                                        } else {
+
+                                            const data = (sourceData.menu.subCategory === 'file' && typeof sourceData.menu.subIndex === 'number') ? (
+                                                sourceData.navigationData?.[sourceData.menu.mainIndex].trackList[
+                                                    sourceData.menu.subIndex
+                                                ].name || ""
+                                            ) : (
+                                                sourceData.navigationData?.[sourceData.menu.mainIndex].name || ""
+                                            );
+
+                                            updateDisplayData({
+                                                main: [],
+                                                topLeft: (sourceData.menu.subCategory === 'file' ? 'FILE' : 'LIST').split(''),
+                                                otherIndication: {
+                                                    topLeftDecorationLine: true,
+                                                    topRightData: {
+                                                        decorationLine: true,
+                                                        leftData: ((sourceData.menu.subCategory && typeof sourceData.menu.subIndex === 'number') ? String(sourceData.menu.subIndex + 1).padStart(4, "0") : String(sourceData.menu.mainIndex + 1).padStart(4, "0")).split(''),
+                                                        separator: true,
+                                                        rightData: ((sourceData.menu.subCategory && sourceData.navigationData?.[
+                                                            sourceData.menu.mainIndex
+                                                        ].trackList) ? String(sourceData.navigationData?.[
+                                                            sourceData.menu.mainIndex
+                                                        ].trackList.length).padStart(4, "0") : String(sourceData.navigationData?.length || 0).padStart(4, "0")).split(''),
+
+                                                        folderTagIcon: (sourceData.menu.subCategory) ? false : true,
+                                                        trackTagIcon: (sourceData.menu.subCategory) ? true : false,
+                                                    }
+                                                },
+                                            });
+
+                                            animateScrollingText(animTimer, data, () => {
+                                                animTimer = 0;
+                                            });
+
+                                            animTimer++;
+                                        }
+
+
+                                        // animateTopLeftSelection(Math.floor((updateTimer / 30)));
+
+                                    } else if (sourceData?.playbackData) {
+                                        const trackNumber = String(sourceData.playbackData.trackNumber + 1).padStart(3, "0");
+                                        const folderNumber = String(sourceData.playbackData.folderNumber + 1).padStart(2, "0").padStart(3, "F");
+
+                                        const trackName = sourceData.playbackData.trackName;
+                                        const folderName = sourceData.playbackData.albumName;
+                                        const artist = sourceData.playbackData.artist;
+
+                                        const currentTime = (trackName && sourceData.playbackData.currentTime) ? formatTime(sourceData.playbackData.currentTime) : undefined;
+                                        const duration = (sourceData.playbackData.trackDuration) ? formatTime(sourceData.playbackData.trackDuration) : undefined;
+
+                                        // if (displayMode._volume !== mainOutputs.mainVolume) {
+                                        //     displayMode._volume = mainOutputs.mainVolume;
+                                        //     displayMode.volume = true; // Activate volume disp mode; 
+                                        // }
+
+                                        if (sourceData.timeMove?.on) {
+                                            let rightPart = (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${currentTime}/${duration}` : currentTime;
+
+
+                                            if (!sourceData.timeMove.isMoving && (updateTimer % 60 > 30)) {
+                                                rightPart = '';
+                                            }
+
+                                            // const main = (
+                                            //     (currentTime === undefined || duration === undefined) ? ` ${trackNumber}`
+                                            //         : (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${trackNumber}  ${currentTime}/${duration}` : ` ${trackNumber}       ${currentTime}`
+                                            // );
+
+                                            const main = (
+                                                (currentTime === undefined || duration === undefined) ? ` ${trackNumber}`
+                                                    : (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${trackNumber}  ${rightPart}` : ` ${trackNumber}       ${rightPart}`
+                                            );
+
+                                            updateDisplayData({
+                                                ...displayDataRef.current,
+                                                main: main.split(''),
+                                                topLeft: folderNumber.split(''),
+                                                otherIndication: {
+                                                    timeMove: {
+                                                        left: (sourceData.timeMove.direction === 'left'),
+                                                        right: (sourceData.timeMove.direction === 'right')
+                                                    },
+                                                    topRightData: {
+                                                        AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                        VIDEO: (sourceData.playbackData.dataType === 'video'),
+                                                    },
+                                                }
+                                            });
+                                        } else {
+
+                                            if (sourceData.playbackData) {
+                                                if (displayMode._folder !== sourceData.playbackData.folderNumber) {
+                                                    displayMode.folder = null; // Reset folder disp mode;
+                                                    displayMode.track = null;
+                                                    animTimer = 0;
+                                                    displayMode._folder = sourceData.playbackData.folderNumber;
+                                                }
+
+                                                if (displayMode._track !== sourceData.playbackData.trackNumber) {
+                                                    displayMode.track = null; // Reset track disp mode;
+                                                    animTimer = 0;
+                                                    displayMode._track = sourceData.playbackData.trackNumber;
+                                                }
+                                            }
+                                            // let main = ` ${trackNumber}`;
+                                            // let topLeft = folderNumber;
+                                            // let other: DisplayOtherIndication = {};
+
+                                            //  ВЫНЕСТИ ЛОГИКУ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ В ОТДЕЛЬНЫЙ БЛОК КОДА //
+
+                                            if (displayMode.volume === true) {
+                                                updateDisplayData({
+                                                    main: [],
+                                                    topLeft: [],
+                                                    otherIndication: {}
+                                                })
+                                                animateScrollingText(animTimer, (
+                                                    centerMainText(`VOLUME ${String(mainOutputs.mainVolume).padStart(2, "0")}`).join('')
+                                                ), () => {
+                                                    animTimer = 0;
+                                                    displayMode.volume = false;
+                                                });
+                                                animTimer++;
+                                            } else if (sourceData.playbackData?.isPaused) {
+                                                if (updateTimer % 60 < 30) updateDisplayData({
+                                                    main: centerMainText('PAUSE'),
+                                                    topLeft: [],
+                                                    otherIndication: {}
+                                                });
+                                                else updateDisplayData({
+                                                    main: [],
+                                                    topLeft: [],
+                                                    otherIndication: {}
+                                                });
+                                            } else if (displayMode.playTrackAfterSrcSelect === true) {
+                                                animateScrollingText(animTimer, (
+                                                    centerMainText(`PLAY ${trackNumber}`).join('')
+                                                ), () => {
+                                                    animTimer = 0;
+                                                    displayMode.playTrackAfterSrcSelect = false;
+                                                });
+
+                                                updateDisplayData({
+                                                    ...displayDataRef.current,
+                                                    topLeft: folderNumber.split(''),
+                                                    otherIndication: {}
+                                                });
+
+                                                animTimer++;
+                                            } else if (displayMode.folder === null && folderName) {
+
+                                                animateScrollingText(animTimer, (
+                                                    `${folderName.data}${artist ? ` / ${artist}` : ''}`
+                                                ), () => {
+                                                    animTimer = 0;
+                                                    displayMode.folder = sourceData.playbackData?.folderNumber || 0;
+                                                });
+
+                                                updateDisplayData({
+                                                    ...displayDataRef.current,
+                                                    topLeft: folderNumber.split(''),
+                                                    otherIndication: {
+                                                        topRightData: {
+                                                            AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                            VIDEO: (sourceData.playbackData.dataType === 'video'),
+                                                            TAG: folderName.isID3Tag,
+                                                            folderTagIcon: true,
+                                                        }
+                                                    }
+                                                });
+
+                                                animTimer++;
+
+                                            } else if (displayMode.track === null && trackName) {
+
+                                                animateScrollingText(animTimer, (
+                                                    trackName.data
+                                                ), () => {
+                                                    animTimer = 0;
+                                                    displayMode.track = sourceData.playbackData?.trackNumber || 0;
+                                                    displayMode.default = true;
+                                                });
+
+                                                updateDisplayData({
+                                                    ...displayDataRef.current,
+                                                    topLeft: trackNumber.split(''),
+                                                    otherIndication: {
+                                                        Tr: true,
+                                                        topRightData: {
+                                                            AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                            VIDEO: (sourceData.playbackData.dataType === 'video'),
+                                                            TAG: trackName.isID3Tag,
+                                                            trackTagIcon: true,
+                                                        }
+                                                    }
+                                                });
+
+                                                animTimer++;
+
+                                            } else {
+                                                if (displayMode.default) {
+                                                    const main = (
+                                                        (currentTime === undefined || duration === undefined) ? ` ${trackNumber}`
+                                                            : (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${trackNumber}  ${currentTime}/${duration}` : ` ${trackNumber}       ${currentTime}`
+                                                    );
+
+                                                    updateDisplayData({
+                                                        ...displayDataRef.current,
+                                                        main: main.split(''),
+                                                        topLeft: folderNumber.split(''),
+                                                        otherIndication: {
+                                                            topRightData: {
+                                                                AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                                VIDEO: (sourceData.playbackData.dataType === 'video'),
+                                                            }
+                                                        }
+                                                    });
+                                                } else if (displayMode.clockTime) {
+
+                                                    const main = ` ${trackNumber}     ${timeFromDate(new Date(), (updateTimer % 60 > 30)) ?? ""}`;
+
+                                                    updateDisplayData({
+                                                        ...displayDataRef.current,
+                                                        main: main.split(''),
+                                                        topLeft: folderNumber.split(''),
+                                                        otherIndication: {
+                                                            topRightData: {
+                                                                AUDIO: (sourceData.playbackData.dataType === 'audio'),
+                                                                VIDEO: (sourceData.playbackData.dataType === 'video'),
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                            }
+
+                                        }
+
+                                        // updateDisplayData({
+                                        //     ...displayDataRef.current,
+                                        //     main: main.split(''),
+                                        //     topLeft: topLeft.split(''),
+                                        //     otherIndication: other,
+                                        // });
+                                    } else if (sourceData?.isReading) {
+
+                                        if (updateTimer % 60 < 30) updateDisplayData({
+                                            ...displayDataRef.current,
+                                            main: centerMainText('READING'),
+                                        });
+                                        else updateDisplayData({
+                                            ...displayDataRef.current,
+                                            main: []
+                                        });
+
+                                    } else if (sourceData?.error) {
+                                        updateDisplayData({
+                                            ...displayDataRef.current,
+                                            main: centerMainText(sourceData.error),
                                         });
                                     } else {
+                                        updateDisplayData({
+                                            ...displayDataRef.current,
+                                            main: centerMainText("NO USB"),
+                                            topLeft: []
+                                        })
+                                    }
 
-                                        const data = (sourceData.menu.subCategory === 'file' && typeof sourceData.menu.subIndex === 'number') ? (
-                                            sourceData.navigationData?.[sourceData.menu.mainIndex].trackList[
-                                                sourceData.menu.subIndex
-                                            ].name || ""
-                                        ) : (
-                                            sourceData.navigationData?.[sourceData.menu.mainIndex].name || ""
-                                        );
+                                    updateDisplayData({
+                                        ...displayDataRef.current,
+                                        otherIndication: {
+                                            ...displayDataRef.current.otherIndication,
+                                            RND: {
+                                                on: (!!mainOutputs.settings.playMode.random),
+                                                track: (mainOutputs.settings.playMode.random === 'ALL'),
+                                                folder: (mainOutputs.settings.playMode.random === 'FOLDER')
+                                            },
+                                            RPT: {
+                                                on: (!!mainOutputs.settings.playMode.repeat),
+                                                track: (mainOutputs.settings.playMode.repeat === 'TRACK'),
+                                                folder: (mainOutputs.settings.playMode.repeat === 'FOLDER')
+                                            },
+                                        }
+                                    })
+                                } else if (mainOutputs.currentSource === 2) {
+
+                                    const radioData = mainOutputs.sourceData[2];
+                                    const station = internetRadioStations[radioData.currentStationIndex ?? 0];
+
+                                    if (radioData.navigation) {
+
+                                        displayMode.volume = false;
+
+                                        // if (radioData.menu.error) {
+                                        //     updateDisplayData({
+                                        //         main: centerMainText(radioData.menu.error),
+                                        //         topLeft: [],
+                                        //         otherIndication: {
+                                        //             topLeftDecorationLine: true
+                                        //         },
+                                        //     });
+                                        // } else 
+
+                                        const data = internetRadioStations[radioData.navigation.stationIdx].name;
 
                                         updateDisplayData({
                                             main: [],
-                                            topLeft: (sourceData.menu.subCategory === 'file' ? 'FILE' : 'LIST').split(''),
+                                            topLeft: ('LIST').split(''),
                                             otherIndication: {
                                                 topLeftDecorationLine: true,
                                                 topRightData: {
                                                     decorationLine: true,
-                                                    leftData: ((sourceData.menu.subCategory && typeof sourceData.menu.subIndex === 'number') ? String(sourceData.menu.subIndex + 1).padStart(4, "0") : String(sourceData.menu.mainIndex + 1).padStart(4, "0")).split(''),
+                                                    leftData: String(radioData.navigation.stationIdx + 1).padStart(4, "0").split(''),
                                                     separator: true,
-                                                    rightData: ((sourceData.menu.subCategory && sourceData.navigationData?.[
-                                                        sourceData.menu.mainIndex
-                                                    ].trackList) ? String(sourceData.navigationData?.[
-                                                        sourceData.menu.mainIndex
-                                                    ].trackList.length).padStart(4, "0") : String(sourceData.navigationData?.length || 0).padStart(4, "0")).split(''),
-
-                                                    folderTagIcon: (sourceData.menu.subCategory) ? false : true,
-                                                    trackTagIcon: (sourceData.menu.subCategory) ? true : false,
+                                                    rightData: String(internetRadioStations.length).padStart(4, "0").split(''),
                                                 }
                                             },
                                         });
@@ -2100,81 +2558,46 @@ export default function FrontPanel({
                                         });
 
                                         animTimer++;
-                                    }
 
 
-                                    // animateTopLeftSelection(Math.floor((updateTimer / 30)));
-
-                                } else if (sourceData?.playbackData) {
-                                    const trackNumber = String(sourceData.playbackData.trackNumber + 1).padStart(3, "0");
-                                    const folderNumber = String(sourceData.playbackData.folderNumber + 1).padStart(2, "0").padStart(3, "F");
-
-                                    const trackName = sourceData.playbackData.trackName;
-                                    const folderName = sourceData.playbackData.albumName;
-                                    const artist = sourceData.playbackData.artist;
-
-                                    const currentTime = (trackName && sourceData.playbackData.currentTime) ? formatTime(sourceData.playbackData.currentTime) : undefined;
-                                    const duration = (sourceData.playbackData.trackDuration) ? formatTime(sourceData.playbackData.trackDuration) : undefined;
-
-                                    // if (displayMode._volume !== mainOutputs.mainVolume) {
-                                    //     displayMode._volume = mainOutputs.mainVolume;
-                                    //     displayMode.volume = true; // Activate volume disp mode; 
-                                    // }
-
-                                    if (sourceData.timeMove?.on) {
-                                        let rightPart = (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${currentTime}/${duration}` : currentTime;
-
-
-                                        if (!sourceData.timeMove.isMoving && (updateTimer % 60 > 30)) {
-                                            rightPart = '';
-                                        }
-
-                                        // const main = (
-                                        //     (currentTime === undefined || duration === undefined) ? ` ${trackNumber}`
-                                        //         : (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${trackNumber}  ${currentTime}/${duration}` : ` ${trackNumber}       ${currentTime}`
-                                        // );
-
-                                        const main = (
-                                            (currentTime === undefined || duration === undefined) ? ` ${trackNumber}`
-                                                : (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${trackNumber}  ${rightPart}` : ` ${trackNumber}       ${rightPart}`
-                                        );
-
-                                        updateDisplayData({
-                                            ...displayDataRef.current,
-                                            main: main.split(''),
-                                            topLeft: folderNumber.split(''),
-                                            otherIndication: {
-                                                timeMove: {
-                                                    left: (sourceData.timeMove.direction === 'left'),
-                                                    right: (sourceData.timeMove.direction === 'right')
-                                                },
-                                                topRightData: {
-                                                    AUDIO: (sourceData.playbackData.dataType === 'audio'),
-                                                    VIDEO: (sourceData.playbackData.dataType === 'video'),
-                                                },
-                                            }
-                                        });
                                     } else {
 
-                                        if (sourceData.playbackData) {
-                                            if (displayMode._folder !== sourceData.playbackData.folderNumber) {
-                                                displayMode.folder = null; // Reset folder disp mode;
-                                                displayMode.track = null;
-                                                animTimer = 0;
-                                                displayMode._folder = sourceData.playbackData.folderNumber;
+                                        if (radioData.error) {
+                                            updateDisplayData({
+                                                main: centerMainText(radioData.error),
+                                                topLeft: [],
+                                                otherIndication: {}
+                                            });
+                                        } else if (radioData.isBuffering) {
+                                            if (updateTimer % 60 < 30) {
+                                                updateDisplayData({
+                                                    main: centerMainText('LOADING'),
+                                                    topLeft: [],
+                                                    otherIndication: {}
+                                                });
+                                            } else {
+                                                updateDisplayData({ main: [], topLeft: [], otherIndication: {} });
                                             }
+                                        } else {
+                                            // updateDisplayData({
+                                            //     main: [],
+                                            //     topLeft: 'RADIO'.split(''),
+                                            //     otherIndication: {
+                                            //         topRightData: {
+                                            //             AUDIO: true,
+                                            //         }
+                                            //     }
+                                            // });
 
-                                            if (displayMode._track !== sourceData.playbackData.trackNumber) {
-                                                displayMode.track = null; // Reset track disp mode;
-                                                animTimer = 0;
-                                                displayMode._track = sourceData.playbackData.trackNumber;
-                                            }
+                                            // animateScrollingText(animTimer, station?.name || 'RADIO', () => {
+                                            //     animTimer = 0;
+                                            // });
+                                            // animTimer++;
                                         }
-                                        // let main = ` ${trackNumber}`;
-                                        // let topLeft = folderNumber;
-                                        // let other: DisplayOtherIndication = {};
+
 
                                         //  ВЫНЕСТИ ЛОГИКУ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ В ОТДЕЛЬНЫЙ БЛОК КОДА //
+
 
                                         if (displayMode.volume === true) {
                                             updateDisplayData({
@@ -2187,9 +2610,10 @@ export default function FrontPanel({
                                             ), () => {
                                                 animTimer = 0;
                                                 displayMode.volume = false;
+                                                displayMode.default = true;
                                             });
                                             animTimer++;
-                                        } else if (sourceData.playbackData?.isPaused) {
+                                        } else if (radioData.isPaused) {
                                             if (updateTimer % 60 < 30) updateDisplayData({
                                                 main: centerMainText('PAUSE'),
                                                 topLeft: [],
@@ -2200,273 +2624,35 @@ export default function FrontPanel({
                                                 topLeft: [],
                                                 otherIndication: {}
                                             });
-                                        } else if (displayMode.playTrackAfterSrcSelect === true) {
-                                            animateScrollingText(animTimer, (
-                                                centerMainText(`PLAY ${trackNumber}`).join('')
-                                            ), () => {
-                                                animTimer = 0;
-                                                displayMode.playTrackAfterSrcSelect = false;
-                                            });
-
+                                        } else if (!radioData.isBuffering && !radioData.error) {
                                             updateDisplayData({
-                                                ...displayDataRef.current,
-                                                topLeft: folderNumber.split(''),
-                                                otherIndication: {}
-                                            });
-
-                                            animTimer++;
-                                        } else if (displayMode.folder === null && folderName) {
-
-                                            animateScrollingText(animTimer, (
-                                                `${folderName.data}${artist ? ` / ${artist}` : ''}`
-                                            ), () => {
-                                                animTimer = 0;
-                                                displayMode.folder = sourceData.playbackData?.folderNumber || 0;
-                                            });
-
-                                            updateDisplayData({
-                                                ...displayDataRef.current,
-                                                topLeft: folderNumber.split(''),
+                                                main: [],
+                                                topLeft: 'RADIO'.split(''),
                                                 otherIndication: {
                                                     topRightData: {
-                                                        AUDIO: (sourceData.playbackData.dataType === 'audio'),
-                                                        VIDEO: (sourceData.playbackData.dataType === 'video'),
-                                                        TAG: folderName.isID3Tag,
-                                                        folderTagIcon: true,
+                                                        AUDIO: true,
                                                     }
                                                 }
                                             });
-
-                                            animTimer++;
-
-                                        } else if (displayMode.track === null && trackName) {
-
-                                            animateScrollingText(animTimer, (
-                                                trackName.data
-                                            ), () => {
-                                                animTimer = 0;
-                                                displayMode.track = sourceData.playbackData?.trackNumber || 0;
-                                                displayMode.default = true;
-                                            });
-
-                                            updateDisplayData({
-                                                ...displayDataRef.current,
-                                                topLeft: trackNumber.split(''),
-                                                otherIndication: {
-                                                    Tr: true,
-                                                    topRightData: {
-                                                        AUDIO: (sourceData.playbackData.dataType === 'audio'),
-                                                        VIDEO: (sourceData.playbackData.dataType === 'video'),
-                                                        TAG: trackName.isID3Tag,
-                                                        trackTagIcon: true,
-                                                    }
-                                                }
-                                            });
-
-                                            animTimer++;
-
-                                        } else {
-                                            if (displayMode.default) {
-                                                const main = (
-                                                    (currentTime === undefined || duration === undefined) ? ` ${trackNumber}`
-                                                        : (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${trackNumber}  ${currentTime}/${duration}` : ` ${trackNumber}       ${currentTime}`
-                                                );
-
-                                                updateDisplayData({
-                                                    ...displayDataRef.current,
-                                                    main: main.split(''),
-                                                    topLeft: folderNumber.split(''),
-                                                    otherIndication: {
-                                                        topRightData: {
-                                                            AUDIO: (sourceData.playbackData.dataType === 'audio'),
-                                                            VIDEO: (sourceData.playbackData.dataType === 'video'),
+                                            if (displayMode.track === 1) {
+                                                if (radioData.streamTitle) {
+                                                    updateDisplayData({
+                                                        main: [],
+                                                        topLeft: 'RADIO'.split(''),
+                                                        otherIndication: {
+                                                            topRightData: {
+                                                                AUDIO: true,
+                                                            }
                                                         }
-                                                    }
-                                                });
-                                            } else if (displayMode.clockTime) {
+                                                    });
 
-                                                const main = ` ${trackNumber}     ${timeFromDate(new Date(), (updateTimer % 60 > 30)) ?? ""}`;
+                                                    animateScrollingText(animTimer, radioData.streamTitle, () => {
+                                                        animTimer = 0;
+                                                    });
+                                                    animTimer++;
 
-                                                updateDisplayData({
-                                                    ...displayDataRef.current,
-                                                    main: main.split(''),
-                                                    topLeft: folderNumber.split(''),
-                                                    otherIndication: {
-                                                        topRightData: {
-                                                            AUDIO: (sourceData.playbackData.dataType === 'audio'),
-                                                            VIDEO: (sourceData.playbackData.dataType === 'video'),
-                                                        }
-                                                    }
-                                                });
-                                            }
-                                        }
-
-                                    }
-
-                                    // updateDisplayData({
-                                    //     ...displayDataRef.current,
-                                    //     main: main.split(''),
-                                    //     topLeft: topLeft.split(''),
-                                    //     otherIndication: other,
-                                    // });
-                                } else if (sourceData?.isReading) {
-
-                                    if (updateTimer % 60 < 30) updateDisplayData({
-                                        ...displayDataRef.current,
-                                        main: centerMainText('READING'),
-                                    });
-                                    else updateDisplayData({
-                                        ...displayDataRef.current,
-                                        main: []
-                                    });
-
-                                } else if (sourceData?.error) {
-                                    updateDisplayData({
-                                        ...displayDataRef.current,
-                                        main: centerMainText(sourceData.error),
-                                    });
-                                } else {
-                                    updateDisplayData({
-                                        ...displayDataRef.current,
-                                        main: centerMainText("NO USB"),
-                                        topLeft: []
-                                    })
-                                }
-
-                                updateDisplayData({
-                                    ...displayDataRef.current,
-                                    otherIndication: {
-                                        ...displayDataRef.current.otherIndication,
-                                        RND: {
-                                            on: (!!mainOutputs.settings.playMode.random),
-                                            track: (mainOutputs.settings.playMode.random === 'ALL'),
-                                            folder: (mainOutputs.settings.playMode.random === 'FOLDER')
-                                        },
-                                        RPT: {
-                                            on: (!!mainOutputs.settings.playMode.repeat),
-                                            track: (mainOutputs.settings.playMode.repeat === 'TRACK'),
-                                            folder: (mainOutputs.settings.playMode.repeat === 'FOLDER')
-                                        },
-                                    }
-                                })
-                            } else if (mainOutputs.currentSource === 2) {
-
-                                const radioData = mainOutputs.sourceData[2];
-                                const station = internetRadioStations[radioData.currentStationIndex ?? 0];
-
-                                if (radioData.navigation) {
-
-                                    displayMode.volume = false;
-
-                                    // if (radioData.menu.error) {
-                                    //     updateDisplayData({
-                                    //         main: centerMainText(radioData.menu.error),
-                                    //         topLeft: [],
-                                    //         otherIndication: {
-                                    //             topLeftDecorationLine: true
-                                    //         },
-                                    //     });
-                                    // } else 
-
-                                    const data = internetRadioStations[radioData.navigation.stationIdx].name;
-
-                                    updateDisplayData({
-                                        main: [],
-                                        topLeft: ('LIST').split(''),
-                                        otherIndication: {
-                                            topLeftDecorationLine: true,
-                                            topRightData: {
-                                                decorationLine: true,
-                                                leftData: String(radioData.navigation.stationIdx + 1).padStart(4, "0").split(''),
-                                                separator: true,
-                                                rightData: String(internetRadioStations.length).padStart(4, "0").split(''),
-                                            }
-                                        },
-                                    });
-
-                                    animateScrollingText(animTimer, data, () => {
-                                        animTimer = 0;
-                                    });
-
-                                    animTimer++;
-
-
-                                } else {
-
-                                    if (radioData.error) {
-                                        updateDisplayData({
-                                            main: centerMainText(radioData.error),
-                                            topLeft: [],
-                                            otherIndication: {}
-                                        });
-                                    } else if (radioData.isBuffering) {
-                                        if (updateTimer % 60 < 30) {
-                                            updateDisplayData({
-                                                main: centerMainText('LOADING'),
-                                                topLeft: [],
-                                                otherIndication: {}
-                                            });
-                                        } else {
-                                            updateDisplayData({ main: [], topLeft: [], otherIndication: {} });
-                                        }
-                                    } else {
-                                        // updateDisplayData({
-                                        //     main: [],
-                                        //     topLeft: 'RADIO'.split(''),
-                                        //     otherIndication: {
-                                        //         topRightData: {
-                                        //             AUDIO: true,
-                                        //         }
-                                        //     }
-                                        // });
-
-                                        // animateScrollingText(animTimer, station?.name || 'RADIO', () => {
-                                        //     animTimer = 0;
-                                        // });
-                                        // animTimer++;
-                                    }
-
-
-                                    //  ВЫНЕСТИ ЛОГИКУ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ В ОТДЕЛЬНЫЙ БЛОК КОДА //
-
-
-                                    if (displayMode.volume === true) {
-                                        updateDisplayData({
-                                            main: [],
-                                            topLeft: [],
-                                            otherIndication: {}
-                                        })
-                                        animateScrollingText(animTimer, (
-                                            centerMainText(`VOLUME ${String(mainOutputs.mainVolume).padStart(2, "0")}`).join('')
-                                        ), () => {
-                                            animTimer = 0;
-                                            displayMode.volume = false;
-                                            displayMode.default = true;
-                                        });
-                                        animTimer++;
-                                    } else if (radioData.isPaused) {
-                                        if (updateTimer % 60 < 30) updateDisplayData({
-                                            main: centerMainText('PAUSE'),
-                                            topLeft: [],
-                                            otherIndication: {}
-                                        });
-                                        else updateDisplayData({
-                                            main: [],
-                                            topLeft: [],
-                                            otherIndication: {}
-                                        });
-                                    } else if (!radioData.isBuffering && !radioData.error) {
-                                        updateDisplayData({
-                                            main: [],
-                                            topLeft: 'RADIO'.split(''),
-                                            otherIndication: {
-                                                topRightData: {
-                                                    AUDIO: true,
                                                 }
-                                            }
-                                        });
-                                        if (displayMode.track === 1) {
-                                            if (radioData.streamTitle) {
+                                            } else if (displayMode.default) {
                                                 updateDisplayData({
                                                     main: [],
                                                     topLeft: 'RADIO'.split(''),
@@ -2477,378 +2663,385 @@ export default function FrontPanel({
                                                     }
                                                 });
 
-                                                animateScrollingText(animTimer, radioData.streamTitle, () => {
+                                                animateScrollingText(animTimer, station?.name || 'RADIO', () => {
                                                     animTimer = 0;
                                                 });
                                                 animTimer++;
 
+                                            } else if (displayMode.clockTime) {
+
+                                                const main = `RADIO   ${timeFromDate(new Date(), (updateTimer % 60 > 30)) ?? ""}`;
+
+                                                updateDisplayData({
+                                                    ...displayDataRef.current,
+                                                    main: main.split(''),
+                                                    topLeft: 'RADIO'.split(''),
+                                                });
                                             }
-                                        } else if (displayMode.default) {
-                                            updateDisplayData({
-                                                main: [],
-                                                topLeft: 'RADIO'.split(''),
-                                                otherIndication: {
-                                                    topRightData: {
-                                                        AUDIO: true,
-                                                    }
-                                                }
-                                            });
-
-                                            animateScrollingText(animTimer, station?.name || 'RADIO', () => {
-                                                animTimer = 0;
-                                            });
-                                            animTimer++;
-
-                                        } else if (displayMode.clockTime) {
-
-                                            const main = `RADIO   ${timeFromDate(new Date(), (updateTimer % 60 > 30)) ?? ""}`;
-
-                                            updateDisplayData({
-                                                ...displayDataRef.current,
-                                                main: main.split(''),
-                                                topLeft: 'RADIO'.split(''),
-                                            });
                                         }
                                     }
-                                }
 
-                            } else if (mainOutputs.currentSource === 6) {
-                                // MyLift
-                                const sourceData = mainOutputs.sourceData?.["6"];
-                                if (!sourceData?.connectionInfo?.ip) {
-                                    updateTimer = (360 * 3);
-                                    if (updateTimer < (360 * 3)) {
-                                        updateDisplayData({
-                                            ...displayDataRef.current,
-                                            main: [],
-                                            topLeft: []
-                                        });
-                                        if ((updateTimer % 360) < 100) {
+                                } else if (mainOutputs.currentSource === 6) {
+                                    // MyLift
+                                    const sourceData = mainOutputs.sourceData?.["6"];
+                                    if (!sourceData?.connectionInfo?.ip) {
+                                        updateTimer = (360 * 3);
+                                        if (updateTimer < (360 * 3)) {
                                             updateDisplayData({
                                                 ...displayDataRef.current,
-                                                main: centerMainText("ENTER"),
+                                                main: [],
                                                 topLeft: []
                                             });
-                                        } else if (
-                                            (updateTimer % 360) > 120 &&
-                                            (updateTimer % 360) < 220
-                                        ) {
+                                            if ((updateTimer % 360) < 100) {
+                                                updateDisplayData({
+                                                    ...displayDataRef.current,
+                                                    main: centerMainText("ENTER"),
+                                                    topLeft: []
+                                                });
+                                            } else if (
+                                                (updateTimer % 360) > 120 &&
+                                                (updateTimer % 360) < 220
+                                            ) {
+                                                updateDisplayData({
+                                                    ...displayDataRef.current,
+                                                    main: centerMainText("SERVER IP & PORT"),
+                                                    topLeft: []
+                                                });
+                                            } else if (
+                                                (updateTimer % 360) > 240 &&
+                                                (updateTimer % 360) < 340
+                                            ) {
+                                                updateDisplayData({
+                                                    ...displayDataRef.current,
+                                                    main: centerMainText("TO CONNECT"),
+                                                    topLeft: []
+                                                });
+                                            }
+                                        } else {
                                             updateDisplayData({
                                                 ...displayDataRef.current,
-                                                main: centerMainText("SERVER IP & PORT"),
-                                                topLeft: []
-                                            });
-                                        } else if (
-                                            (updateTimer % 360) > 240 &&
-                                            (updateTimer % 360) < 340
-                                        ) {
-                                            updateDisplayData({
-                                                ...displayDataRef.current,
-                                                main: centerMainText("TO CONNECT"),
-                                                topLeft: []
-                                            });
+                                                main: `IP ${"   .   .   . "}`.split(''),
+                                                topLeft: [],
+                                            })
                                         }
-                                    } else {
+
+                                    } else if (sourceData.connectionInfo.ip.indexOf(" ") > -1) {
                                         updateDisplayData({
                                             ...displayDataRef.current,
-                                            main: `IP ${"   .   .   . "}`.split(''),
+                                            main: `IP ${sourceData.connectionInfo.ip}`.split(''),
                                             topLeft: [],
                                         })
-                                    }
+                                    } else {
+                                        // console.log('Connecting?: ' + sourceData.isConnecting);
+                                        // console.log('Connected?: ' + sourceData.isConnected);
+                                        if (sourceData.data) {
 
-                                } else if (sourceData.connectionInfo.ip.indexOf(" ") > -1) {
-                                    updateDisplayData({
-                                        ...displayDataRef.current,
-                                        main: `IP ${sourceData.connectionInfo.ip}`.split(''),
-                                        topLeft: [],
-                                    })
-                                } else {
-                                    // console.log('Connecting?: ' + sourceData.isConnecting);
-                                    // console.log('Connected?: ' + sourceData.isConnected);
-                                    if (sourceData.data) {
+                                            if (sourceData.ui?.error) {
+                                                updateDisplayData({
+                                                    main: centerMainText(sourceData.ui.error || ""),
+                                                    topLeft: [],
+                                                    otherIndication: {}
+                                                })
+                                            } else if (sourceData.ui?.elevatorCategorySelection) {
+                                                animateTopLeftSelection(Math.floor((updateTimer / 30)));
+                                                updateDisplayData({
+                                                    ...displayDataRef.current,
+                                                    main: centerMainText("Мои Лифты")
+                                                });
+                                            } else if (sourceData.ui?.elevatorListSelection) {
 
-                                        if (sourceData.ui?.error) {
-                                            updateDisplayData({
-                                                main: centerMainText(sourceData.ui.error || ""),
-                                                topLeft: [],
-                                                otherIndication: {}
-                                            })
-                                        } else if (sourceData.ui?.elevatorCategorySelection) {
-                                            animateTopLeftSelection(Math.floor((updateTimer / 30)));
-                                            updateDisplayData({
-                                                ...displayDataRef.current,
-                                                main: centerMainText("Мои Лифты")
-                                            });
-                                        } else if (sourceData.ui?.elevatorListSelection) {
-
-                                            if (_currentLift !== sourceData.ui.elevatorListSelection.currentLift) {
-                                                _currentLift = sourceData.ui.elevatorListSelection.currentLift ?? null;
-                                                animTimer = 0;
-                                            }
-
-                                            updateDisplayData({
-                                                ...displayDataRef.current,
-                                                main: [],
-                                                topLeft: [],
-                                                otherIndication: {
-                                                    topRightData: {
-                                                        ELEVATOR: true,
-                                                        leftData: String(
-                                                            (sourceData.ui.elevatorListSelection.currentLift || 0) + 1
-                                                        ).padStart(4, "0").split(''),
-                                                        separator: true,
-                                                        rightData: String(
-                                                            sourceData.data.elevators.length
-                                                        ).padStart(4, "0").split(''),
-                                                    }
+                                                if (_currentLift !== sourceData.ui.elevatorListSelection.currentLift) {
+                                                    _currentLift = sourceData.ui.elevatorListSelection.currentLift ?? null;
+                                                    animTimer = 0;
                                                 }
-                                            });
 
-                                            animateTopLeftSelection(Math.floor((updateTimer / 30)));
-
-                                            animateScrollingText(animTimer, (
-                                                sourceData.data.elevators?.[
-                                                    sourceData.ui.elevatorListSelection.currentLift || 0
-                                                ]?.title || ""
-                                            ), () => animTimer = 0);
-                                            animTimer++;
-                                        } else if (sourceData.ui?.selectedElevator) {
-                                            let data: string | string[] | DisplayMainIndication[] = (sourceData.selectedElevatorData) ? (
-                                                ` ${sourceData.ui.selectedElevator.floorNumber}F  :: ACTIONS `
-                                            ) : (
-                                                ` ${sourceData.ui.selectedElevator.floorNumber || 1}F `
-                                            );
-
-
-                                            if (sourceData.ui.elevatorCoursebotNavigation) {
-                                                const navigation = sourceData.ui.elevatorCoursebotNavigation;
-                                                if (navigation.navigationTypeSelection) {
-                                                    const idx = navigation.navigationTypeSelection.idx;
-                                                    data = centerMainText(
-                                                        navigation.navigationTypeSelection.types[idx]
-                                                    );
-                                                    animTimer = 0;
-                                                } else if (navigation.floorSelection) {
-                                                    const idx = navigation.floorIdx;
-                                                    const floor = sourceData.selectedElevatorData?.floors?.[idx - 1];
-                                                    if (floor?.videoData?.title) {
-                                                        data = ` ${idx}F: `.split('');
-                                                        animateScrollingText(animTimer, `     ${floor.videoData.title}`, () => {
-                                                            animTimer = 0;
-                                                        });
-                                                        data[0] = ' ';
-                                                        data[1] = `${idx}`;
-                                                        data[2] = 'F';
-                                                        data[3] = ':';
-                                                        data[4] = ' ';
-                                                        animTimer++;
-                                                    } else {
-                                                        data = centerMainText(`${idx} F`);
-                                                        animTimer = 0;
+                                                updateDisplayData({
+                                                    ...displayDataRef.current,
+                                                    main: [],
+                                                    topLeft: [],
+                                                    otherIndication: {
+                                                        topRightData: {
+                                                            ELEVATOR: true,
+                                                            leftData: String(
+                                                                (sourceData.ui.elevatorListSelection.currentLift || 0) + 1
+                                                            ).padStart(4, "0").split(''),
+                                                            separator: true,
+                                                            rightData: String(
+                                                                sourceData.data.elevators.length
+                                                            ).padStart(4, "0").split(''),
+                                                        }
                                                     }
+                                                });
 
-                                                } else if (navigation.floorSlotView && typeof navigation.floorSlotIdx === 'number') {
-                                                    const idx = navigation.floorSlotIdx;
-                                                    data = centerMainText((idx === -1) ? `AUTOSAVE` : `SLOT ${String(idx + 1).padStart(3, "0")}`);
-                                                    animTimer = 0;
-                                                } else if (navigation.slotDataView && typeof navigation.slotDataIdx === 'number') {
-                                                    const floorId = navigation.floorIdx;
-                                                    const slotIdx = navigation.floorSlotIdx;
-                                                    const slotsData = sourceData.selectedElevatorData?.coursebot?.slots[floorId];
+                                                animateTopLeftSelection(Math.floor((updateTimer / 30)));
+
+                                                animateScrollingText(animTimer, (
+                                                    sourceData.data.elevators?.[
+                                                        sourceData.ui.elevatorListSelection.currentLift || 0
+                                                    ]?.title || ""
+                                                ), () => animTimer = 0);
+                                                animTimer++;
+                                            } else if (sourceData.ui?.selectedElevator) {
+                                                let data: string | string[] | DisplayMainIndication[] = (sourceData.selectedElevatorData) ? (
+                                                    ` ${sourceData.ui.selectedElevator.floorNumber}F  :: ACTIONS `
+                                                ) : (
+                                                    ` ${sourceData.ui.selectedElevator.floorNumber || 1}F `
+                                                );
+
+
+                                                if (sourceData.ui.elevatorCoursebotNavigation) {
+                                                    const navigation = sourceData.ui.elevatorCoursebotNavigation;
+                                                    if (navigation.navigationTypeSelection) {
+                                                        const idx = navigation.navigationTypeSelection.idx;
+                                                        data = centerMainText(
+                                                            navigation.navigationTypeSelection.types[idx]
+                                                        );
+                                                        animTimer = 0;
+                                                    } else if (navigation.floorSelection) {
+                                                        const idx = navigation.floorIdx;
+                                                        const floor = sourceData.selectedElevatorData?.floors?.[idx - 1];
+                                                        if (floor?.videoData?.title) {
+                                                            data = ` ${idx}F: `.split('');
+                                                            animateScrollingText(animTimer, `     ${floor.videoData.title}`, () => {
+                                                                animTimer = 0;
+                                                            });
+                                                            data[0] = ' ';
+                                                            data[1] = `${idx}`;
+                                                            data[2] = 'F';
+                                                            data[3] = ':';
+                                                            data[4] = ' ';
+                                                            animTimer++;
+                                                        } else {
+                                                            data = centerMainText(`${idx} F`);
+                                                            animTimer = 0;
+                                                        }
+
+                                                    } else if (navigation.floorSlotView && typeof navigation.floorSlotIdx === 'number') {
+                                                        const idx = navigation.floorSlotIdx;
+                                                        data = centerMainText((idx === -1) ? `AUTOSAVE` : `SLOT ${String(idx + 1).padStart(3, "0")}`);
+                                                        animTimer = 0;
+                                                    } else if (navigation.slotDataView && typeof navigation.slotDataIdx === 'number') {
+                                                        const floorId = navigation.floorIdx;
+                                                        const slotIdx = navigation.floorSlotIdx;
+                                                        const slotsData = sourceData.selectedElevatorData?.coursebot?.slots[floorId];
                                                     /*if (slotIdx === -1) {
                                                         data = slotsData['AUTOSAVE'].data.title
                                                     } else */if (typeof slotIdx === 'number' && slotIdx >= 0) {
-                                                        animateScrollingText(animTimer, slotsData.fragments[slotIdx]?.data?.title || "", () => {
-                                                            animTimer = 0;
-                                                        });
-                                                        data = displayDataRef.current.main;
-                                                        animTimer++;
-                                                    } else data = data.split('');
+                                                            animateScrollingText(animTimer, slotsData.fragments[slotIdx]?.data?.title || "", () => {
+                                                                animTimer = 0;
+                                                            });
+                                                            data = displayDataRef.current.main;
+                                                            animTimer++;
+                                                        } else data = data.split('');
 
-                                                } else {
-                                                    data = data.split('');
+                                                    } else {
+                                                        data = data.split('');
+                                                        animTimer = 0;
+                                                    }
+                                                    // const floorIdx = sourceData.ui.elevatorCoursebotNavigation.floorIdx;
+
+
+                                                } else if (sourceData.ui.elevatorActionSelection) {
+                                                    let actionSelection = sourceData.ui.elevatorActionSelection;
+                                                    if (actionSelection.currentAction) {
+                                                        data = centerMainText(
+                                                            parseMyLiftSelectorString(actionSelection.selection[actionSelection.currentAction].displayText, (
+                                                                actionSelection.selection[actionSelection.currentAction]
+                                                            ))
+                                                        );
+                                                    } else {
+                                                        data = centerMainText(
+                                                            actionSelection.items[actionSelection.mainIdx].text
+                                                        );
+                                                    }
                                                     animTimer = 0;
-                                                }
-                                                // const floorIdx = sourceData.ui.elevatorCoursebotNavigation.floorIdx;
+                                                } else data = data.split('');
 
+                                                updateDisplayData({
+                                                    main: data,
+                                                    topLeft: (
+                                                        (sourceData.ui.elevatorCoursebotNavigation?.slotDataView) ? 'SLOT' :
+                                                            String(sourceData.ui.selectedElevator.liftNumber + 1).padStart(3, "0")
+                                                    ).split(''),
+                                                    otherIndication: {
+                                                        Elevator: (!sourceData.ui.elevatorCoursebotNavigation?.slotDataView),
+                                                        topLeftDecorationLine: (!!sourceData.ui.elevatorActionSelection || !!sourceData.ui.elevatorCoursebotNavigation),
+                                                        topRightData: {
+                                                            decorationLine: (!!sourceData.ui.elevatorCoursebotNavigation?.slotDataView),
+                                                            leftData: (sourceData.ui.elevatorCoursebotNavigation?.slotDataView && typeof sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx === 'number') ? (
+                                                                (sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx === -1) ? "AUTO" : String(sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx + 1).padStart(4, "0") || ""
+                                                            ).split('') : undefined,
+                                                            separator: (sourceData.ui.elevatorCoursebotNavigation?.slotDataView && sourceData.ui.elevatorCoursebotNavigation.floorSlotIdx !== -1),
+                                                            rightData: (sourceData.ui.elevatorCoursebotNavigation?.slotDataView && typeof sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx === 'number') ? (
+                                                                (sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx === -1) ? "SAVE" : String(sourceData.selectedElevatorData?.coursebot?.slots?.[
+                                                                    sourceData.ui.elevatorCoursebotNavigation?.floorIdx || 1
+                                                                ].fragments.length - 1).padStart(4, "0") || ""
+                                                            ).split('') : undefined,
+                                                            ELEVATOR: (!sourceData.ui.elevatorCoursebotNavigation?.slotDataView)
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                            // updateDisplayData({
+                                            //     ...displayDataRef.current,
+                                            //     main: (
+                                            //         sourceData.data.elevators?.[
+                                            //             sourceData.data.elevators?.length - 2
+                                            //         ]?.title || ""
+                                            //     ).split('')
+                                            // })
+                                        } else if (sourceData.connectionError) {
 
-                                            } else if (sourceData.ui.elevatorActionSelection) {
-                                                let actionSelection = sourceData.ui.elevatorActionSelection;
-                                                if (actionSelection.currentAction) {
-                                                    data = centerMainText(
-                                                        parseMyLiftSelectorString(actionSelection.selection[actionSelection.currentAction].displayText, (
-                                                            actionSelection.selection[actionSelection.currentAction]
-                                                        ))
-                                                    );
-                                                } else {
-                                                    data = centerMainText(
-                                                        actionSelection.items[actionSelection.mainIdx].text
-                                                    );
-                                                }
-                                                animTimer = 0;
-                                            } else data = data.split('');
+                                            let dispTxt = `ERROR: ${sourceData.connectionError || ""}`;
+
+                                            if (animTimer < (60 * 5)) {
+                                                scrollPosition = 0;
+                                            } else if ((animTimer - (60 * 5)) % 20 === 0) {
+                                                scrollPosition++;
+                                                if (scrollPosition > (
+                                                    dispTxt.length
+                                                )) animTimer = 0;
+                                            }
+
 
                                             updateDisplayData({
-                                                main: data,
-                                                topLeft: (
-                                                    (sourceData.ui.elevatorCoursebotNavigation?.slotDataView) ? 'SLOT' :
-                                                        String(sourceData.ui.selectedElevator.liftNumber + 1).padStart(3, "0")
-                                                ).split(''),
-                                                otherIndication: {
-                                                    Elevator: (!sourceData.ui.elevatorCoursebotNavigation?.slotDataView),
-                                                    topLeftDecorationLine: (!!sourceData.ui.elevatorActionSelection || !!sourceData.ui.elevatorCoursebotNavigation),
-                                                    topRightData: {
-                                                        decorationLine: (!!sourceData.ui.elevatorCoursebotNavigation?.slotDataView),
-                                                        leftData: (sourceData.ui.elevatorCoursebotNavigation?.slotDataView && typeof sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx === 'number') ? (
-                                                            (sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx === -1) ? "AUTO" : String(sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx + 1).padStart(4, "0") || ""
-                                                        ).split('') : undefined,
-                                                        separator: (sourceData.ui.elevatorCoursebotNavigation?.slotDataView && sourceData.ui.elevatorCoursebotNavigation.floorSlotIdx !== -1),
-                                                        rightData: (sourceData.ui.elevatorCoursebotNavigation?.slotDataView && typeof sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx === 'number') ? (
-                                                            (sourceData.ui.elevatorCoursebotNavigation?.floorSlotIdx === -1) ? "SAVE" : String(sourceData.selectedElevatorData?.coursebot?.slots?.[
-                                                                sourceData.ui.elevatorCoursebotNavigation?.floorIdx || 1
-                                                            ].fragments.length - 1).padStart(4, "0") || ""
-                                                        ).split('') : undefined,
-                                                        ELEVATOR: (!sourceData.ui.elevatorCoursebotNavigation?.slotDataView)
-                                                    }
-                                                }
+                                                ...displayDataRef.current,
+                                                main: dispTxt.slice(scrollPosition).split(''),
+                                                topLeft: [],
+                                            });
+
+                                            animTimer++;
+
+                                        } else if (!sourceData.isConnecting) {
+                                            updateDisplayData({
+                                                ...displayDataRef.current,
+                                                main: `PORT: ${sourceData.connectionInfo.port || ""}`.split(''),
+                                                topLeft: [],
+                                            });
+                                        } else if (sourceData.isConnecting === true) {
+                                            if (updateTimer % 60 < 30) updateDisplayData({
+                                                ...displayDataRef.current,
+                                                main: centerMainText('CONNECTING'),
+                                            });
+                                            else updateDisplayData({
+                                                ...displayDataRef.current,
+                                                main: []
                                             });
                                         }
-                                        // updateDisplayData({
-                                        //     ...displayDataRef.current,
-                                        //     main: (
-                                        //         sourceData.data.elevators?.[
-                                        //             sourceData.data.elevators?.length - 2
-                                        //         ]?.title || ""
-                                        //     ).split('')
-                                        // })
-                                    } else if (sourceData.connectionError) {
+                                    }
+                                }
+                            }
 
-                                        let dispTxt = `ERROR: ${sourceData.connectionError || ""}`;
 
-                                        if (animTimer < (60 * 5)) {
-                                            scrollPosition = 0;
-                                        } else if ((animTimer - (60 * 5)) % 20 === 0) {
-                                            scrollPosition++;
-                                            if (scrollPosition > (
-                                                dispTxt.length
-                                            )) animTimer = 0;
+                            if (mainOutputs.menu.navigation.menuOpened) {
+
+                                const navigation = mainOutputs.menu.navigation;
+                                const currentIdx = navigation.currentIdx;
+
+                                // const currentElement = mainOutputs.menu.options[currentIdx];
+                                const currentElement = getCurrentMenuElement(mainOutputs.menu);
+
+                                const currentValue = (currentElement?.type === 'property' && navigation.isValueSelect) ? (
+                                    (
+                                        // navigation._inputData?.type === 'time' &&
+                                        currentElement.valueType === 'input'
+                                    ) ? (
+                                        (navigation._inputData?.type === 'time') ? (
+                                            navigation._inputData.currentValue.map((e, i) => (
+                                                (animTimer % 60 > 30 && i === navigation._inputData?.timeArrayIdx) ? `  ` : String(e).padStart(2, "0")
+                                            )).join(':')
+                                        ) : ``
+                                    ) : (
+                                        currentElement.values[navigation.valueIdx || 0]
+                                    )
+                                ) : undefined;
+
+
+                                animTimer++;
+
+
+                                if (currentElement) {
+                                    let displayText = currentElement.label;
+
+                                    if (currentValue) {
+                                        if (typeof currentValue === 'string' && navigation._inputData?.type === 'time' && currentElement.type !== 'button') {
+                                            displayText = ((currentElement.shortPropName || currentElement.label).length + 5) === 16 ? (
+                                                `${currentElement.shortPropName || currentElement.label}${currentValue}`
+                                            ) : `${currentElement.shortPropName || currentElement.label} ${currentValue}`
+                                        } else if (typeof currentValue !== 'string') {
+                                            displayText = `${typeof currentValue.shortPropName === 'string' ? currentValue.shortPropName : currentElement.label} ${currentValue.label}`
                                         }
+                                    }
 
+                                    updateDisplayData({
+                                        main: centerMainText(displayText),
+                                        topLeft: (currentValue ? 'SET' : 'MENU').split(''),
+                                        otherIndication: {
+                                            topLeftDecorationLine: true,
+                                        }
+                                    });
 
-                                        updateDisplayData({
-                                            ...displayDataRef.current,
-                                            main: dispTxt.slice(scrollPosition).split(''),
-                                            topLeft: [],
-                                        });
-
-                                        animTimer++;
-
-                                    } else if (!sourceData.isConnecting) {
-                                        updateDisplayData({
-                                            ...displayDataRef.current,
-                                            main: `PORT: ${sourceData.connectionInfo.port || ""}`.split(''),
-                                            topLeft: [],
-                                        });
-                                    } else if (sourceData.isConnecting === true) {
-                                        if (updateTimer % 60 < 30) updateDisplayData({
-                                            ...displayDataRef.current,
-                                            main: centerMainText('CONNECTING'),
-                                        });
-                                        else updateDisplayData({
-                                            ...displayDataRef.current,
-                                            main: []
-                                        });
+                                    if (navigation.menuType !== 'main') {
+                                        animateTopLeftSelection(Math.floor((updateTimer / 30)));
                                     }
                                 }
                             }
+
+
+
+                            // if (demoTimer > 0) {
+                            //     demoTimer--;
+                            // } else {
+                            //     isDemoAnimating = true;
+                            //     mainInputs.isDemoAnimating = true;
+                            //     demoTimer = 0;
+                            //     updateTimer = 0;
+                            //     demoPosition = 0;
+                            //     updateDisplayData({
+                            //         main: [],
+                            //         topLeft: [],
+                            //         otherIndication: {}
+                            //     });
+                            // }
                         }
 
+                    }
 
-                        if (mainOutputs.menu.navigation.menuOpened) {
+                    updateTimer++;
 
-                            const navigation = mainOutputs.menu.navigation;
-                            const currentIdx = navigation.currentIdx;
+                } else {
+                    if (
+                        displayDataRef.current.main.length ||
+                        displayDataRef.current.otherIndication ||
+                        displayDataRef.current.topLeft
+                    ) {
+                        updateDisplayData({
+                            main: [],
+                            topLeft: [],
+                            otherIndication: {}
+                        });
+                    }
 
-                            // const currentElement = mainOutputs.menu.options[currentIdx];
-                            const currentElement = getCurrentMenuElement(mainOutputs.menu);
+                    if (displayAction !== 'INIT') {
+                        displayMode = {
+                            folder: null,
+                            track: null,
 
-                            const currentValue = (currentElement?.type === 'property' && navigation.isValueSelect) ? (
-                                currentElement.values[navigation.valueIdx || 0]
-                            ) : undefined;
-
-
-                            if (currentElement) {
-                                let displayText = currentElement.label;
-
-                                if (currentValue) {
-                                    displayText = `${typeof currentValue.shortPropName === 'string' ? currentValue.shortPropName : currentElement.label} ${currentValue.label}`
-                                }
-
-                                updateDisplayData({
-                                    main: centerMainText(displayText),
-                                    topLeft: 'MENU'.split(''),
-                                    otherIndication: {
-                                        topLeftDecorationLine: true,
-                                    }
-                                });
-
-                                if (navigation.menuType !== 'main') {
-                                    animateTopLeftSelection(Math.floor((updateTimer / 30)));
-                                }
-                            }
+                            // selectedSource: mainOutputs.currentSource
                         }
-
-
-
-                        // if (demoTimer > 0) {
-                        //     demoTimer--;
-                        // } else {
-                        //     isDemoAnimating = true;
-                        //     mainInputs.isDemoAnimating = true;
-                        //     demoTimer = 0;
-                        //     updateTimer = 0;
-                        //     demoPosition = 0;
-                        //     updateDisplayData({
-                        //         main: [],
-                        //         topLeft: [],
-                        //         otherIndication: {}
-                        //     });
-                        // }
+                        updateTimer = 0;
+                        animTimer = 0;
+                        isDemoAnimating = false;
+                        mainInputs.sourceData[1].allowReading = false;
+                        mainInputs.sourceData[2].allowReading = false;
+                        resetDemo();
                     }
 
+                    displayAction = 'INIT';
                 }
 
-                updateTimer++;
 
-            } else {
-                if (
-                    displayDataRef.current.main.length ||
-                    displayDataRef.current.otherIndication ||
-                    displayDataRef.current.topLeft
-                ) {
-                    updateDisplayData({
-                        main: [],
-                        topLeft: [],
-                        otherIndication: {}
-                    });
-                }
 
-                if (displayAction !== 'INIT') {
-                    displayMode = {
-                        folder: null,
-                        track: null,
-
-                        // selectedSource: mainOutputs.currentSource
-                    }
-                    updateTimer = 0;
-                    animTimer = 0;
-                    isDemoAnimating = false;
-                    mainInputs.sourceData[1].allowReading = false;
-                    mainInputs.sourceData[2].allowReading = false;
-                    resetDemo();
-                }
-
-                displayAction = 'INIT';
             }
             // }
 
@@ -2964,7 +3157,7 @@ export default function FrontPanel({
 
                         {/* Encoder */}
                         <Encoder
-                            indicationColor={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)}
+                            indicationColor={(outputValues?.powerOn || outputValues.autoOnOff?.ON?.buttonIndication || outputValues.autoOnOff?.ON?.isInterrupted) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)}
 
                             onButtonClick={() => mainInputs.buttons = {
                                 ...mainInputs.buttons,
@@ -3090,7 +3283,7 @@ export default function FrontPanel({
                             <tspan x="0" dy="0">USB</tspan>
                         </text>
 
-                        <Display powerOn={powerOn} mainData={displayData.main || []} topLeftData={displayData.topLeft || []} otherIndication={{
+                        <Display powerOn={(powerOn || outputValues.autoOnOff?.ON?.activated)} mainData={displayData.main || []} topLeftData={displayData.topLeft || []} otherIndication={{
                             ...displayData.otherIndication
                         }} indicationColor1={outputValues?.indicationColor?.display} />
 

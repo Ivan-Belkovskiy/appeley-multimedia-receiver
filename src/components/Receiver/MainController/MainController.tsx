@@ -1,7 +1,7 @@
 import { createRadioTrackRecord, getNavigationData, getTrackID3, InternetRadioStation, USBFlashInfo } from "@/app/actions";
 import beeper from "@/utils/beeper";
 import { Dispatch, RefObject, SetStateAction, useEffect, useRef } from "react";
-import { getCurrentMenuElement } from "../FrontPanel/FrontPanel";
+import { getCurrentExtendedMenuElement, getCurrentMenuElement } from "../FrontPanel/FrontPanel";
 import { Prisma } from "@prisma/client";
 import { buildNavigationFromDirectoryHandle } from "@/utils/localNavigation";
 import { randomInRangeWithMax } from "@/utils/math";
@@ -193,7 +193,7 @@ export type MenuOption = {
 
     innerOptions: MenuOption[];
 
-
+    shortPropName?: string;
     // type: "block" | "property";
     // label: string;
 
@@ -201,7 +201,33 @@ export type MenuOption = {
     type: "property";
     label: string;
 
+    valueType?: "select";
+
+    shortPropName?: string;
+
     values: MenuOptionValue[];
+} | {
+    type: "property";
+    label: string;
+
+    valueType: "input";
+
+    subType: "time";
+
+    onInput: (settings: MainControllerSettings, hours: number, minutes: number) => MainControllerSettings;
+
+    initialValue: (settings: MainControllerSettings) => [number, number];
+
+    shortPropName?: string;
+
+    // values: MenuOptionValue[];
+} | {
+    type: "button";
+    label: string;
+
+    onClick: () => any;
+
+    // values: MenuOptionValue[];
 };
 
 export interface MainControllerSettings {
@@ -215,14 +241,47 @@ export interface MainControllerSettings {
     };
     display: {
         playTimeFormat: "CURRENT_TIME" | "CURRENT_TIME_AND_DURATION";
+        dataDisplay: {
+            mode: "DEFAULT" | "DYNAMIC";
+            interval: number;
+        };
     };
     audio: {
-        volumeControl: "AUTO" | "NONE";
+        volumeControl: {
+            on: boolean;
+            settings: {
+                maxVolume: {
+                    time: [number, number];
+                    volume: number;
+                };
+                minVolume: {
+                    time: [number, number];
+                    volume: number;
+                };
+            }
+        };
         beeper: {
             on: boolean;
             volume: number;
         }
     };
+
+    advanced: {
+        autoOnOff: {
+            autoON: {
+                active: boolean;
+                time: [number, number]; // [hours, minuts]
+            };
+            autoOFF: {
+                active: boolean;
+                time: [number, number]; // [hours, minutes]
+            }
+        };
+
+        usb: {
+            tagDisplay: boolean;
+        };
+    }
 
     playMode: {
         repeat?: "TRACK" | "FOLDER" | null;
@@ -230,22 +289,54 @@ export interface MainControllerSettings {
     };
 }
 
-export interface MainControllerMenuDefinition {
+export interface MainControllerMenuDefinition<T = "main" | "encoderMenu"> {
     navigation: {
         _settingsBeforeUpdate?: MainControllerSettings | null;
         menuOpened?: boolean;
-        menuType?: "main" | "encoderMenu";
+        menuType?: T;
         currentIdx: number;
         openedIdxArray: number[];
 
         isValueSelect?: boolean;
         valueIdx?: number | null;
+
+        _inputData?: {
+            type: "time";
+            timeArrayIdx: number;
+            currentValue: [(number), (number)],
+        }
     };
     // currentOption?: MenuOption;
     // currentIdx?: number;
 
-    encoderMenuOptions: MenuOption[];
+    encoderMenuOptions: MenuOption[]
     options: MenuOption[];
+};
+
+export interface MainControllerExtendedMenu<T extends string> {
+    navigation: {
+        _settingsBeforeUpdate?: MainControllerSettings | null;
+        menuOpened?: boolean;
+        menuType?: T;
+        currentIdx: number;
+        openedIdxArray: number[];
+
+        isValueSelect?: boolean;
+        valueIdx?: number | null;
+
+        _inputData?: {
+            type: "time";
+            timeArrayIdx: number;
+            currentValue: [(number), (number)],
+        }
+    };
+    // currentOption?: MenuOption;
+    // currentIdx?: number;
+
+    options: Record<T, MenuOption[]>;
+
+    // encoderMenuOptions: MenuOption[]
+    // options: MenuOption[];
 };
 
 export interface MainControllerOutputs {
@@ -373,6 +464,27 @@ export interface MainControllerOutputs {
             };
         }
     };
+
+    autoOnOffMenu: MainControllerExtendedMenu<'autoON' | 'autoOFF'>;
+
+    autoOnOff?: {
+        ON?: {
+            activatedAt: Date;
+            activated: boolean;
+            timer: number;
+            buttonIndication?: boolean;
+
+            isInterrupted?: boolean;
+        };
+        OFF?: {
+            activatedAt: Date;
+            activated: boolean;
+            timer: number;
+            encoderIndication?: boolean;
+
+            isInterrupted?: boolean;
+        }
+    }
 
     // currentSource?: MainControllerSource;
     indicationColor?: {
@@ -1091,6 +1203,416 @@ export default function MainController({
 
         let buttonClickTimer = 0;
 
+        let autoOnOffTimer = 0;
+
+        let volumeAdjustTimer = 0;
+        const VOLUME_STEP = 1; 
+
+        const calculateTargetVolume = (): number | null => {
+            const volumeControl = outputsRef.current.settings.audio.volumeControl;
+            if (!volumeControl.on) return null;
+
+            const { maxVolume, minVolume } = volumeControl.settings;
+            const maxMinutes = maxVolume.time[0] * 60 + maxVolume.time[1];
+            const minMinutes = minVolume.time[0] * 60 + minVolume.time[1];
+
+            if (maxMinutes === minMinutes && maxVolume.volume === minVolume.volume) {
+                return null;
+            }
+
+            const now = new Date();
+            const nowMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+
+            const TOTAL_DAY = 24 * 60;
+
+            let descent = minMinutes - maxMinutes;
+            if (descent <= 0) descent += TOTAL_DAY;
+
+            let elapsed = nowMinutes - maxMinutes;
+            if (elapsed < 0) elapsed += TOTAL_DAY;
+
+            let progress: number;
+            const ascent = TOTAL_DAY - descent;
+
+            if (elapsed <= descent) {
+                progress = descent > 0 ? elapsed / descent : 1;
+            } else if (ascent > 0) {
+                progress = 1 - (elapsed - descent) / ascent;
+            } else {
+                progress = 1;
+            }
+
+            progress = Math.max(0, Math.min(1, progress));
+
+            const target =
+                maxVolume.volume + (minVolume.volume - maxVolume.volume) * progress;
+
+            return Math.round(target);
+        };
+
+        const processVolumeControl = () => {
+            const target = calculateTargetVolume();
+
+            if (target === null) {
+                volumeAdjustTimer = 0;
+                return;
+            }
+
+            const current = outputsRef.current.mainVolume;
+
+            if (current === target) {
+                volumeAdjustTimer = 0;
+                return;
+            }
+
+            const diff = Math.abs(target - current);
+            let interval: number;
+            if (diff > 20) interval = 30;  
+            else if (diff > 10) interval = 60; 
+            else if (diff > 3) interval = 90; 
+            else interval = 120;
+
+            volumeAdjustTimer++;
+            if (volumeAdjustTimer < interval) return;
+            volumeAdjustTimer = 0;
+
+            const step = Math.sign(target - current) * Math.min(VOLUME_STEP, diff);
+            outputsRef.current.mainVolume = Math.max(0, Math.min(100, current + step));
+        };
+
+        const processAutoOnOff = () => {
+            const settings = outputsRef.current.settings;
+
+            if (outputsRef.current.autoOnOffMenu.navigation.menuOpened) {
+                processEncoderInput('scroll-left', () => {
+                    if (outputsRef.current.autoOnOffMenu.navigation.menuOpened) {
+                        // MENU NAVIGATION
+
+                        const navigation = outputsRef.current.autoOnOffMenu.navigation;
+
+                        if (navigation.isValueSelect) {
+
+                            const currentElement = getCurrentExtendedMenuElement(outputsRef.current.autoOnOffMenu);
+
+                            if (currentElement?.type === 'property' && currentElement.valueType === 'input') {
+
+                                const inputData = navigation._inputData;
+
+                                if (inputData?.type === 'time') {
+
+                                    const val = inputData.currentValue;
+
+                                    if (val[inputData.timeArrayIdx] > 0) {
+                                        val[inputData.timeArrayIdx]--;
+                                    }
+
+                                    outputsRef.current.resetAnimationsTimer = {
+                                        animTimer: true,
+                                    };
+
+                                }
+
+                            } else if (currentElement?.type === 'property' && typeof navigation.valueIdx === 'number') {
+                                if (navigation.valueIdx > 0) {
+                                    navigation.valueIdx--;
+                                }
+                            }
+
+                            // const currentElement = getCurrentMenuElement(outputsRef.current.menu);
+                            // if (currentElement?.type === 'property') {
+                            //     const value = currentElement.values[navigation.valueIdx].onSelect(outputsRef.current.settings);
+                            //     outputsRef.current.settings = value;
+                            // }
+                        } else {
+                            if (navigation.currentIdx > 0) {
+                                navigation.currentIdx--;
+                            }
+                        }
+                    }
+
+                });
+
+                processEncoderInput('click', () => {
+                    if (outputsRef.current.autoOnOffMenu.navigation.menuOpened) {
+                        // MENU NAVIGATION
+                        const navigation = outputsRef.current.autoOnOffMenu.navigation;
+                        const currentIdx = navigation.currentIdx;
+                        const currentElement = getCurrentExtendedMenuElement(outputsRef.current.autoOnOffMenu);
+                        // const currentElement = outputsRef.current.menu.options[currentIdx];
+
+                        if (currentElement) {
+                            if (currentElement.type === 'block') {
+                                navigation.openedIdxArray.push(currentIdx);
+                                navigation.currentIdx = 0;
+                            } else if (currentElement.type === 'property') {
+                                // navigation.openedIdxArray.push(currentIdx);
+                                // navigation.isValueSelect = true;
+                                // navigation.currentIdx = 0;
+
+                                if (navigation.isValueSelect) {
+
+                                    if (currentElement.valueType === 'input') {
+
+                                        const inputData = navigation._inputData;
+
+                                        if (inputData?.type === 'time') {
+
+                                            if (inputData.timeArrayIdx === 0) inputData.timeArrayIdx = 1;
+                                            else {
+                                                const val = inputData.currentValue;
+
+                                                const result = currentElement.onInput(outputsRef.current.settings, val[0], val[1]);
+
+                                                outputsRef.current.settings = result;
+
+                                                navigation.isValueSelect = false;
+                                                navigation._inputData = undefined;
+                                                // navigation.valueIdx = null;
+                                            }
+
+                                            // if (val[inputData.timeArrayIdx] > 0) {
+                                            //     val[inputData.timeArrayIdx]--;
+                                            // }
+
+                                            outputsRef.current.resetAnimationsTimer = {
+                                                animTimer: true,
+                                            };
+
+                                        }
+
+                                    } else if (typeof navigation.valueIdx === 'number') {
+                                        const value = currentElement.values[navigation.valueIdx].onSelect(outputsRef.current.settings);
+                                        outputsRef.current.settings = value;
+
+                                        navigation.isValueSelect = false;
+                                        navigation.valueIdx = null;
+                                    }
+                                    // outputsRef.current.menu.navigation._settingsBeforeUpdate = outputsRef.current.settings;
+
+                                } else {
+                                    if (currentElement.valueType === 'input') {
+                                        navigation._inputData = {
+                                            type: "time",
+                                            timeArrayIdx: 0,
+                                            currentValue: currentElement.initialValue(outputsRef.current.settings) || [0, 0]
+                                        };
+
+                                        navigation.isValueSelect = true;
+                                        // navigation.valueIdx = currentValueIdx || 0;
+                                    } else {
+                                        const currentValueIdx = currentElement.values.findIndex(val => val.reference?.(outputsRef.current.settings));
+
+                                        navigation.isValueSelect = true;
+                                        navigation.valueIdx = currentValueIdx || 0;
+                                    }
+                                }
+                                // if (currentValueIdx >= 0) {
+                                // }
+                            } else if (currentElement.type === 'button') {
+                                currentElement.onClick();
+                                navigation.menuOpened = false;
+                            }
+                        }
+                    }
+
+                });
+
+                processEncoderInput('scroll-right', () => {
+                    if (outputsRef.current.autoOnOffMenu.navigation.menuOpened) {
+                        // MENU NAVIGATION
+
+                        const navigation = outputsRef.current.autoOnOffMenu.navigation;
+                        const currentElementBefore = getCurrentExtendedMenuElement(outputsRef.current.autoOnOffMenu, navigation.openedIdxArray);
+                        const currentElement = getCurrentExtendedMenuElement(outputsRef.current.autoOnOffMenu);
+
+                        if (navigation.menuType) {
+                            const options = outputsRef.current.autoOnOffMenu.options[navigation.menuType];
+
+
+
+                            let limit = (options.length - 1);
+                            // if (currentElement && navigation.openedIdxArray.length > 0) {
+                            if (currentElementBefore?.type === 'block' && navigation.openedIdxArray.length > 0) limit = (currentElementBefore.innerOptions.length - 1);
+                            // }
+                            // alert(limit);
+
+                            if (navigation.isValueSelect) {
+
+                                if (currentElement?.type === 'property' && currentElement.valueType === 'input') {
+
+                                    const inputData = navigation._inputData;
+
+                                    if (inputData?.type === 'time') {
+
+                                        const val = inputData.currentValue;
+
+                                        if (val[inputData.timeArrayIdx] < (inputData.timeArrayIdx === 0 ? 23 : 59)) {
+                                            val[inputData.timeArrayIdx]++;
+                                        }
+
+                                        outputsRef.current.resetAnimationsTimer = {
+                                            animTimer: true,
+                                        };
+
+                                    }
+
+                                } else if (currentElement?.type === 'property' && typeof navigation.valueIdx === 'number') {
+                                    if (currentElement?.type === 'property') limit = (currentElement.values.length - 1);
+
+                                    if (navigation.valueIdx < limit) {
+                                        navigation.valueIdx++;
+                                    }
+                                }
+
+                            } else {
+                                if (navigation.currentIdx < limit) {
+                                    navigation.currentIdx++;
+                                }
+                            }
+                        }
+                    }
+
+
+                });
+            } else {
+
+                if (outputsRef.current.powerOn) {
+                    if (settings.advanced.autoOnOff.autoOFF.active) {
+
+                        if (outputsRef.current.autoOnOff?.OFF?.activated) {
+                            const autoOFF = outputsRef.current.autoOnOff.OFF;
+
+                            if (autoOFF.isInterrupted) {
+
+
+
+                            } else {
+                                if (autoOnOffTimer % 60 < 30) autoOFF.encoderIndication = true;
+                                else autoOFF.encoderIndication = false;
+
+                                if (autoOnOffTimer % 60 === 0) {
+                                    if (autoOFF.timer > 0) {
+                                        autoOFF.timer--;
+                                    } else {
+                                        outputsRef.current.powerOn = false;
+
+                                        outputsRef.current.autoOnOff.OFF = {
+                                            ...outputsRef.current.autoOnOff.OFF,
+                                            activated: false,
+                                            // buttonIndication: false,
+                                            isInterrupted: false,
+                                        };
+
+                                        autoOnOffTimer = 0;
+                                    }
+                                    beeper.singleBeep(1, settings.audio.beeper.volume, settings.audio.beeper.on);
+                                }
+
+                                processEncoderInput('click', () => {
+                                    autoOFF.isInterrupted = true;
+                                    outputsRef.current.autoOnOffMenu.navigation = {
+                                        menuOpened: true,
+                                        menuType: "autoOFF",
+                                        currentIdx: 0,
+                                        openedIdxArray: [],
+                                    }
+                                });
+                            }
+
+                            autoOnOffTimer++;
+
+                        } else {
+                            const prevActivation = outputsRef.current.autoOnOff?.OFF?.activatedAt;
+
+                            const now = new Date();
+
+
+                            const activationDate = new Date();
+                            activationDate.setHours(...settings.advanced.autoOnOff.autoOFF.time);
+
+                            const allowActivation = prevActivation ? (now.getDate() > prevActivation.getDate()) : true;
+
+                            if (now >= activationDate && allowActivation) {
+                                outputsRef.current.autoOnOff = {
+                                    OFF: {
+                                        activatedAt: new Date(),
+                                        activated: true,
+                                        timer: 20,
+                                    },
+                                };
+                                autoOnOffTimer = 0;
+                            }
+                        }
+
+                    }
+                } else {
+                    if (settings.advanced.autoOnOff.autoON.active) {
+
+                        if (outputsRef.current.autoOnOff?.ON?.activated) {
+                            const autoON = outputsRef.current.autoOnOff.ON;
+
+                            if (autoON.isInterrupted) {
+
+                            } else {
+                                if (autoOnOffTimer % 60 < 30) autoON.buttonIndication = true;
+                                else autoON.buttonIndication = false;
+
+                                if (autoOnOffTimer % 60 === 0) {
+                                    if (autoON.timer > 0) {
+                                        autoON.timer--;
+                                    } else {
+                                        outputsRef.current.powerOn = true;
+                                        outputsRef.current.autoOnOff.ON = {
+                                            ...outputsRef.current.autoOnOff.ON,
+                                            activated: false,
+                                            // buttonIndication: false,
+                                            isInterrupted: false,
+                                        };
+                                        autoOnOffTimer = 0;
+                                    }
+                                    beeper.singleBeep(1, settings.audio.beeper.volume, settings.audio.beeper.on);
+                                }
+
+                                processEncoderInput('click', () => {
+                                    autoON.isInterrupted = true;
+                                    outputsRef.current.autoOnOffMenu.navigation = {
+                                        menuOpened: true,
+                                        menuType: "autoON",
+                                        currentIdx: 0,
+                                        openedIdxArray: [],
+                                    }
+                                });
+                            }
+
+                            autoOnOffTimer++;
+
+                        } else {
+                            const prevActivation = outputsRef.current.autoOnOff?.ON?.activatedAt;
+
+                            const now = new Date();
+
+                            const activationDate = new Date();
+                            activationDate.setHours(...settings.advanced.autoOnOff.autoON.time);
+
+                            const allowActivation = prevActivation ? (now.getDate() > prevActivation.getDate()) : true;
+
+                            if (now >= activationDate && allowActivation) {
+                                outputsRef.current.autoOnOff = {
+                                    ON: {
+                                        activatedAt: new Date(),
+                                        activated: true,
+                                        timer: 20,
+                                    },
+                                };
+                                autoOnOffTimer = 0;
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+
         const processEncoderInput = (
             action: "scroll-left" | "click" | "scroll-right",
             callback?: () => any,
@@ -1253,7 +1775,10 @@ export default function MainController({
             // alert(123)
             if (inputsRef.current.buttons) {
 
-                if (inputsRef.current.buttons.powerOnOff) {
+                if (inputsRef.current.buttons.powerOnOff && !(
+                    outputsRef.current.autoOnOff?.OFF?.activated ||
+                    outputsRef.current.autoOnOff?.ON?.activated
+                )) {
                     powerBtnTimer++;
                     // alert(123)
                     if (powerBtnTimer > (
@@ -1271,7 +1796,11 @@ export default function MainController({
                     // }
                 } else powerBtnTimer = 0;
 
+                processAutoOnOff();
+
                 if (outputsRef.current.powerOn) {
+
+                    processVolumeControl();
 
                     if (audioPlayerRef.current) audioPlayerRef.current.volume = (outputsRef.current.mainVolume / 100);
                     if (videoOutputRef.current) videoOutputRef.current.volume = (outputsRef.current.mainVolume / 100);
@@ -1337,9 +1866,44 @@ export default function MainController({
                         if (outputsRef.current.menu.navigation.menuOpened) {
                             const openedIdxArray = outputsRef.current.menu.navigation.openedIdxArray;
                             // alert(openedIdxArray.length);
-                            if (outputsRef.current.menu.navigation.isValueSelect) {
-                                outputsRef.current.menu.navigation.isValueSelect = false;
-                                outputsRef.current.menu.navigation.valueIdx = null;
+                            const navigation = outputsRef.current.menu.navigation;
+                            if (navigation.isValueSelect) {
+
+                                const currentElement = getCurrentMenuElement(outputsRef.current.menu);
+
+                                if (currentElement?.type === 'property' && currentElement.valueType === 'input') {
+
+                                    const inputData = navigation._inputData;
+
+                                    if (inputData?.type === 'time') {
+
+                                        if (inputData.timeArrayIdx === 1) inputData.timeArrayIdx = 0;
+                                        else {
+                                            // const val = inputData.currentValue;
+
+                                            // const result = currentElement.onInput(outputsRef.current.settings, val[0], val[1]);
+
+                                            // outputsRef.current.settings = result;
+
+                                            navigation.isValueSelect = false;
+                                            navigation._inputData = undefined;
+                                            // navigation.valueIdx = null;
+                                        }
+
+                                        // if (val[inputData.timeArrayIdx] > 0) {
+                                        //     val[inputData.timeArrayIdx]--;
+                                        // }
+
+                                        outputsRef.current.resetAnimationsTimer = {
+                                            animTimer: true,
+                                        };
+
+                                    }
+
+                                } else {
+                                    outputsRef.current.menu.navigation.isValueSelect = false;
+                                    outputsRef.current.menu.navigation.valueIdx = null;
+                                }
                             } else if (openedIdxArray.length === 0) {
                                 outputsRef.current.menu.navigation.menuOpened = false;
                             } else {
@@ -1487,9 +2051,32 @@ export default function MainController({
 
                             const navigation = outputsRef.current.menu.navigation;
 
-                            if (navigation.isValueSelect && typeof navigation.valueIdx === 'number') {
-                                if (navigation.valueIdx > 0) {
-                                    navigation.valueIdx--;
+                            if (navigation.isValueSelect) {
+
+                                const currentElement = getCurrentMenuElement(outputsRef.current.menu);
+
+                                if (currentElement?.type === 'property' && currentElement.valueType === 'input') {
+
+                                    const inputData = navigation._inputData;
+
+                                    if (inputData?.type === 'time') {
+
+                                        const val = inputData.currentValue;
+
+                                        if (val[inputData.timeArrayIdx] > 0) {
+                                            val[inputData.timeArrayIdx]--;
+                                        }
+
+                                        outputsRef.current.resetAnimationsTimer = {
+                                            animTimer: true,
+                                        };
+
+                                    }
+
+                                } else if (currentElement?.type === 'property' && typeof navigation.valueIdx === 'number') {
+                                    if (navigation.valueIdx > 0) {
+                                        navigation.valueIdx--;
+                                    }
                                 }
 
                                 // const currentElement = getCurrentMenuElement(outputsRef.current.menu);
@@ -1620,18 +2207,62 @@ export default function MainController({
                                     // navigation.isValueSelect = true;
                                     // navigation.currentIdx = 0;
 
-                                    if (navigation.isValueSelect && typeof navigation.valueIdx === 'number') {
-                                        const value = currentElement.values[navigation.valueIdx].onSelect(outputsRef.current.settings);
-                                        outputsRef.current.settings = value;
+                                    if (navigation.isValueSelect) {
+
+                                        if (currentElement.valueType === 'input') {
+
+                                            const inputData = navigation._inputData;
+
+                                            if (inputData?.type === 'time') {
+
+                                                if (inputData.timeArrayIdx === 0) inputData.timeArrayIdx = 1;
+                                                else {
+                                                    const val = inputData.currentValue;
+
+                                                    const result = currentElement.onInput(outputsRef.current.settings, val[0], val[1]);
+
+                                                    outputsRef.current.settings = result;
+
+                                                    navigation.isValueSelect = false;
+                                                    navigation._inputData = undefined;
+                                                    // navigation.valueIdx = null;
+                                                }
+
+                                                // if (val[inputData.timeArrayIdx] > 0) {
+                                                //     val[inputData.timeArrayIdx]--;
+                                                // }
+
+                                                outputsRef.current.resetAnimationsTimer = {
+                                                    animTimer: true,
+                                                };
+
+                                            }
+
+                                        } else if (typeof navigation.valueIdx === 'number') {
+                                            const value = currentElement.values[navigation.valueIdx].onSelect(outputsRef.current.settings);
+                                            outputsRef.current.settings = value;
+
+                                            navigation.isValueSelect = false;
+                                            navigation.valueIdx = null;
+                                        }
                                         // outputsRef.current.menu.navigation._settingsBeforeUpdate = outputsRef.current.settings;
 
-                                        navigation.isValueSelect = false;
-                                        navigation.valueIdx = null;
                                     } else {
-                                        const currentValueIdx = currentElement.values.findIndex(val => val.reference?.(outputsRef.current.settings));
+                                        if (currentElement.valueType === 'input') {
+                                            navigation._inputData = {
+                                                type: "time",
+                                                timeArrayIdx: 0,
+                                                currentValue: currentElement.initialValue(outputsRef.current.settings) || [0, 0]
+                                            };
 
-                                        navigation.isValueSelect = true;
-                                        navigation.valueIdx = currentValueIdx || 0;
+                                            navigation.isValueSelect = true;
+                                            // navigation.valueIdx = currentValueIdx || 0;
+                                        } else {
+                                            const currentValueIdx = currentElement.values.findIndex(val => val.reference?.(outputsRef.current.settings));
+
+                                            navigation.isValueSelect = true;
+                                            navigation.valueIdx = currentValueIdx || 0;
+                                        }
                                     }
                                     // if (currentValueIdx >= 0) {
                                     // }
@@ -1887,24 +2518,42 @@ export default function MainController({
 
                             const options = (navigation.menuType === 'encoderMenu') ? outputsRef.current.menu.encoderMenuOptions : outputsRef.current.menu.options;
 
+
+
                             let limit = (options.length - 1);
                             // if (currentElement && navigation.openedIdxArray.length > 0) {
                             if (currentElementBefore?.type === 'block' && navigation.openedIdxArray.length > 0) limit = (currentElementBefore.innerOptions.length - 1);
                             // }
                             // alert(limit);
 
-                            if (navigation.isValueSelect && typeof navigation.valueIdx === 'number') {
-                                if (currentElement?.type === 'property') limit = (currentElement.values.length - 1);
+                            if (navigation.isValueSelect) {
 
-                                if (navigation.valueIdx < limit) {
-                                    navigation.valueIdx++;
+                                if (currentElement?.type === 'property' && currentElement.valueType === 'input') {
+
+                                    const inputData = navigation._inputData;
+
+                                    if (inputData?.type === 'time') {
+
+                                        const val = inputData.currentValue;
+
+                                        if (val[inputData.timeArrayIdx] < (inputData.timeArrayIdx === 0 ? 23 : 59)) {
+                                            val[inputData.timeArrayIdx]++;
+                                        }
+
+                                        outputsRef.current.resetAnimationsTimer = {
+                                            animTimer: true,
+                                        };
+
+                                    }
+
+                                } else if (currentElement?.type === 'property' && typeof navigation.valueIdx === 'number') {
+                                    if (currentElement?.type === 'property') limit = (currentElement.values.length - 1);
+
+                                    if (navigation.valueIdx < limit) {
+                                        navigation.valueIdx++;
+                                    }
                                 }
 
-                                // const currentElement = getCurrentMenuElement(outputsRef.current.menu);
-                                // if (currentElement?.type === 'property') {
-                                //     const value = currentElement.values[navigation.valueIdx].onSelect(outputsRef.current.settings);
-                                //     outputsRef.current.settings = value;
-                                // }
                             } else {
                                 if (navigation.currentIdx < limit) {
                                     navigation.currentIdx++;
