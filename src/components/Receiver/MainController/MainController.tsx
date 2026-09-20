@@ -1534,6 +1534,7 @@ export default function MainController({
 
                             if (now >= activationDate && allowActivation) {
                                 outputsRef.current.autoOnOff = {
+                                    ...outputsRef.current.autoOnOff,
                                     OFF: {
                                         activatedAt: new Date(),
                                         activated: true,
@@ -1598,6 +1599,7 @@ export default function MainController({
 
                             if (now >= activationDate && allowActivation) {
                                 outputsRef.current.autoOnOff = {
+                                    ...outputsRef.current.autoOnOff,
                                     ON: {
                                         activatedAt: new Date(),
                                         activated: true,

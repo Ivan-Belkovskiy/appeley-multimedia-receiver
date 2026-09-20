@@ -1971,7 +1971,7 @@ export default function FrontPanel({
                                 topLeftDecorationLine: true
                             }
                         });
-                    } else if (autoOFF?.activated) {
+                    } else if (autoOFF?.activatedAt) {
 
                         let displayText = centerMainText(`POWER OFF IN ${String(autoOFF.timer).padStart(2, "0")}`);
 

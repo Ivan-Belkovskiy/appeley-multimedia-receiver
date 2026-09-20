@@ -37,3 +37,11 @@ model internet_radio_tracks {
 
   station       internet_radio_stations    @relation(fields: [station_id], references: [id])
 }
+
+
+model receiver_instances {
+  id              Int       @id @default(autoincrement())
+  device_ip       String    @db.VarChar(40)
+  created_at      DateTime  @default(now())
+  
+}
