@@ -104,6 +104,17 @@ export async function getTrackID3(trackUrl: string) {
             skipCovers: true,
         });
 
+        const trackGainStr = metadata.common.replaygain_track_gain?.dB;
+        const albumGainStr = metadata.common.replaygain_album_gain?.dB;
+
+        const gainDb = albumGainStr ?? trackGainStr;
+
+        return {
+            success: true,
+            id3: metadata,
+            replayGainDb: typeof gainDb === 'number' ? gainDb : null,
+        };
+
         return { success: true, id3: metadata };
     } catch (error) {
         console.error("getTrackID3 error:", error);
@@ -161,7 +172,7 @@ export interface USBFlashInfo {
         primaryColor: string;
         secondaryColor: string;
     };
-    directoryHandle?: FileSystemDirectoryHandle; 
+    directoryHandle?: FileSystemDirectoryHandle;
 }
 
 export async function getUSBData(): Promise<{ success: boolean; data?: USBFlashInfo[]; error?: any }> {
@@ -448,9 +459,9 @@ export async function getInternetRadioStations() {
 export async function createRadioTrackRecord(stationId: number, streamText: string) {
     try {
 
-        if (typeof stationId !== 'number') return { success: false, error: "Station ID not provided!"};
+        if (typeof stationId !== 'number') return { success: false, error: "Station ID not provided!" };
 
-        if (typeof streamText !== 'string') return { success: false, error: "Album - Track Text not provided!"};
+        if (typeof streamText !== 'string') return { success: false, error: "Album - Track Text not provided!" };
 
         const created = await prisma.internet_radio_tracks.create({
             data: {
@@ -460,6 +471,10 @@ export async function createRadioTrackRecord(stationId: number, streamText: stri
         });
 
     } catch (error) {
-        return { success: false, error: "Error creating radio track record!"};
+        return { success: false, error: "Error creating radio track record!" };
     }
 }
+
+
+
+

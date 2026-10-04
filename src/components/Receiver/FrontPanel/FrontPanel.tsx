@@ -1797,6 +1797,7 @@ export default function FrontPanel({
         let autoOnOffMenuTimer = 0;
 
         let dispBtnTimer = 0;
+        let dynamicDisplayTimer = 0;
 
         const processDispClick = () => {
             beeper.singleBeep(1, mainOutputs.settings.audio.beeper.volume, mainOutputs.settings.audio.beeper.on);
@@ -1869,6 +1870,8 @@ export default function FrontPanel({
                     }
                     displayMode.selectedSource = mainOutputs.currentSource;
                 }
+
+                dynamicDisplayTimer = 0;
             }
         }
 
@@ -1897,6 +1900,8 @@ export default function FrontPanel({
             if (mainOutputs.autoOnOff?.OFF?.activated || mainOutputs.autoOnOff?.ON?.activated) {
 
                 // updateDisplayAction('INIT');
+
+                resetDemo();
 
                 if (mainOutputs.autoOnOffMenu.navigation.menuOpened) {
 
@@ -2092,6 +2097,8 @@ export default function FrontPanel({
                             mainOutputs.resetAnimationsTimer.animTimer = false;
                         }
 
+
+
                         if (mainInputs.buttons?.disp) {
                             if (dispBtnTimer > 45 && !(
                                 (mainOutputs.autoOnOff as any)?.OFF?.activated ||
@@ -2101,7 +2108,13 @@ export default function FrontPanel({
                                     if (displayMode.folder === null || displayMode.track === null) {
                                         // if (animTimer < (60 * 5)) animTimer = (60 * 5);
                                         // alert('fast-scroll')
-                                        animTimer += 2;
+                                        animTimer += 1;
+                                    }
+                                } else if (mainOutputs.currentSource === 2) {
+                                    if (displayMode.track === 1) {
+                                        // if (animTimer < (60 * 5)) animTimer = (60 * 5);
+                                        // alert('fast-scroll')
+                                        animTimer += 1;
                                     }
                                 }
                                 // processDispClick();
@@ -2127,7 +2140,12 @@ export default function FrontPanel({
                                 buttons: mainOutputs.settings.indication.buttons.color || "#0088ff"
                             };
 
-                            if (mainOutputs.settings.demo.on) {
+                            if (
+                                mainOutputs.menu.navigation.menuOpened ||
+                                mainOutputs.autoOnOffMenu.navigation.menuOpened
+                            ) {
+                                resetDemo();
+                            } else if (mainOutputs.settings.demo.on) {
                                 if (demoTimer > 0) {
                                     demoTimer--;
                                 } else {
@@ -2217,7 +2235,7 @@ export default function FrontPanel({
 
                                     if (!mainInputs.sourceData[1].connectedUSBDevice) {
                                         updateDisplayData({
-                                            ...displayDataRef.current,
+                                            // ...displayDataRef.current,
                                             main: centerMainText("NO USB"),
                                             topLeft: []
                                         })
@@ -2416,6 +2434,9 @@ export default function FrontPanel({
                                                     animTimer = 0;
                                                     displayMode.track = sourceData.playbackData?.trackNumber || 0;
                                                     displayMode.default = true;
+                                                    if (mainOutputs.settings.display.dataDisplay.mode === 'DYNAMIC') {
+                                                        dynamicDisplayTimer = (mainOutputs.settings.display.dataDisplay.interval * 60);
+                                                    }
                                                 });
 
                                                 updateDisplayData({
@@ -2452,6 +2473,16 @@ export default function FrontPanel({
                                                             }
                                                         }
                                                     });
+
+                                                    if (mainOutputs.settings.display.dataDisplay.mode === 'DYNAMIC') {
+                                                        if (dynamicDisplayTimer > 0) {
+                                                            dynamicDisplayTimer--;
+                                                        } else {
+                                                            displayMode.default = null;
+                                                            displayMode.clockTime = true;
+                                                            dynamicDisplayTimer = (mainOutputs.settings.display.dataDisplay.interval * 60);
+                                                        }
+                                                    }
                                                 } else if (displayMode.clockTime) {
 
                                                     const main = ` ${trackNumber}     ${timeFromDate(new Date(), (updateTimer % 60 > 30)) ?? ""}`;
@@ -2467,6 +2498,27 @@ export default function FrontPanel({
                                                             }
                                                         }
                                                     });
+
+                                                    if (mainOutputs.settings.display.dataDisplay.mode === 'DYNAMIC') {
+                                                        if (dynamicDisplayTimer > 0) {
+                                                            dynamicDisplayTimer--;
+                                                        } else {
+                                                            displayMode.default = true;
+                                                            displayMode.clockTime = null;
+
+                                                            // if (displayMode.folder === null && mainOutputs.sourceData[1].playbackData) {
+                                                            displayMode.folder = null;
+                                                            displayMode.track = null;
+                                                            animTimer = 0;
+                                                            /* else if (displayMode.track === null && mainOutputs.sourceData[1].playbackData) {
+                                                                displayMode.track = mainOutputs.sourceData[1].playbackData.trackNumber;
+                                                                displayMode.default = true;
+                                                                animTimer = 0;
+                                                                }*/
+
+                                                            dynamicDisplayTimer = (mainOutputs.settings.display.dataDisplay.interval * 60);
+                                                        }
+                                                    }
                                                 }
                                             }
 
@@ -2519,6 +2571,7 @@ export default function FrontPanel({
                                         }
                                     })
                                 } else if (mainOutputs.currentSource === 2) {
+                                    // INTERNET RADIO
 
                                     const radioData = mainOutputs.sourceData[2];
                                     const station = internetRadioStations[radioData.currentStationIndex ?? 0];
@@ -2562,97 +2615,103 @@ export default function FrontPanel({
 
                                     } else {
 
-                                        if (radioData.error) {
-                                            updateDisplayData({
-                                                main: centerMainText(radioData.error),
-                                                topLeft: [],
-                                                otherIndication: {}
-                                            });
-                                        } else if (radioData.isBuffering) {
-                                            if (updateTimer % 60 < 30) {
+                                        if (radioData.recognition) {
+
+                                            if (radioData.recognition.inProgress) {
                                                 updateDisplayData({
-                                                    main: centerMainText('LOADING'),
+                                                    main: centerMainText((updateTimer % 60 < 30) ? "RECOGNITION" : ""),
+                                                    topLeft: "RADIO".split(''),
+                                                    otherIndication: {}
+                                                });
+                                            } else if (radioData.recognition.error) {
+                                                updateDisplayData({
+                                                    main: [],
+                                                    topLeft: "RADIO".split(''),
+                                                    otherIndication: {}
+                                                });
+
+                                                animateScrollingText(animTimer, `RECOGNITION ERROR: ${radioData.recognition.error}`, () => {
+                                                    animTimer = 0;
+                                                });
+                                                animTimer++;
+                                            } else if (radioData.recognition.result) {
+
+                                                updateDisplayData({
+                                                    main: [],
+                                                    topLeft: "RADIO".split(''),
+                                                    otherIndication: {}
+                                                });
+
+                                                animateScrollingText(animTimer, `${radioData.recognition.result}`, () => {
+                                                    animTimer = 0;
+                                                });
+
+                                            }
+
+                                        } else {
+                                            if (radioData.error) {
+                                                updateDisplayData({
+                                                    main: centerMainText(radioData.error),
                                                     topLeft: [],
                                                     otherIndication: {}
                                                 });
-                                            } else {
-                                                updateDisplayData({ main: [], topLeft: [], otherIndication: {} });
-                                            }
-                                        } else {
-                                            // updateDisplayData({
-                                            //     main: [],
-                                            //     topLeft: 'RADIO'.split(''),
-                                            //     otherIndication: {
-                                            //         topRightData: {
-                                            //             AUDIO: true,
-                                            //         }
-                                            //     }
-                                            // });
-
-                                            // animateScrollingText(animTimer, station?.name || 'RADIO', () => {
-                                            //     animTimer = 0;
-                                            // });
-                                            // animTimer++;
-                                        }
-
-
-                                        //  ВЫНЕСТИ ЛОГИКУ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ В ОТДЕЛЬНЫЙ БЛОК КОДА //
-
-
-                                        if (displayMode.volume === true) {
-                                            updateDisplayData({
-                                                main: [],
-                                                topLeft: [],
-                                                otherIndication: {}
-                                            })
-                                            animateScrollingText(animTimer, (
-                                                centerMainText(`VOLUME ${String(mainOutputs.mainVolume).padStart(2, "0")}`).join('')
-                                            ), () => {
-                                                animTimer = 0;
-                                                displayMode.volume = false;
-                                                displayMode.default = true;
-                                            });
-                                            animTimer++;
-                                        } else if (radioData.isPaused) {
-                                            if (updateTimer % 60 < 30) updateDisplayData({
-                                                main: centerMainText('PAUSE'),
-                                                topLeft: [],
-                                                otherIndication: {}
-                                            });
-                                            else updateDisplayData({
-                                                main: [],
-                                                topLeft: [],
-                                                otherIndication: {}
-                                            });
-                                        } else if (!radioData.isBuffering && !radioData.error) {
-                                            updateDisplayData({
-                                                main: [],
-                                                topLeft: 'RADIO'.split(''),
-                                                otherIndication: {
-                                                    topRightData: {
-                                                        AUDIO: true,
-                                                    }
-                                                }
-                                            });
-                                            if (displayMode.track === 1) {
-                                                if (radioData.streamTitle) {
+                                            } else if (radioData.isBuffering) {
+                                                if (updateTimer % 60 < 30) {
                                                     updateDisplayData({
-                                                        main: [],
-                                                        topLeft: 'RADIO'.split(''),
-                                                        otherIndication: {
-                                                            topRightData: {
-                                                                AUDIO: true,
-                                                            }
-                                                        }
+                                                        main: centerMainText('LOADING'),
+                                                        topLeft: [],
+                                                        otherIndication: {}
                                                     });
-
-                                                    animateScrollingText(animTimer, radioData.streamTitle, () => {
-                                                        animTimer = 0;
-                                                    });
-                                                    animTimer++;
-
+                                                } else {
+                                                    updateDisplayData({ main: [], topLeft: [], otherIndication: {} });
                                                 }
-                                            } else if (displayMode.default) {
+                                            } else {
+                                                // updateDisplayData({
+                                                //     main: [],
+                                                //     topLeft: 'RADIO'.split(''),
+                                                //     otherIndication: {
+                                                //         topRightData: {
+                                                //             AUDIO: true,
+                                                //         }
+                                                //     }
+                                                // });
+
+                                                // animateScrollingText(animTimer, station?.name || 'RADIO', () => {
+                                                //     animTimer = 0;
+                                                // });
+                                                // animTimer++;
+                                            }
+
+
+                                            //  ВЫНЕСТИ ЛОГИКУ ОТОБРАЖЕНИЯ ИНФОРМАЦИИ В ОТДЕЛЬНЫЙ БЛОК КОДА //
+
+
+                                            if (displayMode.volume === true) {
+                                                updateDisplayData({
+                                                    main: [],
+                                                    topLeft: [],
+                                                    otherIndication: {}
+                                                })
+                                                animateScrollingText(animTimer, (
+                                                    centerMainText(`VOLUME ${String(mainOutputs.mainVolume).padStart(2, "0")}`).join('')
+                                                ), () => {
+                                                    animTimer = 0;
+                                                    displayMode.volume = false;
+                                                    displayMode.default = true;
+                                                });
+                                                animTimer++;
+                                            } else if (radioData.isPaused) {
+                                                if (updateTimer % 60 < 30) updateDisplayData({
+                                                    main: centerMainText('PAUSE'),
+                                                    topLeft: [],
+                                                    otherIndication: {}
+                                                });
+                                                else updateDisplayData({
+                                                    main: [],
+                                                    topLeft: [],
+                                                    otherIndication: {}
+                                                });
+                                            } else if (!radioData.isBuffering && !radioData.error) {
                                                 updateDisplayData({
                                                     main: [],
                                                     topLeft: 'RADIO'.split(''),
@@ -2663,20 +2722,79 @@ export default function FrontPanel({
                                                     }
                                                 });
 
-                                                animateScrollingText(animTimer, station?.name || 'RADIO', () => {
-                                                    animTimer = 0;
-                                                });
-                                                animTimer++;
+                                                if (displayMode.track === 1) {
+                                                    if (radioData.streamTitle) {
+                                                        updateDisplayData({
+                                                            main: [],
+                                                            topLeft: 'RADIO'.split(''),
+                                                            otherIndication: {
+                                                                topRightData: {
+                                                                    AUDIO: true,
+                                                                }
+                                                            }
+                                                        });
 
-                                            } else if (displayMode.clockTime) {
+                                                        animateScrollingText(animTimer, radioData.streamTitle, () => {
+                                                            animTimer = 0;
+                                                            if (mainOutputs.settings.display.dataDisplay.mode === 'DYNAMIC') {
+                                                                displayMode.track = null;
+                                                                displayMode.default = true;
+                                                                dynamicDisplayTimer = (mainOutputs.settings.display.dataDisplay.interval * 60);
+                                                            }
+                                                        });
+                                                        animTimer++;
 
-                                                const main = `RADIO   ${timeFromDate(new Date(), (updateTimer % 60 > 30)) ?? ""}`;
+                                                    }
+                                                } else if (displayMode.default) {
+                                                    updateDisplayData({
+                                                        main: [],
+                                                        topLeft: 'RADIO'.split(''),
+                                                        otherIndication: {
+                                                            topRightData: {
+                                                                AUDIO: true,
+                                                            }
+                                                        }
+                                                    });
 
-                                                updateDisplayData({
-                                                    ...displayDataRef.current,
-                                                    main: main.split(''),
-                                                    topLeft: 'RADIO'.split(''),
-                                                });
+                                                    animateScrollingText(animTimer, station?.name || 'RADIO', () => {
+                                                        animTimer = 0;
+
+                                                    });
+                                                    animTimer++;
+
+                                                    if (mainOutputs.settings.display.dataDisplay.mode === 'DYNAMIC') {
+                                                        if (dynamicDisplayTimer > 0) {
+                                                            dynamicDisplayTimer--;
+                                                        } else {
+                                                            displayMode.default = null;
+                                                            displayMode.clockTime = true;
+                                                            dynamicDisplayTimer = (mainOutputs.settings.display.dataDisplay.interval * 60);
+                                                        }
+                                                    }
+
+                                                } else if (displayMode.clockTime) {
+
+                                                    const main = `RADIO   ${timeFromDate(new Date(), (updateTimer % 60 > 30)) ?? ""}`;
+
+                                                    updateDisplayData({
+                                                        ...displayDataRef.current,
+                                                        main: main.split(''),
+                                                        topLeft: 'RADIO'.split(''),
+                                                    });
+
+                                                    if (mainOutputs.settings.display.dataDisplay.mode === 'DYNAMIC') {
+                                                        if (dynamicDisplayTimer > 0) {
+                                                            dynamicDisplayTimer--;
+                                                        } else {
+                                                            displayMode.default = null;
+                                                            displayMode.clockTime = null;
+                                                            displayMode.track = 1;
+                                                            dynamicDisplayTimer = (mainOutputs.settings.display.dataDisplay.interval * 60);
+                                                            animTimer = 0;
+                                                        }
+                                                    }
+                                                }
+
                                             }
                                         }
                                     }
@@ -3004,6 +3122,8 @@ export default function FrontPanel({
                             //     });
                             // }
                         }
+
+
 
                     }
 

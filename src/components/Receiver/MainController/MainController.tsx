@@ -4,7 +4,7 @@ import { Dispatch, RefObject, SetStateAction, useEffect, useRef } from "react";
 import { getCurrentExtendedMenuElement, getCurrentMenuElement } from "../FrontPanel/FrontPanel";
 import { Prisma } from "@prisma/client";
 import { buildNavigationFromDirectoryHandle } from "@/utils/localNavigation";
-import { randomInRangeWithMax } from "@/utils/math";
+import { clamp, randomInRangeWithMax } from "@/utils/math";
 
 export interface MainControllerInputButtons {
     powerOnOff?: boolean;
@@ -105,7 +105,9 @@ export interface MainControllerUSBPlaybackData {
     randomPlayInfo?: {
         on: boolean;
         playedTracks: RandomPlayedTrack[];
-    }
+    };
+
+    replayGainDb?: number;
 
 }
 
@@ -287,6 +289,16 @@ export interface MainControllerSettings {
         repeat?: "TRACK" | "FOLDER" | null;
         random?: "FOLDER" | "ALL" | null;
     };
+
+    equalizer: {
+        on: boolean;
+        preset: 'FLAT' | 'ROCK' | 'JAZZ' | 'POP' | 'VOCAL' | 'BASS' | 'CUSTOM';
+        bands: {
+            low: { frequency: number; gain: number; q: number };
+            mid: { frequency: number; gain: number; q: number };
+            high: { frequency: number; gain: number; q: number };
+        };
+    };
 }
 
 export interface MainControllerMenuDefinition<T = "main" | "encoderMenu"> {
@@ -296,6 +308,8 @@ export interface MainControllerMenuDefinition<T = "main" | "encoderMenu"> {
         menuType?: T;
         currentIdx: number;
         openedIdxArray: number[];
+
+        timerBeforeClose: number;
 
         isValueSelect?: boolean;
         valueIdx?: number | null;
@@ -320,6 +334,8 @@ export interface MainControllerExtendedMenu<T extends string> {
         menuType?: T;
         currentIdx: number;
         openedIdxArray: number[];
+
+        timerBeforeClose: number;
 
         isValueSelect?: boolean;
         valueIdx?: number | null;
@@ -362,6 +378,8 @@ export interface MainControllerOutputs {
             playbackData?: MainControllerUSBPlaybackData;
             // usbDevice?: USBFlashInfo;
             navigationData?: FolderInfo[];
+
+            normalizationGain?: number | null;
 
 
 
@@ -410,6 +428,15 @@ export interface MainControllerOutputs {
             currentTitle?: string;
             currentArtist?: string;
             streamTitle?: string;
+
+            recognition?: {
+                inProgress?: boolean;
+                artist?: string;
+                title?: string;
+                result?: string;
+                startedAt?: number;
+                error?: string;
+            };
         };
         6: {
             // MyLift
@@ -519,6 +546,60 @@ export default function MainController({
 }) {
 
     const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+
+    let audioContext: AudioContext | null = null;
+    let lowFilter: BiquadFilterNode | null = null;
+    let midFilter: BiquadFilterNode | null = null;
+    let highFilter: BiquadFilterNode | null = null;
+    let masterGain: GainNode | null = null;
+    let currentSource: MediaElementAudioSourceNode | null = null;
+
+    const ensureAudioGraph = () => {
+        if (audioContext) return;
+
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+        lowFilter = audioContext.createBiquadFilter();
+        lowFilter.type = 'peaking';
+
+        midFilter = audioContext.createBiquadFilter();
+        midFilter.type = 'peaking';
+
+        highFilter = audioContext.createBiquadFilter();
+        highFilter.type = 'peaking';
+
+        masterGain = audioContext.createGain();
+        masterGain.gain.value = 1.0;
+
+        lowFilter.connect(midFilter);
+        midFilter.connect(highFilter);
+        highFilter.connect(masterGain);
+        masterGain.connect(audioContext.destination);
+    };
+
+    const applyEQSettings = () => {
+        if (!lowFilter || !midFilter || !highFilter) return;
+
+        const eq = outputsRef.current.settings.equalizer;
+        const bands = eq.bands;
+
+        const lowGain = eq.on ? bands.low.gain : 0;
+        const midGain = eq.on ? bands.mid.gain : 0;
+        const highGain = eq.on ? bands.high.gain : 0;
+
+        lowFilter.frequency.value = bands.low.frequency;
+        lowFilter.Q.value = bands.low.q;
+        lowFilter.gain.value = lowGain;
+
+        midFilter.frequency.value = bands.mid.frequency;
+        midFilter.Q.value = bands.mid.q;
+        midFilter.gain.value = midGain;
+
+        highFilter.frequency.value = bands.high.frequency;
+        highFilter.Q.value = bands.high.q;
+        highFilter.gain.value = highGain;
+    };
 
     // useEffect(() => {
     //     alert(123)
@@ -871,6 +952,12 @@ export default function MainController({
                 const navigationData = outputsRef.current.sourceData[1].navigationData;
                 if (!navigationData) throw new Error('Navigation data not provided!');
 
+                if (outputsRef.current.sourceData[1].playbackData) outputsRef.current.sourceData[1].playbackData = {
+                    ...outputsRef.current.sourceData[1].playbackData,
+                    trackName: undefined,
+                    albumName: undefined,
+                };
+
                 // alert(folderOffset)
                 // const currentFolder = navigationData.find((val, idx) => val.number);
                 // if (!currentFolder) throw new Error('Folder not found!');
@@ -913,7 +1000,7 @@ export default function MainController({
 
                 current = available;
 
-                // alert(available.path);
+                // alert(available.name);
                 // }
 
                 // alert(123)
@@ -961,10 +1048,36 @@ export default function MainController({
 
                     const audio = new Audio();
                     audio.preload = 'metadata';
-                    audio.volume = outputsRef.current.mainVolume / 100;
+                    audio.crossOrigin = 'anonymous';
                     audio.src = trackUrl;
 
+                    ensureAudioGraph();
+                    if (audioContext!.state === 'suspended') {
+                        await audioContext!.resume();
+                    }
+
+                    if (currentSource) {
+                        try { currentSource.disconnect(); } catch { }
+                        currentSource = null;
+                    }
+
+                    currentSource = audioContext!.createMediaElementSource(audio);
+                    currentSource.connect(lowFilter!);
+
+                    audio.volume = 1.0;
+
+                    applyEQSettings();
+
                     audioPlayerRef.current = audio;
+
+                    const d = outputsRef.current.sourceData;
+
+
+
+                    if (d[1].playbackData?.replayGainDb !== undefined && d[1].playbackData.replayGainDb !== null) {
+                        const gain = Math.pow(10, d[1].playbackData.replayGainDb / 20);
+                        d[1].normalizationGain = gain;
+                    }
 
                     const onCanPlay = () => {
                         console.log('AUDIO LOADED:', trackUrl);
@@ -1166,6 +1279,7 @@ export default function MainController({
 
                 const randomMode = outputsRef.current.settings.playMode.random;
 
+                // if (randomMode) {
                 if (direction === 'next' && randomMode) {
                     const next = generateRandomTrackFolderNumber(folder);
 
@@ -1185,13 +1299,29 @@ export default function MainController({
                         if (retry) tryReadTrack(retry.folderNumber, retry.trackNumber);
                         return;
                     }
-                }
+                } else if (direction === 'prev' && randomMode) {
+                    const played = outputsRef.current.sourceData[1].playbackData?.randomPlayInfo?.playedTracks;
 
-                if (direction === 'next') {
+                    if (played && played.length > 1) {
+                        played.pop();
+
+                        const prevData = played[played.length - 1];
+
+                        if (prevData) {
+                            tryReadTrack(prevData.folderNumber, prevData.trackNumber);
+                        }
+                    } else {
+                        return beeper.tripleBeep(
+                            outputsRef.current.settings.audio.beeper.volume,
+                            outputsRef.current.settings.audio.beeper.on
+                        );
+                    }
+                } else if (direction === 'next') {
                     tryReadTrack(folder, track + 1);
                 } else {
                     tryReadTrack(folder, track - 1);
                 }
+                // }
             }
         };
 
@@ -1206,7 +1336,7 @@ export default function MainController({
         let autoOnOffTimer = 0;
 
         let volumeAdjustTimer = 0;
-        const VOLUME_STEP = 1; 
+        const VOLUME_STEP = 1;
 
         const calculateTargetVolume = (): number | null => {
             const volumeControl = outputsRef.current.settings.audio.volumeControl;
@@ -1267,9 +1397,9 @@ export default function MainController({
 
             const diff = Math.abs(target - current);
             let interval: number;
-            if (diff > 20) interval = 30;  
-            else if (diff > 10) interval = 60; 
-            else if (diff > 3) interval = 90; 
+            if (diff > 20) interval = 30;
+            else if (diff > 10) interval = 60;
+            else if (diff > 3) interval = 90;
             else interval = 120;
 
             volumeAdjustTimer++;
@@ -1289,6 +1419,8 @@ export default function MainController({
                         // MENU NAVIGATION
 
                         const navigation = outputsRef.current.autoOnOffMenu.navigation;
+
+                        navigation.timerBeforeClose = (30 * 60);
 
                         if (navigation.isValueSelect) {
 
@@ -1336,6 +1468,9 @@ export default function MainController({
                     if (outputsRef.current.autoOnOffMenu.navigation.menuOpened) {
                         // MENU NAVIGATION
                         const navigation = outputsRef.current.autoOnOffMenu.navigation;
+
+                        navigation.timerBeforeClose = (30 * 60);
+
                         const currentIdx = navigation.currentIdx;
                         const currentElement = getCurrentExtendedMenuElement(outputsRef.current.autoOnOffMenu);
                         // const currentElement = outputsRef.current.menu.options[currentIdx];
@@ -1422,6 +1557,9 @@ export default function MainController({
                         // MENU NAVIGATION
 
                         const navigation = outputsRef.current.autoOnOffMenu.navigation;
+
+                        navigation.timerBeforeClose = (30 * 60);
+
                         const currentElementBefore = getCurrentExtendedMenuElement(outputsRef.current.autoOnOffMenu, navigation.openedIdxArray);
                         const currentElement = getCurrentExtendedMenuElement(outputsRef.current.autoOnOffMenu);
 
@@ -1515,6 +1653,7 @@ export default function MainController({
                                         menuType: "autoOFF",
                                         currentIdx: 0,
                                         openedIdxArray: [],
+                                        timerBeforeClose: (30 * 60),
                                     }
                                 });
                             }
@@ -1581,6 +1720,8 @@ export default function MainController({
                                         menuType: "autoON",
                                         currentIdx: 0,
                                         openedIdxArray: [],
+
+                                        timerBeforeClose: (30 * 60),
                                     }
                                 });
                             }
@@ -1772,6 +1913,32 @@ export default function MainController({
             }
         }
 
+        const processMenuTimers = () => {
+            if (outputsRef.current.menu.navigation.menuOpened) {
+
+                // alert(outputsRef.current.menu.navigation.timerBeforeClose)
+
+                if (outputsRef.current.menu.navigation.timerBeforeClose > 0) {
+                    outputsRef.current.menu.navigation.timerBeforeClose--;
+                } else {
+                    outputsRef.current.menu.navigation.menuOpened = false;
+                    beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on)
+                }
+
+            } else if (outputsRef.current.autoOnOffMenu.navigation.menuOpened) {
+
+                if (outputsRef.current.autoOnOffMenu.navigation.timerBeforeClose > 0) {
+                    outputsRef.current.autoOnOffMenu.navigation.timerBeforeClose--;
+                } else {
+                    outputsRef.current.autoOnOffMenu.navigation.menuOpened = false;
+                    beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on)
+                }
+
+            }
+        }
+
+        let updateTimer = 0;
+
         const update = () => {
             // alert(outputsRef.current.powerOn)
             // alert(123)
@@ -1804,7 +1971,24 @@ export default function MainController({
 
                     processVolumeControl();
 
-                    if (audioPlayerRef.current) audioPlayerRef.current.volume = (outputsRef.current.mainVolume / 100);
+                    processMenuTimers();
+
+                    if (updateTimer % 10 === 0) {
+                        applyEQSettings();
+                    }
+
+                    updateTimer++;
+
+                    if (audioPlayerRef.current) {
+                        // audioPlayerRef.current.volume = (outputsRef.current.mainVolume / 100);
+                        if (masterGain) {
+                            masterGain.gain.value = outputsRef.current.mainVolume / 100;
+                        }
+                        // audioPlayerRef.current.volume = clamp(
+                        //     (outputsRef.current.mainVolume / 100) * (outputsRef.current.sourceData[1].normalizationGain ?? 1),
+                        //     0, 1
+                        // );
+                    }
                     if (videoOutputRef.current) videoOutputRef.current.volume = (outputsRef.current.mainVolume / 100);
 
                     if (inputsRef.current.buttons.srcSelect) {
@@ -1863,12 +2047,74 @@ export default function MainController({
 
                     // }
 
+                    processButtonClick('num_0', async () => {
+                        if (outputsRef.current.currentSource !== 2) return;
+
+
+                        const d2 = outputsRef.current.sourceData[2];
+                        // if (!d2?.currentStationIndex && d2.currentStationIndex !== 0) return;
+                        if (typeof d2.currentStationIndex !== 'number') return;
+
+
+                        const station = internetRadioStations[d2.currentStationIndex];
+                        if (!station) return;
+
+                        // alert('Start Recognition');
+
+                        outputsRef.current.sourceData[2].recognition = {
+                            inProgress: true,
+                            startedAt: Date.now(),
+                        };
+
+                        try {
+                            const res = await fetch('/api/radio-capture', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    url: station.url,
+                                    durationMs: 10_000,
+                                }),
+                            });
+
+                            const data = await res.json();
+
+                            if (data.success && data.recognition?.success) {
+                                await createRadioTrackRecord(
+                                    d2.currentStationId!,
+                                    `${data.recognition.artist} - ${data.recognition.title}`,
+                                );
+
+                                outputsRef.current.sourceData[2].recognition = {
+                                    inProgress: false,
+                                    artist: data.recognition.artist,
+                                    title: data.recognition.title,
+                                    result: 'FOUND',
+                                };
+                            } else {
+                                outputsRef.current.sourceData[2].recognition = {
+                                    inProgress: false,
+                                    result: 'NOT_FOUND',
+                                    error: data.recognition?.error || data.error,
+                                };
+                            }
+                        } catch (err) {
+                            outputsRef.current.sourceData[2].recognition = {
+                                inProgress: false,
+                                result: 'ERROR',
+                                error: String(err),
+                            };
+                        }
+                    });
+
                     processButtonClick('back', () => {
 
                         if (outputsRef.current.menu.navigation.menuOpened) {
                             const openedIdxArray = outputsRef.current.menu.navigation.openedIdxArray;
                             // alert(openedIdxArray.length);
                             const navigation = outputsRef.current.menu.navigation;
+
+                            navigation.timerBeforeClose = (30 * 60);
+
                             if (navigation.isValueSelect) {
 
                                 const currentElement = getCurrentMenuElement(outputsRef.current.menu);
@@ -2041,6 +2287,7 @@ export default function MainController({
                                 openedIdxArray: [],
                                 menuOpened: true,
                                 menuType: "main",
+                                timerBeforeClose: (30 * 60),
                             };
 
                             // outputsRef.current.menu.navigation._settingsBeforeUpdate = outputsRef.current.settings;
@@ -2052,6 +2299,8 @@ export default function MainController({
                             // MENU NAVIGATION
 
                             const navigation = outputsRef.current.menu.navigation;
+
+                            navigation.timerBeforeClose = (30 * 60);
 
                             if (navigation.isValueSelect) {
 
@@ -2196,6 +2445,9 @@ export default function MainController({
                         if (outputsRef.current.menu.navigation.menuOpened) {
                             // MENU NAVIGATION
                             const navigation = outputsRef.current.menu.navigation;
+
+                            navigation.timerBeforeClose = (30 * 60);
+
                             const currentIdx = navigation.currentIdx;
                             const currentElement = getCurrentMenuElement(outputsRef.current.menu);
                             // const currentElement = outputsRef.current.menu.options[currentIdx];
@@ -2504,6 +2756,7 @@ export default function MainController({
                                 openedIdxArray: [],
                                 menuOpened: true,
                                 menuType: "encoderMenu",
+                                timerBeforeClose: (30 * 60)
                             };
 
                             // outputsRef.current.menu.navigation._settingsBeforeUpdate = outputsRef.current.settings;
@@ -2515,6 +2768,9 @@ export default function MainController({
                             // MENU NAVIGATION
 
                             const navigation = outputsRef.current.menu.navigation;
+
+                            navigation.timerBeforeClose = (30 * 60);
+
                             const currentElementBefore = getCurrentMenuElement(outputsRef.current.menu, navigation.openedIdxArray);
                             const currentElement = getCurrentMenuElement(outputsRef.current.menu);
 

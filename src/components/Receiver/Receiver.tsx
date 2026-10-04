@@ -15,6 +15,51 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
     internetRadioStations: InternetRadioStation[];
 }) {
 
+    const EQ_PRESETS: Record<string, MainControllerSettings['equalizer']['bands']> = {
+        FLAT: {
+            low: { frequency: 100, gain: 0, q: 1.0 },
+            mid: { frequency: 1000, gain: 0, q: 1.0 },
+            high: { frequency: 6000, gain: 0, q: 1.0 },
+        },
+        ROCK: {
+            low: { frequency: 100, gain: +5, q: 1.2 },
+            mid: { frequency: 1000, gain: -3, q: 1.5 },
+            high: { frequency: 8000, gain: +4, q: 1.2 },
+        },
+        JAZZ: {
+            low: { frequency: 80, gain: +3, q: 1.0 },
+            mid: { frequency: 800, gain: +2, q: 1.5 },
+            high: { frequency: 6000, gain: +3, q: 1.0 },
+        },
+        POP: {
+            low: { frequency: 100, gain: +2, q: 1.0 },
+            mid: { frequency: 2000, gain: +3, q: 1.5 },
+            high: { frequency: 8000, gain: +2, q: 1.2 },
+        },
+        VOCAL: {
+            low: { frequency: 100, gain: -4, q: 1.0 },
+            mid: { frequency: 2500, gain: +6, q: 1.8 },
+            high: { frequency: 8000, gain: +2, q: 1.0 },
+        },
+        BASS: {
+            low: { frequency: 80, gain: +8, q: 1.5 },
+            mid: { frequency: 1000, gain: -2, q: 1.0 },
+            high: { frequency: 6000, gain: 0, q: 1.0 },
+        },
+    };
+
+    const applyPreset = (s: MainControllerSettings, preset: string) => {
+        const bands = EQ_PRESETS[preset];
+        if (!bands) return s;
+        return {
+            ...s,
+            equalizer: {
+                ...s.equalizer,
+                preset: preset as any,
+                bands: JSON.parse(JSON.stringify(bands)),
+            },
+        };
+    };
     // const [internetRadioStations, setInternetRadioStations] = useState<InternetRadioStation[]>([]);
 
     const generateColorItems = (property: "buttons" | "display", count: number, step: number = 2) => {
@@ -87,6 +132,7 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                 _settingsBeforeUpdate: null,
                 openedIdxArray: [],
                 currentIdx: 0,
+                timerBeforeClose: (30 * 60),
                 // optionValues: []
             },
             encoderMenuOptions: [
@@ -251,7 +297,7 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                             label: "BUTTON COLOR",
 
                             values: [
-                                ...generateColorItems('buttons', 20, 0.05),
+                                ...generateColorItems('buttons', 40, 0.025),
                             ],
                             // values: [
                             //     {
@@ -289,7 +335,7 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                             label: "DISPLAY COLOR",
 
                             values: [
-                                ...generateColorItems('display', 20, 0.05),
+                                ...generateColorItems('display', 40, 0.025),
                             ],
                             // values: [
                             //     {
@@ -477,6 +523,102 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                             ]
                         }
                     ]
+                },
+                {
+                    type: "block",
+                    label: "APPELEY EQ",
+
+                    innerOptions: [
+                        {
+                            type: "property",
+                            label: "EQ ON/OFF",
+                            values: [
+                                {
+                                    label: "ON",
+                                    onSelect: (s) => ({ ...s, equalizer: { ...s.equalizer, on: true } }),
+                                    reference: (s) => s.equalizer.on,
+                                    shortPropName: "EQ",
+                                },
+                                {
+                                    label: "OFF",
+                                    onSelect: (s) => ({ ...s, equalizer: { ...s.equalizer, on: false } }),
+                                    reference: (s) => !s.equalizer.on,
+                                    shortPropName: "EQ",
+                                },
+                            ],
+                        },
+                        {
+                            type: "property",
+                            label: "PRESET",
+                            values: [
+                                { label: "FLAT", shortPropName: "PRE", onSelect: s => applyPreset(s, 'FLAT'), reference: s => s.equalizer.preset === 'FLAT' },
+                                { label: "ROCK", shortPropName: "PRE", onSelect: s => applyPreset(s, 'ROCK'), reference: s => s.equalizer.preset === 'ROCK' },
+                                { label: "JAZZ", shortPropName: "PRE", onSelect: s => applyPreset(s, 'JAZZ'), reference: s => s.equalizer.preset === 'JAZZ' },
+                                { label: "POP", shortPropName: "PRE", onSelect: s => applyPreset(s, 'POP'), reference: s => s.equalizer.preset === 'POP' },
+                                { label: "VOCAL", shortPropName: "PRE", onSelect: s => applyPreset(s, 'VOCAL'), reference: s => s.equalizer.preset === 'VOCAL' },
+                                { label: "BASS", shortPropName: "PRE", onSelect: s => applyPreset(s, 'BASS'), reference: s => s.equalizer.preset === 'BASS' },
+                                { label: "CUSTOM", shortPropName: "PRE", onSelect: (s) => ({ ...s, equalizer: { ...s.equalizer, preset: 'CUSTOM' } }), reference: s => s.equalizer.preset === 'CUSTOM' },
+                            ],
+                        },
+                        {
+                            type: "block",
+                            label: "LOW BAND",
+                            innerOptions: [
+                                {
+                                    type: "property",
+                                    label: "LOW FREQ",
+                                    values: [60, 80, 100, 150, 200, 250].map(f => ({
+                                        label: `${f}Hz`,
+                                        shortPropName: "L.F",
+                                        onSelect: (s) => ({
+                                            ...s,
+                                            equalizer: {
+                                                ...s.equalizer,
+                                                preset: 'CUSTOM',
+                                                bands: {
+                                                    ...s.equalizer.bands,
+                                                    low: { ...s.equalizer.bands.low, frequency: f },
+                                                },
+                                            },
+                                        }),
+                                        reference: (s) => s.equalizer.bands.low.frequency === f,
+                                    })),
+                                },
+                                {
+                                    type: "property",
+                                    label: "LOW GAIN",
+                                    values: generateNumberItems(24, -12, 1, (s, val) => ({
+                                        ...s,
+                                        equalizer: {
+                                            ...s.equalizer,
+                                            preset: 'CUSTOM',
+                                            bands: {
+                                                ...s.equalizer.bands,
+                                                low: { ...s.equalizer.bands.low, gain: val },
+                                            },
+                                        },
+                                    }), (s, val) => s.equalizer.bands.low.gain === val),
+                                },
+                                {
+                                    type: "property",
+                                    label: "LOW Q",
+                                    values: [0.5, 1.0, 1.5, 2.0, 3.0, 5.0].map(q => ({
+                                        label: `Q${q.toFixed(1)}`,
+                                        shortPropName: "L.Q",
+                                        onSelect: (s) => ({
+                                            ...s,
+                                            equalizer: {
+                                                ...s.equalizer,
+                                                preset: 'CUSTOM',
+                                                bands: { ...s.equalizer.bands, low: { ...s.equalizer.bands.low, q } },
+                                            },
+                                        }),
+                                        reference: (s) => s.equalizer.bands.low.q === q,
+                                    })),
+                                },
+                            ],
+                        },
+                    ],
                 },
                 {
                     type: "block",
@@ -1063,7 +1205,17 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
 
             playMode: {
 
-            }
+            },
+
+            equalizer: {
+                on: false,
+                preset: 'FLAT',
+                bands: {
+                    low: { frequency: 100, gain: 0, q: 1.0 },
+                    mid: { frequency: 1000, gain: 0, q: 1.0 },
+                    high: { frequency: 6000, gain: 0, q: 1.0 },
+                },
+            },
         },
 
         autoOnOffMenu: {
@@ -1071,6 +1223,7 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                 _settingsBeforeUpdate: null,
                 openedIdxArray: [],
                 currentIdx: 0,
+                timerBeforeClose: (30 * 60),
             },
             options: {
                 autoON: [
