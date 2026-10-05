@@ -39,6 +39,11 @@ export interface DisplayOtherIndication {
     };
 
 
+    EQ?: {
+        on: boolean;
+        activePreset: "FLAT" | "DYNAMIC" | "NATURAL" | "BASS BOOST" | "VOCAL BOOST" | "CUSTOM" | null;
+    }
+
 }
 
 export type DisplayMainIndication = {
@@ -459,10 +464,10 @@ export default function Display({
                 <tspan x="0" dy="0">ELEVATOR</tspan>
             </text>
 
-            <g transform="translate(20,0)">
+            <g transform="translate(55,15)">
                 <path d="M496.48809,255.94712v-4.7674h2.21062l0.81818,1.0878l4.0031,-0.02362v3.70323z" fill={staticColor(otherIndication?.RND?.folder)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
-                <path d="M496.48809,262.88809v-4.7674h2.21062l0.81818,1.0878l4.0031,-0.02361v3.70323z" fill={staticColor(otherIndication?.RPT?.folder)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
-                <g>
+                <path d="M536.48809,255.94712v-4.7674h2.21062l0.81818,1.0878l4.0031,-0.02361v3.70323z" fill={staticColor(otherIndication?.RPT?.folder)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
+                <g transform="translate(40,-6.04094999999998)">
                     <path d="M488.05462,261.98807l1.02217,-4.13512h3.94926l-0.74339,4.04172" fill="none" stroke={staticColor(otherIndication?.RPT?.track)} strokeWidth="0.75" strokeLinecap="round" />
                     <path d="M485.77044,261.6409c0,-0.75628 0.61308,-1.36937 1.36936,-1.36937c0.75627,0 1.36937,0.61309 1.36937,1.36937c0,0.75628 -0.61309,1.36935 -1.36937,1.36935c-0.75627,0 -1.36936,-0.61308 -1.36936,-1.36935z" fill={staticColor(otherIndication?.RPT?.track)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
                     <path d="M490.0095,261.6409c0,-0.75628 0.61308,-1.36937 1.36936,-1.36937c0.75627,0 1.36935,0.61309 1.36935,1.36937c0,0.75628 -0.61308,1.36935 -1.36935,1.36935c-0.75627,0 -1.36936,-0.61308 -1.36936,-1.36935z" fill={staticColor(otherIndication?.RPT?.track)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
@@ -470,7 +475,7 @@ export default function Display({
                 <text transform="translate(472.64754,255.03158) scale(0.12842,0.12842)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.RND?.on)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                     <tspan x="0" dy="0">RND</tspan>
                 </text>
-                <text transform="translate(472.64754,261.97256) scale(0.12842,0.12842)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.RPT?.on)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                <text transform="translate(512.64754,255.03158) scale(0.12842,0.12842)" fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.RPT?.on)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                     <tspan x="0" dy="0">RPT</tspan>
                 </text>
                 <g>
@@ -491,6 +496,78 @@ export default function Display({
                 <path d="M474.36966,274.24608l-5.69331,-2.98804l5.68387,-3.00878" />
                 <path d="M468.60156,274.24608l-5.69333,-2.98804l5.68387,-3.00878" />
                 <path d="M462.83346,274.24608l-5.69333,-2.98804l5.68387,-3.00878" />
+            </g>
+
+            <g strokeLinecap="butt" transform="translate(-185, -72) scale(1.28)">
+                <g>
+                    <g>
+                        <text transform="translate(542.96608,257.20601) scale(0.1014,0.1014)"
+                            fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.EQ?.activePreset === 'FLAT')} stroke="none"
+                            strokeWidth="1"
+                            fontFamily="&quot;ヒラギノ角ゴ Pro W3&quot;, &quot;Hiragino Kaku Gothic Pro&quot;, Osaka, &quot;メイリオ&quot;, Meiryo, &quot;ＭＳ Ｐゴシック&quot;, &quot;MS PGothic&quot;"
+                            fontWeight="normal" textAnchor="start"><tspan x="0" dy="0">FLAT</tspan></text>
+                        <path d="M541.78002,258.2464v-4.85288h11.88957v4.85288z" fill="none"
+                            stroke={staticColor(otherIndication?.EQ?.activePreset === 'FLAT')} strokeWidth="0.5" />
+                    </g>
+                    <g>
+                        <text transform="translate(659.39811,257.20601) scale(0.1014,0.1014)"
+                            fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.EQ?.activePreset === 'CUSTOM')} stroke="none"
+                            strokeWidth="1"
+                            fontFamily="&quot;ヒラギノ角ゴ Pro W3&quot;, &quot;Hiragino Kaku Gothic Pro&quot;, Osaka, &quot;メイリオ&quot;, Meiryo, &quot;ＭＳ Ｐゴシック&quot;, &quot;MS PGothic&quot;"
+                            fontWeight="normal" textAnchor="start"><tspan x="0" dy="0">USER</tspan></text>
+                        <path d="M658.21205,258.2464v-4.85288h12.52119v4.85288z" fill="none"
+                            stroke={staticColor(otherIndication?.EQ?.activePreset === 'CUSTOM')} strokeWidth="0.5" />
+                    </g>
+                    <g>
+                        <text transform="translate(556.60379,257.20601) scale(0.1014,0.1014)"
+                            fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.EQ?.activePreset === 'NATURAL')} stroke="none"
+                            strokeWidth="1"
+                            fontFamily="&quot;ヒラギノ角ゴ Pro W3&quot;, &quot;Hiragino Kaku Gothic Pro&quot;, Osaka, &quot;メイリオ&quot;, Meiryo, &quot;ＭＳ Ｐゴシック&quot;, &quot;MS PGothic&quot;"
+                            fontWeight="normal" textAnchor="start"><tspan x="0" dy="0">NATURAL</tspan></text>
+                        <path d="M555.41772,258.2464v-4.85288h19.98092v4.85288z" fill="none"
+                            stroke={staticColor(otherIndication?.EQ?.activePreset === 'NATURAL')} strokeWidth="0.5" />
+                    </g>
+                    <g>
+                        <text transform="translate(578.28694,257.20601) scale(0.1014,0.1014)"
+                            fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.EQ?.activePreset === 'DYNAMIC')} stroke="none"
+                            strokeWidth="1"
+                            fontFamily="&quot;ヒラギノ角ゴ Pro W3&quot;, &quot;Hiragino Kaku Gothic Pro&quot;, Osaka, &quot;メイリオ&quot;, Meiryo, &quot;ＭＳ Ｐゴシック&quot;, &quot;MS PGothic&quot;"
+                            fontWeight="normal" textAnchor="start"><tspan x="0" dy="0">DYNAMIC</tspan></text>
+                        <path d="M577.10087,258.2464v-4.85288h19.55507v4.85288z" fill="none"
+                            stroke={staticColor(otherIndication?.EQ?.activePreset === 'DYNAMIC')} strokeWidth="0.5" />
+                    </g>
+                    <g>
+                        <text transform="translate(599.45906,257.20601) scale(0.1014,0.1014)"
+                            fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.EQ?.activePreset === 'BASS BOOST')} stroke="none"
+                            strokeWidth="1"
+                            fontFamily="&quot;ヒラギノ角ゴ Pro W3&quot;, &quot;Hiragino Kaku Gothic Pro&quot;, Osaka, &quot;メイリオ&quot;, Meiryo, &quot;ＭＳ Ｐゴシック&quot;, &quot;MS PGothic&quot;"
+                            fontWeight="normal" textAnchor="start"><tspan x="0" dy="0">BASS BOOST</tspan></text>
+                        <path d="M598.27298,258.2464v-4.85288h26.7947v4.85288z" fill="none"
+                            stroke={staticColor(otherIndication?.EQ?.activePreset === 'BASS BOOST')} strokeWidth="0.5" />
+                    </g>
+                    <g>
+                        <text transform="translate(627.99577,257.20601) scale(0.1014,0.1014)"
+                            fontSize="40" xmlSpace="preserve" fill={staticColor(otherIndication?.EQ?.activePreset === 'VOCAL BOOST')} stroke="none"
+                            strokeWidth="1"
+                            fontFamily="&quot;ヒラギノ角ゴ Pro W3&quot;, &quot;Hiragino Kaku Gothic Pro&quot;, Osaka, &quot;メイリオ&quot;, Meiryo, &quot;ＭＳ Ｐゴシック&quot;, &quot;MS PGothic&quot;"
+                            fontWeight="normal" textAnchor="start"><tspan x="0" dy="0">VOCAL BOOST</tspan></text>
+                        <path d="M626.8097,258.2464v-4.85288h29.69816v4.85288z" fill="none"
+                            stroke={staticColor(otherIndication?.EQ?.activePreset === 'VOCAL BOOST')} strokeWidth="0.5" />
+                    </g>
+                </g>
+                <g>
+                    <path d="M525.4209,259.83559l3.50732,-8.0754h144.48046l-0.02115,8.0754z"
+                        fill="none" stroke={staticColor(otherIndication?.EQ?.on)} strokeWidth="0.5" />
+                    <g>
+                        <path d="M525.4209,259.83559l3.50732,-8.0754h10.90653l-0.01874,8.0754z"
+                            fill={staticColor(otherIndication?.EQ?.on)} stroke={staticColor(otherIndication?.EQ?.on)} strokeWidth="0" />
+                        <text transform="translate(530.60679,257.30095) scale(0.13028,0.13028)"
+                            fontSize="40" xmlSpace="preserve" fill="#000000" stroke="none"
+                            strokeWidth="1"
+                            fontFamily="&quot;ヒラギノ角ゴ Pro W3&quot;, &quot;Hiragino Kaku Gothic Pro&quot;, Osaka, &quot;メイリオ&quot;, Meiryo, &quot;ＭＳ Ｐゴシック&quot;, &quot;MS PGothic&quot;"
+                            fontWeight="normal" textAnchor="start"><tspan x="0" dy="0">EQ</tspan></text>
+                    </g>
+                </g>
             </g>
             {/* <MainIndicator data={data?.[0]} />
             <MainIndicator offset={((26) * 1)} data={data?.[1]} /> */}

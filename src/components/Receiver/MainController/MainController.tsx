@@ -292,7 +292,7 @@ export interface MainControllerSettings {
 
     equalizer: {
         on: boolean;
-        preset: 'FLAT' | 'ROCK' | 'JAZZ' | 'POP' | 'VOCAL' | 'BASS' | 'CUSTOM';
+        preset: "FLAT" | "DYNAMIC" | "NATURAL" | "BASS BOOST" | "VOCAL BOOST" | "CUSTOM";
         bands: {
             low: { frequency: number; gain: number; q: number };
             mid: { frequency: number; gain: number; q: number };
@@ -1214,6 +1214,23 @@ export default function MainController({
 
             audioPlayerRef.current = audio;
 
+            ensureAudioGraph();
+            if (audioContext!.state === 'suspended') {
+                audioContext!.resume().catch(() => { });
+            }
+
+            if (currentSource) {
+                try { currentSource.disconnect(); } catch { }
+                currentSource = null;
+            }
+
+            currentSource = audioContext!.createMediaElementSource(audio);
+            currentSource.connect(lowFilter!);
+
+            applyEQSettings();
+
+            audioPlayerRef.current = audio;
+
             startMetadataPolling(station.url);
 
             audio.addEventListener('waiting', () => {
@@ -1242,11 +1259,8 @@ export default function MainController({
             outputsRef.current.sourceData[2].isBuffering = true;
             outputsRef.current.sourceData[2].isPaused = false;
 
-            // if (outputsRef.current.sourceData[1]) {
-            //     outputsRef.current.sourceData[1].playbackData = undefined;
-            // }
-
             beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+
         };
 
         const selectFolder = (direction: "next" | "prev") => {

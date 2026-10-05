@@ -21,27 +21,27 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
             mid: { frequency: 1000, gain: 0, q: 1.0 },
             high: { frequency: 6000, gain: 0, q: 1.0 },
         },
-        ROCK: {
-            low: { frequency: 100, gain: +5, q: 1.2 },
-            mid: { frequency: 1000, gain: -3, q: 1.5 },
-            high: { frequency: 8000, gain: +4, q: 1.2 },
+        NATURAL: {
+            low: { frequency: 150, gain: +2, q: 1.2 },
+            mid: { frequency: 2000, gain: +6, q: 1.5 },
+            high: { frequency: 15000, gain: +12, q: 3.5 },
         },
-        JAZZ: {
-            low: { frequency: 80, gain: +3, q: 1.0 },
-            mid: { frequency: 800, gain: +2, q: 1.5 },
-            high: { frequency: 6000, gain: +3, q: 1.0 },
+        DYNAMIC: {
+            low: { frequency: 200, gain: +10, q: 3.0 },
+            mid: { frequency: 1500, gain: 0, q: 3.5 },
+            high: { frequency: 12500, gain: +9, q: 2.0 },
         },
-        POP: {
-            low: { frequency: 100, gain: +2, q: 1.0 },
-            mid: { frequency: 2000, gain: +3, q: 1.5 },
-            high: { frequency: 8000, gain: +2, q: 1.2 },
-        },
-        VOCAL: {
+        // POP: {
+        //     low: { frequency: 100, gain: +2, q: 1.0 },
+        //     mid: { frequency: 2000, gain: +3, q: 1.5 },
+        //     high: { frequency: 8000, gain: +2, q: 1.2 },
+        // },
+        "VOCAL BOOST": {
             low: { frequency: 100, gain: -4, q: 1.0 },
             mid: { frequency: 2500, gain: +6, q: 1.8 },
             high: { frequency: 8000, gain: +2, q: 1.0 },
         },
-        BASS: {
+        "BASS BOOST": {
             low: { frequency: 80, gain: +8, q: 1.5 },
             mid: { frequency: 1000, gain: -2, q: 1.0 },
             high: { frequency: 6000, gain: 0, q: 1.0 },
@@ -549,75 +549,201 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                         },
                         {
                             type: "property",
-                            label: "PRESET",
+                            label: "EQ MODE SELECT",
                             values: [
-                                { label: "FLAT", shortPropName: "PRE", onSelect: s => applyPreset(s, 'FLAT'), reference: s => s.equalizer.preset === 'FLAT' },
-                                { label: "ROCK", shortPropName: "PRE", onSelect: s => applyPreset(s, 'ROCK'), reference: s => s.equalizer.preset === 'ROCK' },
-                                { label: "JAZZ", shortPropName: "PRE", onSelect: s => applyPreset(s, 'JAZZ'), reference: s => s.equalizer.preset === 'JAZZ' },
-                                { label: "POP", shortPropName: "PRE", onSelect: s => applyPreset(s, 'POP'), reference: s => s.equalizer.preset === 'POP' },
-                                { label: "VOCAL", shortPropName: "PRE", onSelect: s => applyPreset(s, 'VOCAL'), reference: s => s.equalizer.preset === 'VOCAL' },
-                                { label: "BASS", shortPropName: "PRE", onSelect: s => applyPreset(s, 'BASS'), reference: s => s.equalizer.preset === 'BASS' },
-                                { label: "CUSTOM", shortPropName: "PRE", onSelect: (s) => ({ ...s, equalizer: { ...s.equalizer, preset: 'CUSTOM' } }), reference: s => s.equalizer.preset === 'CUSTOM' },
+                                { label: "FLAT", shortPropName: "EQ", onSelect: s => applyPreset(s, 'FLAT'), reference: s => s.equalizer.preset === 'FLAT' },
+                                { label: "NATURAL", shortPropName: "EQ", onSelect: s => applyPreset(s, 'NATURAL'), reference: s => s.equalizer.preset === 'NATURAL' },
+                                { label: "DYNAMIC", shortPropName: "EQ", onSelect: s => applyPreset(s, 'DYNAMIC'), reference: s => s.equalizer.preset === 'DYNAMIC' },
+                                // { label: "POP", shortPropName: "EQ", onSelect: s => applyPreset(s, 'POP'), reference: s => s.equalizer.preset === 'POP' },
+                                { label: "VOCAL BOOST", shortPropName: "EQ", onSelect: s => applyPreset(s, 'VOCAL BOOST'), reference: s => s.equalizer.preset === 'VOCAL BOOST' },
+                                { label: "BASS BOOST", shortPropName: "EQ", onSelect: s => applyPreset(s, 'BASS BOOST'), reference: s => s.equalizer.preset === 'BASS BOOST' },
+                                { label: "CUSTOM", shortPropName: "EQ", onSelect: (s) => ({ ...s, equalizer: { ...s.equalizer, preset: 'CUSTOM' } }), reference: s => s.equalizer.preset === 'CUSTOM' },
                             ],
                         },
                         {
                             type: "block",
-                            label: "LOW BAND",
+                            label: "EQ SET",
+
                             innerOptions: [
                                 {
-                                    type: "property",
-                                    label: "LOW FREQ",
-                                    values: [60, 80, 100, 150, 200, 250].map(f => ({
-                                        label: `${f}Hz`,
-                                        shortPropName: "L.F",
-                                        onSelect: (s) => ({
-                                            ...s,
-                                            equalizer: {
-                                                ...s.equalizer,
-                                                preset: 'CUSTOM',
-                                                bands: {
-                                                    ...s.equalizer.bands,
-                                                    low: { ...s.equalizer.bands.low, frequency: f },
-                                                },
-                                            },
-                                        }),
-                                        reference: (s) => s.equalizer.bands.low.frequency === f,
-                                    })),
-                                },
-                                {
-                                    type: "property",
-                                    label: "LOW GAIN",
-                                    values: generateNumberItems(24, -12, 1, (s, val) => ({
-                                        ...s,
-                                        equalizer: {
-                                            ...s.equalizer,
-                                            preset: 'CUSTOM',
-                                            bands: {
-                                                ...s.equalizer.bands,
-                                                low: { ...s.equalizer.bands.low, gain: val },
-                                            },
+                                    type: "block",
+                                    label: "BASS",
+                                    innerOptions: [
+                                        {
+                                            type: "property",
+                                            label: "BASS FREQUENCY",
+                                            values: [60, 80, 100, 150, 200].map(f => ({
+                                                label: `${f} Hz`,
+                                                shortPropName: "BASS",
+                                                onSelect: (s) => ({
+                                                    ...s,
+                                                    equalizer: {
+                                                        ...s.equalizer,
+                                                        preset: 'CUSTOM',
+                                                        bands: {
+                                                            ...s.equalizer.bands,
+                                                            low: { ...s.equalizer.bands.low, frequency: f },
+                                                        },
+                                                    },
+                                                }),
+                                                reference: (s) => s.equalizer.bands.low.frequency === f,
+                                            })),
                                         },
-                                    }), (s, val) => s.equalizer.bands.low.gain === val),
+                                        {
+                                            type: "property",
+                                            label: "BASS LEVEL",
+                                            shortPropName: "BASS LVL",
+                                            values: generateNumberItems(25, -13, 1, (s, val) => ({
+                                                ...s,
+                                                equalizer: {
+                                                    ...s.equalizer,
+                                                    preset: 'CUSTOM',
+                                                    bands: {
+                                                        ...s.equalizer.bands,
+                                                        low: { ...s.equalizer.bands.low, gain: val },
+                                                    },
+                                                },
+                                            }), (s, val) => s.equalizer.bands.low.gain === val),
+                                        },
+                                        {
+                                            type: "property",
+                                            label: "BASS Q",
+                                            values: [0.5, 1.0, 1.5, 2.0, 3.0, 5.0].map(q => ({
+                                                label: `${q.toFixed(1)}`,
+                                                shortPropName: "BASS Q",
+                                                onSelect: (s) => ({
+                                                    ...s,
+                                                    equalizer: {
+                                                        ...s.equalizer,
+                                                        preset: 'CUSTOM',
+                                                        bands: { ...s.equalizer.bands, low: { ...s.equalizer.bands.low, q } },
+                                                    },
+                                                }),
+                                                reference: (s) => s.equalizer.bands.low.q === q,
+                                            })),
+                                        },
+                                    ],
                                 },
                                 {
-                                    type: "property",
-                                    label: "LOW Q",
-                                    values: [0.5, 1.0, 1.5, 2.0, 3.0, 5.0].map(q => ({
-                                        label: `Q${q.toFixed(1)}`,
-                                        shortPropName: "L.Q",
-                                        onSelect: (s) => ({
-                                            ...s,
-                                            equalizer: {
-                                                ...s.equalizer,
-                                                preset: 'CUSTOM',
-                                                bands: { ...s.equalizer.bands, low: { ...s.equalizer.bands.low, q } },
-                                            },
-                                        }),
-                                        reference: (s) => s.equalizer.bands.low.q === q,
-                                    })),
+                                    type: "block",
+                                    label: "MIDDLE",
+                                    innerOptions: [
+                                        {
+                                            type: "property",
+                                            label: "MIDDLE FREQUENCY",
+                                            values: [500, 1000, 1500, 2000, 2500].map(f => ({
+                                                label: `${(f / 1000).toFixed(1)} KHz`,
+                                                shortPropName: "MIDDLE",
+                                                onSelect: (s) => ({
+                                                    ...s,
+                                                    equalizer: {
+                                                        ...s.equalizer,
+                                                        preset: 'CUSTOM',
+                                                        bands: {
+                                                            ...s.equalizer.bands,
+                                                            mid: { ...s.equalizer.bands.mid, frequency: f },
+                                                        },
+                                                    },
+                                                }),
+                                                reference: (s) => s.equalizer.bands.mid.frequency === f,
+                                            })),
+                                        },
+                                        {
+                                            type: "property",
+                                            label: "MIDDLE LEVEL",
+                                            shortPropName: "MIDDLE LVL",
+                                            values: generateNumberItems(25, -13, 1, (s, val) => ({
+                                                ...s,
+                                                equalizer: {
+                                                    ...s.equalizer,
+                                                    preset: 'CUSTOM',
+                                                    bands: {
+                                                        ...s.equalizer.bands,
+                                                        mid: { ...s.equalizer.bands.mid, gain: val },
+                                                    },
+                                                },
+                                            }), (s, val) => s.equalizer.bands.mid.gain === val),
+                                        },
+                                        {
+                                            type: "property",
+                                            label: "MIDDLE Q",
+                                            values: [0.5, 1.0, 1.5, 2.0, 3.0, 5.0].map(q => ({
+                                                label: `${q.toFixed(1)}`,
+                                                shortPropName: "MIDDLE Q",
+                                                onSelect: (s) => ({
+                                                    ...s,
+                                                    equalizer: {
+                                                        ...s.equalizer,
+                                                        preset: 'CUSTOM',
+                                                        bands: { ...s.equalizer.bands, mid: { ...s.equalizer.bands.mid, q } },
+                                                    },
+                                                }),
+                                                reference: (s) => s.equalizer.bands.mid.q === q,
+                                            })),
+                                        },
+                                    ],
                                 },
-                            ],
-                        },
+                                {
+                                    type: "block",
+                                    label: "TREBLE",
+                                    innerOptions: [
+                                        {
+                                            type: "property",
+                                            label: "TREBLE FREQUENCY",
+                                            values: [10000, 12500, 15000, 17500].map(f => ({
+                                                label: `${(f / 1000).toFixed(1)} KHz`,
+                                                shortPropName: "TREBLE",
+                                                onSelect: (s) => ({
+                                                    ...s,
+                                                    equalizer: {
+                                                        ...s.equalizer,
+                                                        preset: 'CUSTOM',
+                                                        bands: {
+                                                            ...s.equalizer.bands,
+                                                            high: { ...s.equalizer.bands.high, frequency: f },
+                                                        },
+                                                    },
+                                                }),
+                                                reference: (s) => s.equalizer.bands.high.frequency === f,
+                                            })),
+                                        },
+                                        {
+                                            type: "property",
+                                            label: "TREBLE LEVEL",
+                                            shortPropName: "TREBLE LVL",
+                                            values: generateNumberItems(25, -13, 1, (s, val) => ({
+                                                ...s,
+                                                equalizer: {
+                                                    ...s.equalizer,
+                                                    preset: 'CUSTOM',
+                                                    bands: {
+                                                        ...s.equalizer.bands,
+                                                        high: { ...s.equalizer.bands.high, gain: val },
+                                                    },
+                                                },
+                                            }), (s, val) => s.equalizer.bands.high.gain === val),
+                                        },
+                                        {
+                                            type: "property",
+                                            label: "TREBLE Q",
+                                            values: [0.5, 1.0, 1.5, 2.0, 3.0, 5.0].map(q => ({
+                                                label: `${q.toFixed(1)}`,
+                                                shortPropName: "TREBLE Q",
+                                                onSelect: (s) => ({
+                                                    ...s,
+                                                    equalizer: {
+                                                        ...s.equalizer,
+                                                        preset: 'CUSTOM',
+                                                        bands: { ...s.equalizer.bands, high: { ...s.equalizer.bands.high, q } },
+                                                    },
+                                                }),
+                                                reference: (s) => s.equalizer.bands.high.q === q,
+                                            })),
+                                        },
+                                    ],
+                                },
+                            ]
+                        }
                     ],
                 },
                 {

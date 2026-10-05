@@ -212,7 +212,7 @@ export default function FrontPanel({
     });
 
 
-    const demoTopLeftAnimCallback = useCallback((t: number, startPoint: number = 37) => {
+    const demoTopLeftAnimCallback = useCallback((t: number, startPoint: number = 37, isMinimalAnim?: boolean) => {
         // return String(t).split('')
 
         const segmentMap = [
@@ -238,7 +238,23 @@ export default function FrontPanel({
         //     [2, [6, 7]] // 7 - for empty segment
         // ]
 
-        const animMap = [
+        const animMap = (isMinimalAnim) ? [
+            [2, 0],
+            [2, 0],
+            [3, 0],
+            [3, 1],
+            [3, 2],
+            [3, 3],
+            [2, 3],
+            [1, 3],
+            [1, 4],
+            [1, 5],
+            [1, 6],
+            [2, 0],
+            [1, 7],
+            [1, 7],
+            // [],
+        ] : [
             // [indicator, segment ],
             [2, 0],
             [2, 1],
@@ -258,6 +274,9 @@ export default function FrontPanel({
             [1, 6],
             [2, 6],
             [2, 7],
+
+
+
             // [2, 7],
             // [2, 7],
             // [2, 7],
@@ -622,14 +641,15 @@ export default function FrontPanel({
 
 
     const demoInfo: DemoInfo[] = [
+
         {
             main: "DEMO",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
             otherIndication: [
@@ -693,11 +713,11 @@ export default function FrontPanel({
         {
             main: "CD/DVD",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
         },
@@ -751,37 +771,36 @@ export default function FrontPanel({
                 }
             ],
         },
-        // Проверить демо выше
         {
             main: "BUILT-IN",
             animation: "default",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 12,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
         },
         {
             main: "BLUETOOTH",
             animation: "scroll-left",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    data: (t) => demoTopLeftAnimCallback((t + 7), 0, true),
                 }
             ],
         },
         {
             main: "MODULE",
             animation: "scroll-left",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    data: (t) => demoTopLeftAnimCallback((t + 6), 0, true),
                 }
             ],
         },
@@ -791,31 +810,131 @@ export default function FrontPanel({
             delayBeforeNext: 20,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 6,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    active: (t) => t > 0 && t < 9,
+                    data: (t) => demoTopLeftAnimCallback((t + 5), 0, true),
                 }
             ],
         },
 
+        // {
+        //     main: "READY FOR",
+        //     animation: "default",
+        //     delayBeforeNext: 75,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 12,
+        //             data: (t) => demoTopLeftAnimCallback(t, 12),
+        //         }
+        //     ],
+        // },
+        // {
+        //     main: "BOWSER ELEVATORS",
+        //     animation: "scroll-left",
+        //     delayBeforeNext: 75,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0,
+        //             data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+        //         }
+        //     ],
+        //     otherIndication: [
+        //         {
+        //             active: (t) => t > 0,
+        //             data: (t) => ({
+        //                 Elevator: (t % 60 < 30),
+        //                 topRightData: {
+        //                     ELEVATOR: (t % 60 < 30),
+        //                 },
+        //                 topLeftDecorationLine: true
+        //             })
+        //         },
+        //     ]
+        // },
+        // {
+        //     main: "ELEVATOR",
+        //     animation: "scroll-left",
+        //     delayBeforeNext: 75,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0,
+        //             data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+        //         }
+        //     ],
+        //     otherIndication: [
+        //         {
+        //             active: (t) => t > 0,
+        //             data: (t) => ({
+        //                 Elevator: (t % 60 < 30),
+        //                 topRightData: {
+        //                     ELEVATOR: (t % 60 < 30),
+        //                 },
+        //                 topLeftDecorationLine: true
+        //             })
+        //         },
+        //     ]
+        // },
+        // {
+        //     main: "VIDEO PLAYER",
+        //     animation: "scroll-left",
+        //     delayBeforeNext: 75,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0,
+        //             data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+        //         }
+        //     ],
+        //     otherIndication: [
+        //         {
+        //             active: (t) => t > 0,
+        //             data: (t) => ({
+        //                 Elevator: (t % 60 < 30),
+        //                 topRightData: {
+        //                     ELEVATOR: (t % 60 < 30),
+        //                 },
+        //                 topLeftDecorationLine: true
+        //             })
+        //         },
+        //     ]
+        // },
+        // {
+        //     main: "",
+        //     animation: "scroll-left",
+        //     delayBeforeNext: 20,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0 && t < 6,
+        //             data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+        //         }
+        //     ],
+        //     otherIndication: [
+        //         {
+        //             active: (t) => t > 0,
+        //             data: {
+        //                 topLeftDecorationLine: true
+        //             }
+        //         },
+        //     ]
+        // },
+
         {
             main: "READY FOR",
             animation: "default",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 12,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
         },
         {
             main: "BOWSER ELEVATORS",
             animation: "scroll-left",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    data: (t) => demoTopLeftAnimCallback((t + 7), 0, true),
                 }
             ],
             otherIndication: [
@@ -834,11 +953,11 @@ export default function FrontPanel({
         {
             main: "ELEVATOR",
             animation: "scroll-left",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    data: (t) => demoTopLeftAnimCallback((t + 6), 0, true),
                 }
             ],
             otherIndication: [
@@ -857,11 +976,11 @@ export default function FrontPanel({
         {
             main: "VIDEO PLAYER",
             animation: "scroll-left",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    data: (t) => demoTopLeftAnimCallback((t + 5), 0, true),
                 }
             ],
             otherIndication: [
@@ -883,8 +1002,8 @@ export default function FrontPanel({
             delayBeforeNext: 20,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 6,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    active: (t) => t > 0 && t < 10,
+                    data: (t) => demoTopLeftAnimCallback((t + 4), 0, true),
                 }
             ],
             otherIndication: [
@@ -896,36 +1015,37 @@ export default function FrontPanel({
                 },
             ]
         },
+
         {
             main: "AUTOMATIC",
             animation: "default",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 12,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
         },
         {
             main: "VOLUME",
             animation: "scroll-left",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    data: (t) => demoTopLeftAnimCallback((t + 7), 0, true),
                 }
             ],
         },
         {
             main: "CONTROL",
             animation: "scroll-left",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    data: (t) => demoTopLeftAnimCallback((t + 6), 0, true),
                 }
             ],
         },
@@ -935,8 +1055,8 @@ export default function FrontPanel({
             delayBeforeNext: 20,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 6,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    active: (t) => t > 0 && t < 9,
+                    data: (t) => demoTopLeftAnimCallback((t + 5), 0, true),
                 }
             ],
         },
@@ -973,6 +1093,208 @@ export default function FrontPanel({
                 }
             ],
         },
+
+        {
+            main: "3-BAND",
+            animation: "default",
+            delayBeforeNext: (67 - 25),
+            topLeft: [
+                {
+                    active: (t) => t > 12,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
+                }
+            ],
+            otherIndication: [
+                {
+                    active: (t) => t > 30,
+                    data: (t) => ({
+                        EQ: {
+                            on: true,
+                            activePreset: null,
+                        },
+                        topLeftDecorationLine: true,
+                    })
+                }
+            ]
+        },
+        {
+            main: "PARAMETRIC",
+            animation: "scroll-left",
+            delayBeforeNext: (67 - 25),
+            topLeft: [
+                {
+                    active: (t) => t > 0,
+                    data: (t) => demoTopLeftAnimCallback((t + 7), 0, true),
+                }
+            ],
+            otherIndication: [
+                {
+                    active: (t) => true,
+                    data: (t) => ({
+                        EQ: {
+                            on: true,
+                            activePreset: null,
+                        },
+                        topLeftDecorationLine: true,
+                    })
+                }
+            ]
+        },
+        {
+            main: "APPELEY EQ",
+            animation: "scroll-left",
+            delayBeforeNext: (67 - 25),
+            topLeft: [
+                {
+                    active: (t) => t > 0,
+                    data: (t) => demoTopLeftAnimCallback((t + 6), 0, true),
+                }
+            ],
+            otherIndication: [
+                {
+                    active: (t) => true,
+                    data: (t) => ({
+                        EQ: {
+                            on: true,
+                            activePreset: null,
+                        },
+                        topLeftDecorationLine: true,
+                    })
+                }
+            ]
+        },
+        {
+            main: "",
+            animation: "scroll-left",
+            delayBeforeNext: 20,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 8,
+                    data: (t) => demoTopLeftAnimCallback((t + 5), 0, true),
+                }
+            ],
+        },
+
+        {
+            main: "FLAT",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+            otherIndication: [
+                {
+                    active: (t) => true,
+                    data: (t) => ({
+                        EQ: {
+                            on: true,
+                            activePreset: (t > 40 && (t - 40) % 10 < 5) ? 'FLAT' : null,
+                        },
+                        topLeftDecorationLine: true,
+                    })
+                },
+            ],
+        },
+
+        {
+            main: "NATURAL",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+            otherIndication: [
+                {
+                    active: (t) => true,
+                    data: (t) => ({
+                        EQ: {
+                            on: true,
+                            activePreset: (t > 40 && (t - 40) % 10 < 5) ? 'NATURAL' : null,
+                        },
+                        topLeftDecorationLine: true,
+                    })
+                },
+            ],
+        },
+
+        {
+            main: "DYNAMIC",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+            otherIndication: [
+                {
+                    active: (t) => true,
+                    data: (t) => ({
+                        EQ: {
+                            on: true,
+                            activePreset: (t > 40 && (t - 40) % 10 < 5) ? 'DYNAMIC' : null,
+                        },
+                        topLeftDecorationLine: true,
+                    })
+                },
+            ],
+        },
+
+        {
+            main: "BASS BOOST",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+            otherIndication: [
+                {
+                    active: (t) => true,
+                    data: (t) => ({
+                        EQ: {
+                            on: true,
+                            activePreset: (t > 40 && (t - 40) % 10 < 5) ? 'BASS BOOST' : null,
+                        },
+                        topLeftDecorationLine: true,
+                    })
+                },
+            ],
+        },
+
+        {
+            main: "VOCAL BOOST",
+            animation: "default",
+            delayBeforeNext: 100,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 30,
+                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                }
+            ],
+            otherIndication: [
+                {
+                    active: (t) => true,
+                    data: (t) => ({
+                        EQ: {
+                            on: true,
+                            activePreset: (t > 40 && (t - 40) % 10 < 5) ? 'VOCAL BOOST' : null,
+                        },
+                        topLeftDecorationLine: true,
+                    })
+                },
+            ],
+        },
+
         {
             main: "VARIABLE COLOR",
             animation: "default",
@@ -982,6 +1304,14 @@ export default function FrontPanel({
                     active: (t) => t > 12,
                     data: (t) => demoTopLeftAnimCallback(t, 12),
                 }
+            ],
+            otherIndication: [
+                {
+                    active: (t) => true,
+                    data: {
+                        topLeftDecorationLine: true,
+                    }
+                },
             ],
         },
         {
@@ -1006,14 +1336,15 @@ export default function FrontPanel({
                 }
             ],
         },
+
         {
             main: "APPEL THEME",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
             indicationColor: {
@@ -1024,11 +1355,11 @@ export default function FrontPanel({
         {
             main: "ORANGEULYA THEME",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
             indicationColor: {
@@ -1039,11 +1370,11 @@ export default function FrontPanel({
         {
             main: "ROZULYA THEME",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
             indicationColor: {
@@ -1054,11 +1385,11 @@ export default function FrontPanel({
         {
             main: "INVERTIK THEME",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
             indicationColor: {
@@ -1069,11 +1400,11 @@ export default function FrontPanel({
         {
             main: "LASERIK THEME",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
             indicationColor: {
@@ -1084,11 +1415,11 @@ export default function FrontPanel({
         {
             main: "LAVULYA THEME",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
             indicationColor: {
@@ -1099,11 +1430,11 @@ export default function FrontPanel({
         {
             main: "ZUBULYA THEME",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
             indicationColor: {
@@ -1114,11 +1445,11 @@ export default function FrontPanel({
         {
             main: "INV_ROBOTS THEME",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
             indicationColor: {
@@ -1127,16 +1458,126 @@ export default function FrontPanel({
             }
         },
         // {
-        //     main: "POWER ON/OFF",
-        //     animation: "scroll-left",
-        //     delayBeforeNext: 115,
+        //     main: "APPEL THEME",
+        //     animation: "default",
+        //     delayBeforeNext: 100,
         //     topLeft: [
         //         {
-        //             active: (t) => t > 0,
-        //             data: demoTopLeftAnimCallback,
+        //             active: (t) => t > 0 && t < 30,
+        //             data: (t) => demoTopLeftAnimCallback(t, 12),
         //         }
         //     ],
+        //     indicationColor: {
+        //         display: '#ffff00',
+        //         buttons: '#00ff55'
+        //     }
         // },
+        // {
+        //     main: "ORANGEULYA THEME",
+        //     animation: "default",
+        //     delayBeforeNext: 100,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0 && t < 30,
+        //             data: (t) => demoTopLeftAnimCallback(t, 12),
+        //         }
+        //     ],
+        //     indicationColor: {
+        //         display: '#88ff00',
+        //         buttons: '#ff9900'
+        //     }
+        // },
+        // {
+        //     main: "ROZULYA THEME",
+        //     animation: "default",
+        //     delayBeforeNext: 100,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0 && t < 30,
+        //             data: (t) => demoTopLeftAnimCallback(t, 12),
+        //         }
+        //     ],
+        //     indicationColor: {
+        //         display: '#ff00c8',
+        //         buttons: '#ffee00'
+        //     }
+        // },
+        // {
+        //     main: "INVERTIK THEME",
+        //     animation: "default",
+        //     delayBeforeNext: 100,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0 && t < 30,
+        //             data: (t) => demoTopLeftAnimCallback(t, 12),
+        //         }
+        //     ],
+        //     indicationColor: {
+        //         display: '#00ff55',
+        //         buttons: '#ffff00'
+        //     }
+        // },
+        // {
+        //     main: "LASERIK THEME",
+        //     animation: "default",
+        //     delayBeforeNext: 100,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0 && t < 30,
+        //             data: (t) => demoTopLeftAnimCallback(t, 12),
+        //         }
+        //     ],
+        //     indicationColor: {
+        //         display: '#00fff2',
+        //         buttons: '#0044ff'
+        //     }
+        // },
+        // {
+        //     main: "LAVULYA THEME",
+        //     animation: "default",
+        //     delayBeforeNext: 100,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0 && t < 30,
+        //             data: (t) => demoTopLeftAnimCallback(t, 12),
+        //         }
+        //     ],
+        //     indicationColor: {
+        //         display: '#ffa600',
+        //         buttons: '#ffd000'
+        //     }
+        // },
+        // {
+        //     main: "ZUBULYA THEME",
+        //     animation: "default",
+        //     delayBeforeNext: 100,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0 && t < 30,
+        //             data: (t) => demoTopLeftAnimCallback(t, 12),
+        //         }
+        //     ],
+        //     indicationColor: {
+        //         display: '#ffffff',
+        //         buttons: '#afafaf'
+        //     }
+        // },
+        // {
+        //     main: "INV_ROBOTS THEME",
+        //     animation: "default",
+        //     delayBeforeNext: 100,
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0 && t < 30,
+        //             data: (t) => demoTopLeftAnimCallback(t, 12),
+        //         }
+        //     ],
+        //     indicationColor: {
+        //         display: '#ff0000',
+        //         buttons: '#ff0000'
+        //     }
+        // },
+
 
     ];
 
@@ -1361,19 +1802,36 @@ export default function FrontPanel({
             updateTimer = 0;
         }
 
-        const animateScrollingText = (animT: number, data: string, returnCallback: () => void) => {
+        const animateScrollingText = (animT: number, data: string, returnCallback: () => void, scrollSpeedUp?: boolean) => {
             let dispTxt = data;
+
+
+            // if (scrollSpeedUp) {
+
+            //     if (dispTxt.length > 16) {
+            //         if ((animT % 10 === 0)) {
+            //             scrollPosition++;
+            //             if (scrollPosition > (
+            //                 dispTxt.length
+            //             )) returnCallback();
+            //         }
+            //     } else returnCallback();
+
+            // } else {
 
             if (animT < (60 * 5)) {
                 scrollPosition = 0;
             } else if (dispTxt.length > 16) {
-                if (((animT - (60 * 5)) % 15 === 0)) {
+                if (((animT - (60 * 5)) % (scrollSpeedUp ? 10 : 15) === 0)) {
                     scrollPosition++;
                     if (scrollPosition > (
                         dispTxt.length
                     )) returnCallback();
                 }
             } else returnCallback();
+
+            // }
+
 
 
             updateDisplayData({
@@ -1799,6 +2257,8 @@ export default function FrontPanel({
         let dispBtnTimer = 0;
         let dynamicDisplayTimer = 0;
 
+        let scrollSpeedUp: boolean = false;
+
         const processDispClick = () => {
             beeper.singleBeep(1, mainOutputs.settings.audio.beeper.volume, mainOutputs.settings.audio.beeper.on);
             if (isDemoAnimating) resetDemo();
@@ -2106,24 +2566,22 @@ export default function FrontPanel({
                             )) {
                                 if (mainOutputs.currentSource === 1) {
                                     if (displayMode.folder === null || displayMode.track === null) {
-                                        // if (animTimer < (60 * 5)) animTimer = (60 * 5);
-                                        // alert('fast-scroll')
-                                        animTimer += 1;
+                                        scrollSpeedUp = true;
+                                        // alert(dispDataScrollSpeed);
                                     }
                                 } else if (mainOutputs.currentSource === 2) {
                                     if (displayMode.track === 1) {
-                                        // if (animTimer < (60 * 5)) animTimer = (60 * 5);
-                                        // alert('fast-scroll')
-                                        animTimer += 1;
+                                        scrollSpeedUp = true;
+                                        // alert(dispDataScrollSpeed);
                                     }
                                 }
-                                // processDispClick();
                             }
 
                             dispBtnTimer++;
 
                             clickedButton = 'disp';
                         } else if (clickedButton === 'disp') {
+                            scrollSpeedUp = false;
                             if (dispBtnTimer < 45) {
                                 processDispClick();
                             }
@@ -2286,7 +2744,7 @@ export default function FrontPanel({
                                                 animTimer = 0;
                                             });
 
-                                            animTimer++;
+                                            animTimer += 1;
                                         }
 
 
@@ -2409,7 +2867,7 @@ export default function FrontPanel({
                                                 ), () => {
                                                     animTimer = 0;
                                                     displayMode.folder = sourceData.playbackData?.folderNumber || 0;
-                                                });
+                                                }, (scrollSpeedUp));
 
                                                 updateDisplayData({
                                                     ...displayDataRef.current,
@@ -2424,7 +2882,7 @@ export default function FrontPanel({
                                                     }
                                                 });
 
-                                                animTimer++;
+                                                animTimer += 1;
 
                                             } else if (displayMode.track === null && trackName) {
 
@@ -2437,7 +2895,7 @@ export default function FrontPanel({
                                                     if (mainOutputs.settings.display.dataDisplay.mode === 'DYNAMIC') {
                                                         dynamicDisplayTimer = (mainOutputs.settings.display.dataDisplay.interval * 60);
                                                     }
-                                                });
+                                                }, (scrollSpeedUp));
 
                                                 updateDisplayData({
                                                     ...displayDataRef.current,
@@ -2453,7 +2911,7 @@ export default function FrontPanel({
                                                     }
                                                 });
 
-                                                animTimer++;
+                                                animTimer += 1;
 
                                             } else {
                                                 if (displayMode.default) {
@@ -2644,7 +3102,7 @@ export default function FrontPanel({
 
                                                 animateScrollingText(animTimer, `${radioData.recognition.result}`, () => {
                                                     animTimer = 0;
-                                                });
+                                                }, scrollSpeedUp);
 
                                             }
 
@@ -2741,7 +3199,7 @@ export default function FrontPanel({
                                                                 displayMode.default = true;
                                                                 dynamicDisplayTimer = (mainOutputs.settings.display.dataDisplay.interval * 60);
                                                             }
-                                                        });
+                                                        }, scrollSpeedUp);
                                                         animTimer++;
 
                                                     }
@@ -3107,6 +3565,16 @@ export default function FrontPanel({
 
 
 
+                            updateDisplayData({
+                                ...displayDataRef.current,
+                                otherIndication: {
+                                    ...displayDataRef.current.otherIndication,
+                                    EQ: (mainOutputs.settings.equalizer.on) ? {
+                                        on: true,
+                                        activePreset: mainOutputs.settings.equalizer.preset
+                                    } : undefined,
+                                }
+                            })
                             // if (demoTimer > 0) {
                             //     demoTimer--;
                             // } else {
