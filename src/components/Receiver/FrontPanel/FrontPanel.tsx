@@ -12,6 +12,7 @@ import { parseMyLiftSelectorString } from "@/utils/string";
 import USBSelectModal from "@/components/USBSelectModal/USBSelectModal";
 import { applyColorOffset, brightnessFilter } from "@/utils/color";
 import { InternetRadioStation } from "@/app/actions";
+import AppeleyMediaCenter from "@/components/AppeleyMediaCenter/AppeleyMediaCenter";
 
 interface DisplayData {
     main: DisplayMainIndication[];
@@ -46,7 +47,7 @@ interface DemoInfo {
     delayBeforeNext: number;
 }
 
-export const getCurrentMenuElement = (menuData: MainControllerMenuDefinition, path?: number[]) => {
+export const getCurrentMenuElement = (outputs: MainControllerOutputs, menuData: MainControllerMenuDefinition, path?: number[]) => {
     if (!menuData.navigation.menuOpened) return;
 
 
@@ -56,7 +57,7 @@ export const getCurrentMenuElement = (menuData: MainControllerMenuDefinition, pa
     const currentIdx = menuData.navigation.currentIdx;
     const openedIdxArray = menuData.navigation.openedIdxArray;
 
-    let currentLevel = (menuData.navigation.menuType === 'encoderMenu') ? menuData.encoderMenuOptions : menuData.options;
+    let currentLevel = (menuData.navigation.menuType === 'encoderMenu') ? menuData.encoderMenuOptions.filter(opt => opt.displayCondition ? opt.displayCondition(outputs) : true) : menuData.options.filter(opt => opt.displayCondition ? opt.displayCondition(outputs) : true);
 
     if (openedIdxArray.length === 0) return currentLevel[currentIdx];
 
@@ -179,6 +180,8 @@ export default function FrontPanel({
 
     const [openedModal, setOpenedModal] = useState<'usb-select' | null>(null);
 
+
+
     const handleUSBSelect = () => {
         setOpenedModal('usb-select');
     }
@@ -295,6 +298,82 @@ export default function FrontPanel({
                 directDisplay: true,
                 segments: segmentMap[animMap[idx]?.[1]] || []
             };
+        }
+        return data;
+    }, []);
+
+    const topLeftSpinAnimation = useCallback((timer: number, indicatorNumbers: number[], type: "loading" = "loading") => {
+
+        let startPoint = 0;
+
+        const segmentMap = [
+            [1, 2, 3, 4],
+            [19, 20, 21],
+            [28, 29, 30],
+            [9, 10, 11, 12],
+            [22, 23, 24],
+            [13, 14, 15],
+            [1, 2, 3, 4]
+        ];
+
+
+        let data: DisplayMainIndication[] = ["", "", "", "", ""];
+        const offset = Math.floor((timer - startPoint) / 1);
+
+
+        const animMap = (type === 'loading') ? [
+            [0, 0],
+            [0, 1],
+            [0, 2],
+            [0, 3],
+            [0, 4],
+            [0, 5],
+            [0, 6],
+            // [indicatorNumber, 0],
+            // [],
+        ] : [
+            // [indicator, segment ],
+            [2, 0],
+            [2, 1],
+            [2, 2],
+            [2, 3],
+            [2, 4],
+            [2, 5],
+            [2, 6],
+            [3, 0],
+            [3, 1],
+            [3, 2],
+            [3, 3],
+            [2, 3],
+            [1, 3],
+            [1, 4],
+            [1, 5],
+            [1, 6],
+            [2, 6],
+            [2, 7],
+
+
+
+            // [2, 7],
+            // [2, 7],
+            // [2, 7],
+            // [2, 7],
+            // [2, 7],
+            // [2, 7],
+            // [2, 7],
+        ]
+
+        const idx = (offset % animMap.length);
+        // const idx = ((offset % animMap.length) + animMap.length) % animMap.length;
+        // const currentIndicator = animMap[idx]?.[0];
+
+        if (timer > startPoint/* && currentIndicator !== undefined*/) {
+            indicatorNumbers.forEach(num => {
+                data[num] = {
+                    directDisplay: true,
+                    segments: segmentMap[animMap[idx]?.[1]] || []
+                };
+            })
         }
         return data;
     }, []);
@@ -1802,7 +1881,7 @@ export default function FrontPanel({
             updateTimer = 0;
         }
 
-        const animateScrollingText = (animT: number, data: string, returnCallback: () => void, scrollSpeedUp?: boolean) => {
+        const animateScrollingText = (animT: number, data: string, returnCallback: () => void, scrollSpeedUp?: boolean, infoType: "main" | "topLeft" = "main") => {
             let dispTxt = data;
 
 
@@ -1821,7 +1900,7 @@ export default function FrontPanel({
 
             if (animT < (60 * 5)) {
                 scrollPosition = 0;
-            } else if (dispTxt.length > 16) {
+            } else if (dispTxt.length > (infoType === 'main' ? 16 : 5)) {
                 if (((animT - (60 * 5)) % (scrollSpeedUp ? 10 : 15) === 0)) {
                     scrollPosition++;
                     if (scrollPosition > (
@@ -1836,8 +1915,45 @@ export default function FrontPanel({
 
             updateDisplayData({
                 ...displayDataRef.current,
-                main: dispTxt.slice(scrollPosition).split(''),
+                [infoType]: dispTxt.slice(scrollPosition).split(''),
             });
+
+            // animT++;
+        }
+
+        const returnAnimatedScrollingText = (animT: number, data: string, returnCallback: () => void, scrollSpeedUp?: boolean, displayLength: number = 16) => {
+            let dispTxt = data;
+
+
+            // if (scrollSpeedUp) {
+
+            //     if (dispTxt.length > 16) {
+            //         if ((animT % 10 === 0)) {
+            //             scrollPosition++;
+            //             if (scrollPosition > (
+            //                 dispTxt.length
+            //             )) returnCallback();
+            //         }
+            //     } else returnCallback();
+
+            // } else {
+
+            if (animT < (60 * 5)) {
+                scrollPosition = 0;
+            } else if (dispTxt.length > (displayLength || 16)) {
+                if (((animT - (60 * 5)) % (scrollSpeedUp ? 10 : 15) === 0)) {
+                    scrollPosition++;
+                    if (scrollPosition > (
+                        dispTxt.length
+                    )) returnCallback();
+                }
+            } else returnCallback();
+
+            // }
+
+
+
+            return dispTxt.slice(scrollPosition).split('');
 
             // animT++;
         }
@@ -2335,6 +2451,86 @@ export default function FrontPanel({
             }
         }
 
+        let menuMainScrollTimer = 0;
+
+        const processMenuDisplay = (menuObject: MainControllerExtendedMenu<string, any>, modifyTopLeftInfo?: boolean) => {
+            let mainText: string[] = [];
+            if (menuObject.navigation.menuOpened) {
+
+                const navigation = menuObject.navigation;
+                const currentIdx = navigation.currentIdx;
+
+                // const currentElement = mainOutputs.menu.options[currentIdx];
+                const currentElement = getCurrentExtendedMenuElement(menuObject);
+
+                const currentValue = (currentElement?.type === 'property' && navigation.isValueSelect) ? (
+                    (
+                        // navigation._inputData?.type === 'time' &&
+                        currentElement.valueType === 'input'
+                    ) ? (
+                        (navigation._inputData?.type === 'time') ? (
+                            navigation._inputData.currentValue.map((e, i) => (
+                                (animTimer % 60 > 30 && i === navigation._inputData?.timeArrayIdx) ? `  ` : String(e).padStart(2, "0")
+                            )).join(':')
+                        ) : ``
+                    ) : (
+                        currentElement.values[navigation.valueIdx || 0]
+                    )
+                ) : undefined;
+
+
+                // autoOnOffMenuTimer++;
+
+
+                if (currentElement) {
+                    let displayText = currentElement.label;
+
+                    if (currentValue) {
+                        if (typeof currentValue === 'string' && navigation._inputData?.type === 'time' && currentElement.type !== 'button') {
+                            displayText = ((currentElement.shortPropName || currentElement.label).length + 5) === 16 ? (
+                                `${currentElement.shortPropName || currentElement.label}${currentValue}`
+                            ) : `${currentElement.shortPropName || currentElement.label} ${currentValue}`
+                        } else if (typeof currentValue !== 'string') {
+                            displayText = `${typeof currentValue.shortPropName === 'string' ? currentValue.shortPropName : currentElement.label} ${currentValue.label}`
+                        }
+                    }
+
+                    updateDisplayData({
+                        main: displayText.length > 16 ? (displayDataRef.current.main) : centerMainText(displayText),
+                        topLeft: (modifyTopLeftInfo) ? (currentValue ? 'SET' : 'MENU').split('') : displayDataRef.current.topLeft,
+                        otherIndication: {
+                            topLeftDecorationLine: true,
+                        }
+                    });
+
+                    if (displayText.length > 16) {
+                        let centered = centerMainText(displayText, 16).join('');
+
+                        let animatedMain = returnAnimatedScrollingText(menuMainScrollTimer, centered, () => menuMainScrollTimer = 0, true);
+
+                        menuMainScrollTimer += 2;
+
+                        mainText = animatedMain;
+
+                        // alert(menuMainScrollTimer);
+                    } else {
+                        mainText = displayText.split('');
+                    }
+
+                    // if (navigation.menuType !== 'main') {
+                    if (modifyTopLeftInfo) animateTopLeftSelection(Math.floor((autoOnOffMenuTimer / 30)));
+                    // }
+                }
+
+            }
+
+            return {
+                main: mainText
+            }
+        }
+
+        let _dispMediaCenter: boolean | undefined = undefined;
+
         const update = () => {
 
             // setDisplayData({
@@ -2463,11 +2659,21 @@ export default function FrontPanel({
                     }
 
                     if (displayAction !== "INIT") {
-                        if (displayingSource !== mainOutputs.currentSource) {
+                        if (displayingSource !== mainOutputs.currentSource && displayAction !== "MEDIA CENTER INTRO") {
                             updateDisplayAction('SOURCE DISP');
                             displayingSource = mainOutputs.currentSource;
                         }
+
+                        if (_dispMediaCenter !== (mainOutputs.appeleyMediaCenter?.isOpened)) {
+                            if (mainOutputs.appeleyMediaCenter?.isOpened && displayAction !== "MEDIA CENTER INTRO") updateDisplayAction('MEDIA CENTER INTRO');
+                            else if (displayAction?.startsWith("MEDIA CENTER")) updateDisplayAction('SOURCE DISP');
+                            _dispMediaCenter = mainOutputs.appeleyMediaCenter?.isOpened;
+                            // alert(displayAction)
+                        }
+
                     }
+
+
 
                     if (displayAction === "INIT") {
 
@@ -2519,6 +2725,32 @@ export default function FrontPanel({
                             main: []
                             // main: mainOutputs.display.mainData?.split('') || []
                         });
+                    } else if (displayAction === 'MEDIA CENTER INTRO') {
+                        if (updateTimer < 100) {
+                            if (typeof mainOutputs.currentSource === 'number') updateDisplayData({
+                                main: centerMainText(
+                                    "MEDIA CENTER"
+                                ),
+                                // main: centerMainText(mainOutputs.currentSource),
+                            });
+                        } else {
+                            if (updateTimer % 5 === 0) {
+                                if (animTimer < 13) animateSourceSelect(animTimer);
+                                else {
+                                    // mainInputs.sourceData[1].allowReading = false;
+                                    // mainInputs.sourceData[2].allowReading = false;
+                                    // if (mainOutputs.currentSource === 1) mainInputs.sourceData[1].allowReading = true;
+                                    // if (mainOutputs.currentSource === 2) mainInputs.sourceData[2].allowReading = true;
+                                    // else {
+                                    // }
+                                    updateDisplayAction(`MEDIA CENTER`);
+                                    animTimer = 0;
+                                }
+                                animTimer++;
+                            }
+                        }
+
+
                     } else if (displayAction === 'SOURCE DISP') {
                         if (updateTimer < 100) {
                             if (typeof mainOutputs.currentSource === 'number') updateDisplayData({
@@ -2544,7 +2776,7 @@ export default function FrontPanel({
                         }
 
 
-                    } else if (displayAction?.startsWith('MAIN INFO')) {
+                    } else if (displayAction?.startsWith('MAIN INFO') || displayAction === 'MEDIA CENTER') {
 
                         if (mainOutputs.sourceData[1].dataToLoad && mainOutputs.currentSource === 1) {
                             displayMode.playTrackAfterSrcSelect = true;
@@ -2678,6 +2910,27 @@ export default function FrontPanel({
                                     otherIndication: {}
                                 });
                                 // }
+                            } else if (displayAction === 'MEDIA CENTER') {
+
+                                // alert(123)
+                                // updateDisplayData({
+                                //     main: centerMainText("OPEN WINDOW", 16),
+                                //     topLeft: [],
+                                // });
+
+                                let topLeft = returnAnimatedScrollingText(animTimer, 'MEDIA-CENTER', () => animTimer = 0, false, 5 /*'topLeft'*/);
+
+                                let { main } = processMenuDisplay(mainOutputs.appeleyMediaCenterMenu);
+
+                                animTimer += 4;
+
+                                updateDisplayData({
+                                    ...displayDataRef.current,
+                                    main,
+                                    topLeft,
+                                })
+                                // alert(animTimer)
+
                             } else {
                                 if (mainOutputs.currentSource === 0) {
                                     // CD/DVD
@@ -3075,36 +3328,94 @@ export default function FrontPanel({
 
                                         if (radioData.recognition) {
 
-                                            if (radioData.recognition.inProgress) {
+                                            if (radioData.recognition.phase === 'WAITING' && radioData.recognition.downloadTo === 'local') {
+
                                                 updateDisplayData({
-                                                    main: centerMainText((updateTimer % 60 < 30) ? "RECOGNITION" : ""),
-                                                    topLeft: "RADIO".split(''),
-                                                    otherIndication: {}
-                                                });
-                                            } else if (radioData.recognition.error) {
-                                                updateDisplayData({
-                                                    main: [],
-                                                    topLeft: "RADIO".split(''),
-                                                    otherIndication: {}
+                                                    main: centerMainText(`SELECT FOLDER`),
+                                                    topLeft: [],
+                                                    otherIndication: { topLeftDecorationLine: true },
                                                 });
 
-                                                animateScrollingText(animTimer, `RECOGNITION ERROR: ${radioData.recognition.error}`, () => {
-                                                    animTimer = 0;
+                                                animateTopLeftSelection(updateTimer / 40);
+
+                                            } else if (radioData.recognition?.phase === 'CAPTURING') {
+                                                const elapsed = Date.now() - (radioData.recognition.startedAt ?? Date.now());
+                                                const seconds = Math.floor(elapsed / 1000);
+                                                const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
+                                                const ss = String(seconds % 60).padStart(2, '0');
+
+
+                                                if (updateTimer % 4 === 0) {
+                                                    animTimer++;
+                                                }
+
+                                                updateDisplayData({
+                                                    main: centerMainText(`${(updateTimer % 60 < 30) ? "CAPTURING" : "         "}  ${mm}:${ss}`),
+                                                    topLeft: topLeftSpinAnimation(animTimer, [1, 2, 3]),
+                                                    otherIndication: { topLeftDecorationLine: true },
                                                 });
+                                            } else if (radioData.recognition?.phase === 'DOWNLOADING') {
+                                                animTimer = 0;
+                                                if (updateTimer % 60 < 30) {
+                                                    updateDisplayData({ main: centerMainText('DOWNLOADING') });
+                                                } else updateDisplayData({ main: [] });
+                                            } else if (radioData.recognition?.phase === 'DETECTING') {
+                                                if (updateTimer % 60 < 30) {
+                                                    updateDisplayData({ main: centerMainText('DETECTING') });
+                                                } else updateDisplayData({ main: [] });
+                                            } else if (radioData.recognition?.phase === 'DONE') {
+                                                updateDisplayData({
+                                                    main: [],
+                                                    topLeft: [],
+                                                    otherIndication: {
+                                                        topLeftDecorationLine: true,
+                                                    }
+                                                    // topLeft: 'ID'.split(''),
+                                                });
+                                                // resetDemo();
+                                                animateScrollingText(
+                                                    animTimer,
+                                                    `File Saved To Selected Folder on Your Device! Press Encoder To Exit!`,
+                                                    // `${radioData.recognition.artist} - ${radioData.recognition.title}`,
+                                                    () => animTimer = 0,
+                                                    // true
+                                                );
+
+                                                animateTopLeftSelection(updateTimer / 30);
                                                 animTimer++;
-                                            } else if (radioData.recognition.result) {
-
-                                                updateDisplayData({
-                                                    main: [],
-                                                    topLeft: "RADIO".split(''),
-                                                    otherIndication: {}
-                                                });
-
-                                                animateScrollingText(animTimer, `${radioData.recognition.result}`, () => {
-                                                    animTimer = 0;
-                                                }, scrollSpeedUp);
-
+                                            } else if (radioData.recognition?.phase === 'ERROR') {
+                                                updateDisplayData({ main: centerMainText('ID ERROR') });
                                             }
+                                            // if (radioData.recognition.inProgress) {
+                                            //     updateDisplayData({
+                                            //         main: centerMainText((updateTimer % 60 < 30) ? "RECOGNITION" : ""),
+                                            //         topLeft: "RADIO".split(''),
+                                            //         otherIndication: {}
+                                            //     });
+                                            // } else if (radioData.recognition.error) {
+                                            //     updateDisplayData({
+                                            //         main: [],
+                                            //         topLeft: "RADIO".split(''),
+                                            //         otherIndication: {}
+                                            //     });
+
+                                            //     animateScrollingText(animTimer, `RECOGNITION ERROR: ${radioData.recognition.error}`, () => {
+                                            //         animTimer = 0;
+                                            //     });
+                                            //     animTimer++;
+                                            // } else if (radioData.recognition.result) {
+
+                                            //     updateDisplayData({
+                                            //         main: [],
+                                            //         topLeft: "RADIO".split(''),
+                                            //         otherIndication: {}
+                                            //     });
+
+                                            //     animateScrollingText(animTimer, `${radioData.recognition.result}`, () => {
+                                            //         animTimer = 0;
+                                            //     }, scrollSpeedUp);
+
+                                            // }
 
                                         } else {
                                             if (radioData.error) {
@@ -3515,7 +3826,7 @@ export default function FrontPanel({
                                 const currentIdx = navigation.currentIdx;
 
                                 // const currentElement = mainOutputs.menu.options[currentIdx];
-                                const currentElement = getCurrentMenuElement(mainOutputs.menu);
+                                const currentElement = getCurrentMenuElement(mainOutputs, mainOutputs.menu);
 
                                 const currentValue = (currentElement?.type === 'property' && navigation.isValueSelect) ? (
                                     (
@@ -3660,7 +3971,7 @@ export default function FrontPanel({
                 xmlns="http://www.w3.org/2000/svg"
                 xmlnsXlink="http://www.w3.org/1999/xlink" width="865.18414" height="247.45516" viewBox="0,0,865.18414,247.45516">
                 <defs>
-                    <radialGradient cx="225.48171" cy="288.92739" r="63.40386" gradientUnits="userSpaceOnUse" id="color-1">
+                    <radialGradient cx="250.48171" cy="288.92739" r="63.40386" gradientUnits="userSpaceOnUse" id="color-1">
                         <stop offset="0" stopColor="#ffffff" />
                         <stop offset="1" stopColor="#b8b8b8" />
                     </radialGradient>
@@ -3678,7 +3989,9 @@ export default function FrontPanel({
                         <path d="M91.77192,151.50024h785.78528v55.25162h-741.83367z" fill="#bebebe" stroke="none" strokeWidth="1" strokeLinecap="butt" />
 
                         {/* <!-- Main Base Part --> */}
-                        <path d="M270.65299,391.8073l-86.0389,-0.01116l-53.7026,-34.51702l-118.28993,-0.08201l-0.14155,-117.06504l118.58924,-0.38195l52.83588,-33.00386l141.80905,-0.02686h481.49617l70.30745,-55.19783l-0.08481,240.15153l-70.22262,-34.48139l-480.78177,-0.7144z" fill="#7e7e7e" stroke="none" strokeWidth="0" strokeLinecap="butt" />
+                        <path
+                            d="M286.98668,391.80738l-82.94976,-0.01116l-53.7026,-34.51702l-137.71271,-0.08201l-0.14155,-117.06504l138.01202,-0.38195l52.83588,-33.00386l122.38627,-0.02686h481.49617l70.30745,-55.19783l-0.08481,240.15153l-70.22262,-34.48139l-464.44813,-0.7144z"
+                            fill="#7e7e7e" stroke="none" strokeWidth="0" strokeLinecap="butt" />
 
 
 
@@ -4167,121 +4480,174 @@ export default function FrontPanel({
                             </text>
                         </g>
 
-                        <path d="M32.61318,340.10761v-84.7712h84.77119v84.7712z" fill="#2b3439" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="butt" />
-                        <path d="M33.38338,339.0635l41.90378,-41.90377l41.25712,41.25712" fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="round" />
-                        <path d="M116.97138,256.16127l-41.25711,41.25712l-41.90377,-41.90377" fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="round" />
+                        {/* Track/Folder Button Controller Group  */}
+                        <g className="front-panel__contoller-btn-group" transform="translate(38, 0)">
+                            <path d="M32.61318,340.10761v-84.7712h84.77119v84.7712z" fill="#2b3439" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="butt" />
+                            <path d="M33.38338,339.0635l41.90378,-41.90377l41.25712,41.25712" fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="round" />
+                            <path d="M116.97138,256.16127l-41.25711,41.25712l-41.90377,-41.90377" fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="round" />
 
-                        {/* <!-- Next Folder Button --> */}
-                        <g
-                            strokeWidth="0"
-                            strokeLinecap="butt"
-                            className="front-panel__button"
-                            {...buttonHandlers('nextFolder')}
-                        // onMouseDown={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     nextFolder: true
-                        // }}
+                            {/* <!-- Next Folder Button --> */}
+                            <g
+                                strokeWidth="0"
+                                strokeLinecap="butt"
+                                className="front-panel__button"
+                                {...buttonHandlers('nextFolder')}
+                            // onMouseDown={() => mainInputs.buttons = {
+                            //     ...mainInputs.buttons,
+                            //     nextFolder: true
+                            // }}
 
-                        // onMouseUp={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     nextFolder: false
-                        // }}
+                            // onMouseUp={() => mainInputs.buttons = {
+                            //     ...mainInputs.buttons,
+                            //     nextFolder: false
+                            // }}
 
-                        // onMouseLeave={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     nextFolder: false
-                        // }}
-                        >
-                            <path d="M32.61318,255.33642h84.77119l-41.93724,41.5235z" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
-                            <path d="M68.05183,278.86107l7.03489,-15.60482l6.859,15.60482z" fill="#ffffff" stroke="#e6e6e6" />
-                        </g>
-                        {/* <!-- Next Track Button --> */}
-                        <g
-                            strokeWidth="0"
-                            strokeLinecap="butt"
-                            className="front-panel__button"
-                            {...buttonHandlers('nextTrack')}
-                        // onMouseDown={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     nextTrack: true
-                        // }}
-
-                        // onMouseUp={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     nextTrack: false
-                        // }}
-
-                        // onMouseLeave={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     nextTrack: false
-                        // }}
-                        >
-                            <path d="M116.97138,254.92343v84.77119l-41.22046,-42.24027z" fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
-                            <path d="M102.30795,291.64505l3.6593,-6.28808l3.5678,6.28808l-3.62331,-3.60625z" fill="#ffffff" stroke="#e6e6e6" />
-                            <g fill="#ffffff" stroke="#e6e6e6">
-                                <path d="M89.56821,294.07748l9.11211,3.66958l-9.11211,3.57783z" />
-                                <path d="M95.89324,294.07748l9.11212,3.66958l-9.11212,3.57783z" />
-                                <path d="M102.21829,294.07748l9.11212,3.66958l-9.11212,3.57783z" />
+                            // onMouseLeave={() => mainInputs.buttons = {
+                            //     ...mainInputs.buttons,
+                            //     nextFolder: false
+                            // }}
+                            >
+                                <path d="M32.61318,255.33642h84.77119l-41.93724,41.5235z" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
+                                <path d="M68.05183,278.86107l7.03489,-15.60482l6.859,15.60482z" fill="#ffffff" stroke="#e6e6e6" />
                             </g>
-                        </g>
-                        {/* <!-- Previous Track Button --> */}
-                        <g
-                            strokeWidth="0"
-                            strokeLinecap="butt"
-                            className="front-panel__button"
-                            {...buttonHandlers('prevTrack')}
-                        // onMouseDown={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     prevTrack: true
-                        // }}
+                            {/* <!-- Next Track Button --> */}
+                            <g
+                                strokeWidth="0"
+                                strokeLinecap="butt"
+                                className="front-panel__button"
+                                {...buttonHandlers('nextTrack')}
+                            // onMouseDown={() => mainInputs.buttons = {
+                            //     ...mainInputs.buttons,
+                            //     nextTrack: true
+                            // }}
 
-                        // onMouseUp={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     prevTrack: false
-                        // }}
+                            // onMouseUp={() => mainInputs.buttons = {
+                            //     ...mainInputs.buttons,
+                            //     nextTrack: false
+                            // }}
 
-                        // onMouseLeave={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     prevTrack: false
-                        // }}
-                        >
-                            <path d="M33.02617,339.69462v-84.77119l41.22046,42.24028z" fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
-                            <path d="M50.75127,285.35697l-3.65929,6.28808l-3.5678,-6.28808l3.62331,3.60624z" fill="#ffffff" stroke="#e6e6e6" />
-                            <g fill="#ffffff" stroke="#e6e6e6">
-                                <path d="M60.89068,301.32489l-9.11212,-3.57783l9.11212,-3.66958z" />
-                                <path d="M54.56564,301.32489l-9.11212,-3.57783l9.11212,-3.66958z" />
-                                <path d="M48.24059,301.32489l-9.11212,-3.57783l9.11212,-3.66958z" />
+                            // onMouseLeave={() => mainInputs.buttons = {
+                            //     ...mainInputs.buttons,
+                            //     nextTrack: false
+                            // }}
+                            >
+                                <path d="M116.97138,254.92343v84.77119l-41.22046,-42.24027z" fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
+                                <path d="M102.30795,291.64505l3.6593,-6.28808l3.5678,6.28808l-3.62331,-3.60625z" fill="#ffffff" stroke="#e6e6e6" />
+                                <g fill="#ffffff" stroke="#e6e6e6">
+                                    <path d="M89.56821,294.07748l9.11211,3.66958l-9.11211,3.57783z" />
+                                    <path d="M95.89324,294.07748l9.11212,3.66958l-9.11212,3.57783z" />
+                                    <path d="M102.21829,294.07748l9.11212,3.66958l-9.11212,3.57783z" />
+                                </g>
                             </g>
-                        </g>
-                        {/* <!-- Previous Folder Button --> */}
-                        <g
-                            strokeWidth="0"
-                            strokeLinecap="butt"
-                            className="front-panel__button"
-                            {...buttonHandlers('prevFolder')}
-                        // onMouseDown={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     prevFolder: true
-                        // }}
+                            {/* <!-- Previous Track Button --> */}
+                            <g
+                                strokeWidth="0"
+                                strokeLinecap="butt"
+                                className="front-panel__button"
+                                {...buttonHandlers('prevTrack')}
+                            // onMouseDown={() => mainInputs.buttons = {
+                            //     ...mainInputs.buttons,
+                            //     prevTrack: true
+                            // }}
 
-                        // onMouseUp={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     prevFolder: false
-                        // }}
+                            // onMouseUp={() => mainInputs.buttons = {
+                            //     ...mainInputs.buttons,
+                            //     prevTrack: false
+                            // }}
 
-                        // onMouseLeave={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     prevFolder: false
-                        // }}
-                        >
-                            <path d="M117.38437,339.28163h-84.77119l42.67506,-41.87264z" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
-                            <path d="M81.94572,317.57596l-6.859,15.60482l-7.03489,-15.60482z" fill="#ffffff" stroke="#e6e6e6" />
+                            // onMouseLeave={() => mainInputs.buttons = {
+                            //     ...mainInputs.buttons,
+                            //     prevTrack: false
+                            // }}
+                            >
+                                <path d="M33.02617,339.69462v-84.77119l41.22046,42.24028z" fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
+                                <path d="M50.75127,285.35697l-3.65929,6.28808l-3.5678,-6.28808l3.62331,3.60624z" fill="#ffffff" stroke="#e6e6e6" />
+                                <g fill="#ffffff" stroke="#e6e6e6">
+                                    <path d="M60.89068,301.32489l-9.11212,-3.57783l9.11212,-3.66958z" />
+                                    <path d="M54.56564,301.32489l-9.11212,-3.57783l9.11212,-3.66958z" />
+                                    <path d="M48.24059,301.32489l-9.11212,-3.57783l9.11212,-3.66958z" />
+                                </g>
+                            </g>
+                            {/* <!-- Previous Folder Button --> */}
+                            <g
+                                strokeWidth="0"
+                                strokeLinecap="butt"
+                                className="front-panel__button"
+                                {...buttonHandlers('prevFolder')}
+                            // onMouseDown={() => mainInputs.buttons = {
+                            //     ...mainInputs.buttons,
+                            //     prevFolder: true
+                            // }}
+
+                            // onMouseUp={() => mainInputs.buttons = {
+                            //     ...mainInputs.buttons,
+                            //     prevFolder: false
+                            // }}
+
+                            // onMouseLeave={() => mainInputs.buttons = {
+                            //     ...mainInputs.buttons,
+                            //     prevFolder: false
+                            // }}
+                            >
+                                <path d="M117.38437,339.28163h-84.77119l42.67506,-41.87264z" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
+                                <path d="M81.94572,317.57596l-6.859,15.60482l-7.03489,-15.60482z" fill="#ffffff" stroke="#e6e6e6" />
+                            </g>
                         </g>
 
 
                         <text transform="translate(591.49148,351.48429) scale(0.2914,0.2914) skewX(-14.49376)" fontSize="40" xmlSpace="preserve" fill="#ffffff" stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">AP-L037 Multimedia Receiver</tspan>
                         </text>
+
+                        {/* APPELEY Media Center Button */}
+                        <g
+                            className="front-panel__button"
+                            {...buttonHandlers('mediaCenter')}
+                        >
+
+                            <path
+                                d="M31.02003,340.10768l-11.18542,-17.40831v-48.90489l11.18542,-18.458h32.15569v84.7712z"
+                                fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="butt" />
+                            <g strokeWidth="2.5">
+                                <path d="M37.99309,294.43214l2.2734,-9.19693h8.78356l-1.65337,8.98919"
+                                    fill="none" stroke={(outputValues?.powerOn) ? ("#ffffff") : brightnessFilter("#ffffff", -0.5)} strokeLinecap="round" />
+                                <path
+                                    d="M32.91284,293.65999c0,-1.68204 1.36356,-3.04561 3.0456,-3.04561c1.68202,0 3.04561,1.36358 3.04561,3.04561c0,1.68204 -1.36357,3.04558 -3.04561,3.04558c-1.68202,0 -3.0456,-1.36356 -3.0456,-3.04558z"
+                                    fill={(outputValues?.powerOn) ? ("#ffffff") : brightnessFilter("#ffffff", -0.5)} stroke="none" strokeLinecap="butt" />
+                                <path
+                                    d="M42.34094,293.65999c0,-1.68204 1.36355,-3.04561 3.04559,-3.04561c1.68202,0 3.04557,1.36358 3.04557,3.04561c0,1.68204 -1.36355,3.04558 -3.04557,3.04558c-1.68202,0 -3.04559,-1.36356 -3.04559,-3.04558z"
+                                    fill={(outputValues?.powerOn) ? ("#ffffff") : brightnessFilter("#ffffff", -0.5)} stroke="none" strokeLinecap="butt" />
+                            </g>
+
+                            <path d="M32.53187,299.16169l16.97947,1.41495" fill="none" stroke={(outputValues?.powerOn) ? ("#ffffff") : brightnessFilter("#ffffff", -0.5)}
+                                strokeWidth="1" strokeLinecap="round" />
+                            <g fill="none" stroke={(outputValues?.powerOn) ? ("#ffffff") : brightnessFilter("#ffffff", -0.5)} strokeWidth="1" strokeLinecap="butt">
+                                <path d="M37.02104,310.16744v-7.9208l7.92081,3.97763z" />
+                                <path d="M38.25967,308.25443v-4.09477l4.09477,2.05629z" />
+                            </g>
+                            <path d="M30.38534,313.64513v-31.84611h22.23964v31.84611z" fill="none"
+                                stroke={(outputValues?.powerOn) ? ("#ffffff") : brightnessFilter("#ffffff", -0.5)} strokeWidth="1" strokeLinecap="butt" />
+                            <g strokeLinecap="butt">
+                                <g fill="none" stroke={(outputValues?.powerOn) ? ("#ffffff") : brightnessFilter("#ffffff", -0.5)} strokeWidth="1">
+                                    <path
+                                        d="M32.97141,273.81203c1.77079,-2.90843 5.15178,-4.64727 8.74021,-4.15324c3.47568,0.47851 6.19794,2.92125 7.20063,6.05359" />
+                                    <path
+                                        d="M34.91501,274.73057c1.37149,-2.0899 3.86444,-3.32191 6.50564,-2.95828c2.64446,0.36407 4.71359,2.22803 5.46701,4.61503" />
+                                    <path
+                                        d="M36.7205,275.74719c0.96258,-1.37431 2.64204,-2.1741 4.41855,-1.92953c1.63737,0.22542 2.95563,1.28275 3.58693,2.68664" />
+                                    <path
+                                        d="M38.41808,276.98395c0.52128,-0.7706 1.45071,-1.22219 2.43467,-1.08673c0.92421,0.12724 1.66215,0.74012 1.9917,1.54562" />
+                                </g>
+                                <path
+                                    d="M39.63799,278.40326c0.05989,-0.435 0.46108,-0.73909 0.89608,-0.6792c0.435,0.05989 0.73909,0.46108 0.6792,0.89608c-0.05989,0.435 -0.46107,0.73909 -0.89608,0.6792c-0.435,-0.05989 -0.73909,-0.46108 -0.6792,-0.89607z"
+                                    fill={(outputValues?.powerOn) ? ("#ffffff") : brightnessFilter("#ffffff", -0.5)} stroke="none" strokeWidth="0" />
+                            </g>
+                            <path d="M30.02111,281.8307l-4.30746,6.29291v19.18691l4.30746,6.29291" fill="none"
+                                stroke={(outputValues?.powerOn) ? ("#ffffff") : brightnessFilter("#ffffff", -0.5)} strokeWidth="1" strokeLinecap="round" />
+                            <path d="M52.95829,281.8307l4.30747,6.29291v19.18691l-4.30747,6.29291" fill="none"
+                                stroke={(outputValues?.powerOn) ? ("#ffffff") : brightnessFilter("#ffffff", -0.5)} strokeWidth="1" strokeLinecap="round" />
+
+                        </g>
 
 
                     </g>
@@ -4301,6 +4667,8 @@ export default function FrontPanel({
                     onClose={() => setOpenedModal(null)}
                 />
             )}
+
+
         </div>
     )
 }

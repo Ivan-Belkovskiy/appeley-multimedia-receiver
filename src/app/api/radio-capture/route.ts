@@ -1,49 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInternetRadioStations } from '@/app/actions';
 
-const CAPTURE_DURATION_MS = 10_000;
-const MAX_BUFFER_BYTES = 5 * 1024 * 1024;
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-async function recognizeMusic(audioBuffer: Buffer, contentType: string) {
-    const form = new FormData();
-    form.append('file', new Blob([Buffer.copyBytesFrom(audioBuffer)], { type: contentType }), 'sample.mp3');
-    form.append('api_token', "60e0c925ab4602b2512cd1465974119c");
-    form.append('return', 'spotify,apple_music');
-
-    const res = await fetch('https://api.audd.io/', {
-        method: 'POST',
-        body: form,
-    });
-
-    const data = await res.json();
-
-    if (data.status !== 'success' || !data.result) {
-        return { success: false, error: data.error?.error_message || 'No match' };
-    }
-
-    return {
-        success: true,
-        artist: data.result.artist ?? '',
-        title: data.result.title ?? '',
-        album: data.result.album ?? '',
-        spotify: data.result.spotify?.external_urls?.spotify,
-    };
-}
+const MAX_DURATION_MS = 120_000;   
 
 export async function POST(request: NextRequest) {
+    const body = await request.json().catch(() => null);
+    const url: string | undefined = body?.url;
+    const durationMs: number = Math.min(
+        Math.max(Number(body?.durationMs) || 30_000, 5_000),
+        MAX_DURATION_MS,
+    );
+
+    if (!url) {
+        return NextResponse.json({ error: 'Missing url' }, { status: 400 });
+    }
+
     const stationsRes = await getInternetRadioStations();
     if (!stationsRes.success || !stationsRes.data) {
-        return NextResponse.json({ error: 'Stations not found' }, { status: 404 });
+        return NextResponse.json({ error: 'Stations not found' }, { status: 500 });
     }
 
     const ALLOWED_HOSTS = stationsRes.data.map(s => new URL(s.url).hostname);
-
-    const body = await request.json().catch(() => null);
-    const url: string | undefined = body?.url;
-    const durationMs = Math.min(body?.durationMs ?? CAPTURE_DURATION_MS, 30_000);
-
-    if (!url) return NextResponse.json({ error: 'Missing url' }, { status: 400 });
-
     try {
         const host = new URL(url).hostname;
         if (!ALLOWED_HOSTS.includes(host)) {
@@ -54,100 +34,103 @@ export async function POST(request: NextRequest) {
     }
 
     const abort = new AbortController();
-    const hardTimeout = setTimeout(() => abort.abort(), durationMs + 5_000);
+    const onClientAbort = () => abort.abort();
+    request.signal.addEventListener('abort', onClientAbort);
 
+    let upstreamResponse: Response;
     try {
-        const response = await fetch(url, {
+        upstreamResponse = await fetch(url, {
             headers: { 'Icy-MetaData': '1' },
             signal: abort.signal,
         });
+    } catch (err: any) {
+        return NextResponse.json(
+            { error: `Upstream failed: ${err.message}` },
+            { status: 502 },
+        );
+    }
 
-        if (!response.ok || !response.body) {
-            return NextResponse.json({ error: 'Stream unavailable' }, { status: 502 });
-        }
+    if (!upstreamResponse.ok || !upstreamResponse.body) {
+        return NextResponse.json({ error: 'Stream unavailable' }, { status: 502 });
+    }
 
-        const metaint = parseInt(response.headers.get('icy-metaint') || '0', 10);
-        const contentType = response.headers.get('content-type') || 'audio/mpeg';
+    const metaint = parseInt(upstreamResponse.headers.get('icy-metaint') || '0', 10);
+    const contentType = upstreamResponse.headers.get('content-type') || 'audio/mpeg';
 
-        const reader = response.body.getReader();
-        const audioChunks: Uint8Array[] = [];
-        let totalAudioBytes = 0;
+    const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+            const reader = upstreamResponse.body!.getReader();
+            const startTime = Date.now();
 
-        let state: 'audio' | 'metaLen' | 'metaData' = 'audio';
-        let audioRemaining = metaint;
-        let pendingMetaLen = 0;
+            let state: 'audio' | 'metaLen' | 'metaData' = 'audio';
+            let audioRemaining = metaint > 0 ? metaint : Infinity;
+            let metaPending = 0;
 
-        const startTime = Date.now();
+            const safeClose = () => {
+                try { controller.close(); } catch {}
+                reader.cancel().catch(() => {});
+                request.signal.removeEventListener('abort', onClientAbort);
+            };
 
-        while (true) {
-            if (Date.now() - startTime >= durationMs) break;
-            if (totalAudioBytes >= MAX_BUFFER_BYTES) break;
+            try {
+                while (Date.now() - startTime < durationMs) {
+                    if (abort.signal.aborted) break;
 
-            const { done, value } = await reader.read();
-            if (done) break;
-            if (!value) continue;
+                    const { done, value } = await reader.read();
+                    if (done || !value) break;
 
-            let pos = 0;
-            while (pos < value.length) {
-                if (state === 'audio') {
-                    const take = metaint > 0
-                        ? Math.min(audioRemaining, value.length - pos)
-                        : (value.length - pos);
+                    let pos = 0;
+                    while (pos < value.length) {
+                        if (abort.signal.aborted) break;
 
-                    const slice = value.subarray(pos, pos + take);
-                    audioChunks.push(slice);
-                    totalAudioBytes += take;
-                    pos += take;
+                        if (state === 'audio') {
+                            const take = metaint > 0
+                                ? Math.min(audioRemaining, value.length - pos)
+                                : (value.length - pos);
 
-                    if (metaint > 0) {
-                        audioRemaining -= take;
-                        if (audioRemaining === 0) state = 'metaLen';
-                    }
-                } else if (state === 'metaLen') {
-                    pendingMetaLen = value[pos] * 16;
-                    pos += 1;
-                    if (pendingMetaLen === 0) {
-                        state = 'audio';
-                        audioRemaining = metaint;
-                    } else {
-                        state = 'metaData';
-                    }
-                } else {
-                    const take = Math.min(pendingMetaLen, value.length - pos);
-                    pos += take;
-                    pendingMetaLen -= take;
-                    if (pendingMetaLen === 0) {
-                        state = 'audio';
-                        audioRemaining = metaint;
+                            controller.enqueue(value.subarray(pos, pos + take));
+                            pos += take;
+                            if (metaint > 0) {
+                                audioRemaining -= take;
+                                if (audioRemaining === 0) state = 'metaLen';
+                            }
+                        } else if (state === 'metaLen') {
+                            metaPending = value[pos] * 16;
+                            pos += 1;
+                            if (metaPending === 0) {
+                                state = 'audio';
+                                audioRemaining = metaint;
+                            } else {
+                                state = 'metaData';
+                            }
+                        } else {
+                            const take = Math.min(metaPending, value.length - pos);
+                            pos += take;
+                            metaPending -= take;
+                            if (metaPending === 0) {
+                                state = 'audio';
+                                audioRemaining = metaint;
+                            }
+                        }
                     }
                 }
+            } catch (err) {
+                console.error('Capture stream error:', err);
+            } finally {
+                safeClose();
             }
-        }
+        },
 
-        reader.cancel().catch(() => {});
-        clearTimeout(hardTimeout);
+        cancel() {
+            abort.abort();
+        },
+    });
 
-        const audioBuffer = Buffer.concat(audioChunks.map(c => Buffer.from(c)));
-
-        if (audioBuffer.length === 0) {
-            return NextResponse.json({ error: 'No audio captured' }, { status: 502 });
-        }
-
-        const recognition = await recognizeMusic(audioBuffer, contentType);
-
-        return NextResponse.json({
-            success: true,
-            bytes: audioBuffer.length,
-            durationMs: Date.now() - startTime,
-            recognition,
-        });
-
-    } catch (error: any) {
-        clearTimeout(hardTimeout);
-        if (error?.name === 'AbortError') {
-            return NextResponse.json({ error: 'Capture timeout' }, { status: 504 });
-        }
-        console.error('Radio capture error:', error);
-        return NextResponse.json({ error: String(error) }, { status: 500 });
-    }
+    return new NextResponse(stream, {
+        headers: {
+            'Content-Type': contentType,
+            'Cache-Control': 'no-store',
+            'X-Capture-Duration': String(durationMs),
+        },
+    });
 }

@@ -4,7 +4,7 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -13,35 +13,64 @@ datasource db {
 }
 
 model usb_devices {
-  id              Int     @id @default(autoincrement())
-  name            String  @db.VarChar(100)
-  primaryColor    String  @db.VarChar(9)
-  secondaryColor  String  @db.VarChar(9)
+  id             Int    @id @default(autoincrement())
+  name           String @db.VarChar(100)
+  primaryColor   String @db.VarChar(9)
+  secondaryColor String @db.VarChar(9)
 }
 
 model internet_radio_stations {
-  id              Int     @id @default(autoincrement())
-  order           Int?
-  name            String  @db.VarChar(60)
-  url             String  @db.VarChar(250)
+  id    Int    @id @default(autoincrement())
+  order Int?
+  name  String @db.VarChar(60)
+  url   String @db.VarChar(250)
 
-  playedTracks    internet_radio_tracks[]
+  playedTracks internet_radio_tracks[]
+}
+
+model downloaded_tracks {
+  id             Int                   @id @default(autoincrement())
+  radio_track_id Int
+  radio_track    internet_radio_tracks @relation(fields: [radio_track_id], references: [id])
+
+  file_hash       String @db.VarChar(64)
+  file_name       String @db.VarChar(255)
+  file_size_bytes Int?
+  duration_sec    Float?
+
+  target_type String  @db.VarChar(20)
+  target_name String? @db.VarChar(100)
+  target_path String? @db.VarChar(500)
+  blob_url    String? @db.VarChar(500)
+
+  downloaded_at DateTime @default(now())
+
+  @@unique([radio_track_id, file_hash, target_name])
+  @@index([file_hash])
 }
 
 model internet_radio_tracks {
-  id              Int       @id @default(autoincrement())
-  station_id      Int
+  id         Int      @id @default(autoincrement())
+  station_id Int
+  title      String   @db.VarChar(250)
+  loaded_at  DateTime @default(now())
 
-  title           String    @db.VarChar(250)
-  loaded_at       DateTime  @default(now())
+  download_count   Int       @default(0)
+  last_download_at DateTime?
 
-  station       internet_radio_stations    @relation(fields: [station_id], references: [id])
+  station   internet_radio_stations @relation(fields: [station_id], references: [id])
+  downloads downloaded_tracks[]
 }
 
+model internet_radio_capture_settings {
+  id         Int    @id @default(autoincrement())
+  key        String @unique @db.VarChar(100)
+  value      String @db.VarChar(500)
+  value_type String @default("string") // "string" | "number" | "boolean" | "json"
+}
 
 model receiver_instances {
-  id              Int       @id @default(autoincrement())
-  device_ip       String    @db.VarChar(40)
-  created_at      DateTime  @default(now())
-  
+  id         Int      @id @default(autoincrement())
+  device_ip  String   @db.VarChar(40)
+  created_at DateTime @default(now())
 }

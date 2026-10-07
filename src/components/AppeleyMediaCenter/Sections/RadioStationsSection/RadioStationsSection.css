@@ -1,0 +1,227 @@
+.radio-stations-section__list {
+    width: 100%;
+    max-height: 80%;
+    overflow-y: auto;
+    border: 2px solid var(--amc-section-primary-color);
+    padding: 5px;
+}
+
+.radio-stations-section__button {
+    width: 100%;
+    border: 2px solid var(--amc-section-primary-color);
+    padding: 5px 15px;
+    color: var(--amc-section-primary-color);
+    transition: all 0.3s ease 0s;
+    margin-top: 10px;
+
+    &:hover {
+        cursor: pointer;
+        background-color: var(--amc-section-primary-color);
+        color: #fff;
+    }
+}
+
+.radio-station-block__infobox {
+    position: relative;
+    /* width: 100%;
+    padding-right: 10px; */
+    display: flex;
+    gap: 10px;
+}
+
+.radio-station-block {
+    position: relative;
+    border: 2px solid var(--amc-section-primary-color);
+    padding: 5px;
+    display: flex;
+    align-items: center;
+
+    &.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    &.editing {
+        border-color: var(--amc-section-selection-color);
+        outline: 2px dashed var(--amc-section-selection-color);
+
+        .radio-station-block__left {
+            flex-direction: column;
+            align-items: start;
+        }
+
+        .radio-station-block__right {
+            flex-direction: column;
+            justify-content: center;
+            align-items: end;
+
+            .radio-station-block__button {
+                width: 100%;
+            }
+        }
+
+        .radio-station-block__infobox {
+            width: 100%;
+            padding-right: 10px;
+        }
+    }
+
+    &:not(:first-child) {
+        margin-top: 5px;
+    }
+}
+
+.radio-station-block__left {
+    width: 70%;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease 0s;
+}
+
+/* .radio-station-block.editing .radio-station-block__left {
+    flex-direction: column;
+} */
+
+.radio-station-block__right {
+    width: 30%;
+    height: 100%;
+    display: flex;
+    justify-content: end;
+    align-items: center;
+    gap: 10px;
+}
+
+.radio-station-block__label {
+    color: var(--amc-section-primary-color);
+
+    &.prop-value {
+        font-weight: bold;
+    }
+
+    &.url {
+        font-style: italic;
+    }
+}
+
+.radio-station-block__button,
+.add-station-modal__button {
+    padding: 4px 6px;
+    border: 2px solid var(--amc-section-primary-color);
+    background-color: #fff;
+    color: var(--amc-section-primary-color);
+    ;
+    transition: all 0.3s ease 0s;
+
+    &.delete-button {
+        color: var(--amc-section-button-red);
+        border-color: var(--amc-section-button-red);
+
+    }
+
+    &:not(:disabled) {
+
+        &:hover {
+            cursor: pointer;
+            background-color: var(--amc-section-primary-color);
+            color: #fff;
+
+            &.delete-button {
+                background-color: var(--amc-section-button-red);
+            }
+
+        }
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+}
+
+
+
+.radio-station-block__input {
+    flex-grow: 1;
+    display: flex;
+    border: 2px solid var(--amc-section-primary-color);
+    color: var(--amc-section-primary-color);
+    font-size: 17px;
+
+    &:focus {
+        outline: 2px solid var(--amc-section-selection-color);
+    }
+}
+
+
+.add-station-modal__overlay {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    background-color: #0000003f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.add-station-modal {
+    min-width: 50%;
+    /* min-height: 40%; */
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 30px;
+    border: 2px solid var(--amc-section-primary-color);
+
+    .radio-station-block {
+        width: 100%;
+        border-color: var(--amc-section-primary-color);
+        outline: none;
+    }
+
+    .radio-station-block__left {
+        width: 100%;
+    }
+}
+
+.add-station-modal__title {
+    font-size: 28px;
+    color: var(--amc-section-primary-color);
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.add-station-modal__buttons {
+    width: 100%;
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding-top: 10px;
+}
+
+.add-station-modal__button {
+    flex-grow: 1;
+}
+
+
+.radio-stations-section__loading {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #ffffff9f;
+}

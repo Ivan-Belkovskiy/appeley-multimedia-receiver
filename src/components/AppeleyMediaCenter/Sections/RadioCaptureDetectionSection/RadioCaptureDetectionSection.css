@@ -1,0 +1,57 @@
+.capture-settings {
+    border: 2px solid var(--amc-section-primary-color);
+    padding: 10px;
+}
+
+.capture-settings__title {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--amc-section-primary-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.capture-settings__row {
+    padding: 5px 0;
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    gap: 5px;
+}
+
+.capture-settings__row span {
+    color: var(--amc-section-primary-color);
+}
+
+.capture-settings__label {
+    color: var(--amc-section-primary-color);
+}
+
+.capture-settings__input {
+    border: 2px solid var(--amc-section-primary-color);
+    color: var(--amc-section-primary-color);
+    padding: 2px;
+
+    &[type=checkbox] {
+        cursor: pointer;
+        border: none;
+        outline: none;
+        padding: 0;
+        width: 23px;
+        height: 23px;
+    }
+
+    &:focus {
+        outline: 2px solid var(--amc-section-selection-color);
+    }
+}
+
+
+.capture-settings__row label {
+    color: var(--amc-section-primary-color);
+    display: flex;
+    gap: 10px;
+    justify-content: start;
+    align-items: center;
+}

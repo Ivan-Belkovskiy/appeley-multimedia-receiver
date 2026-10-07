@@ -1,0 +1,419 @@
+/* ═══════════════════════════════════════════════════════
+   OVERLAY / LOADER
+   ═══════════════════════════════════════════════════════ */
+.loading-overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #ffffff9f;
+    z-index: 10;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TOOLBAR (новая панель над таблицей)
+   ═══════════════════════════════════════════════════════ */
+.played-tracklist-toolbar {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 4px;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed var(--amc-section-primary-color);
+}
+
+.played-tracklist-toolbar__button {
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--amc-section-primary-color);
+    background-color: #ffffff;
+    border: 2px solid var(--amc-section-primary-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    white-space: nowrap;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.played-tracklist-toolbar__button:hover:not(:disabled) {
+    background-color: var(--amc-section-primary-color);
+    color: #ffffff;
+}
+
+.played-tracklist-toolbar__button:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.played-tracklist-toolbar__button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TABLE
+   ═══════════════════════════════════════════════════════ */
+.played-track-table-container {
+    position: relative;
+    width: 100%;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 2px solid var(--amc-section-primary-color);
+
+    /* Красивый тонкий скроллбар */
+    scrollbar-width: thin;
+    scrollbar-color: var(--amc-section-primary-color) transparent;
+}
+
+.played-track-table-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.played-track-table-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.played-track-table-container::-webkit-scrollbar-thumb {
+    background-color: var(--amc-section-primary-color);
+    border-radius: 3px;
+}
+
+.played-track-table {
+    position: relative;
+    width: 100%;
+    padding: 5px;
+    border-collapse: collapse;
+}
+
+.played-track-table td {
+    text-align: left;
+    padding: 5px 8px;
+    border-right: 2px solid var(--amc-section-primary-color);
+    border-bottom: 2px solid var(--amc-section-primary-color);
+    color: var(--amc-section-primary-color);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.played-track-table td:last-child {
+    border-right: none;
+}
+
+.played-track-table td.radio-station {
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.played-track-table th {
+    background-color: var(--amc-section-primary-color);
+    color: #fff;
+    font-weight: bold;
+    padding: 6px 8px;
+    font-size: 13px;
+    text-align: left;
+    border-right: 2px solid #ffffff33;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.played-track-table th:last-child {
+    border-right: none;
+}
+
+.played-track-table tbody {
+    position: relative;
+    width: 100%;
+}
+
+.played-track-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.played-track-table tbody tr:hover {
+    background-color: #f3f8ff;
+}
+
+/* ─── Advert-строка ─── */
+.played-track-table tbody tr.advert-row {
+    background-color: #fff7e6;
+}
+
+.played-track-table tbody tr.advert-row:hover {
+    background-color: #ffefcc;
+}
+
+.advert-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    margin-right: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+    background-color: #d97706;
+    border-radius: 3px;
+    vertical-align: middle;
+}
+
+/* ─── Кнопка в строке ─── */
+.played-track__button {
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--amc-section-primary-color);
+    background-color: #ffffff;
+    border: 1.5px solid var(--amc-section-primary-color);
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.played-track__button:hover:not(:disabled) {
+    background-color: var(--amc-section-primary-color);
+    color: #ffffff;
+}
+
+.played-track__button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ─── Чекбокс ─── */
+.played-track-table input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--amc-section-primary-color);
+}
+
+.played-track-table input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+/* ═══════════════════════════════════════════════════════
+   DETAILS / SUMMARY (как было)
+   ═══════════════════════════════════════════════════════ */
+.played-tracklist-details {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px;
+    margin-top: 10px;
+}
+
+.played-tracklist-details__infobox {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.played-tracklist-details__label {
+    font-size: 17px;
+    color: var(--amc-section-primary-color);
+}
+
+.played-tracklist-details__label.value {
+    font-weight: bold;
+}
+
+/* ═══════════════════════════════════════════════════════
+   DOWNLOAD QUEUE
+   ═══════════════════════════════════════════════════════ */
+.download-queue {
+    width: 100%;
+    margin-top: 14px;
+    padding: 10px;
+    border: 2px solid var(--amc-section-primary-color);
+    border-radius: 4px;
+    background-color: #fafcff;
+}
+
+.download-queue__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed var(--amc-section-primary-color);
+}
+
+.download-queue__header h3 {
+    margin: 0;
+    font-size: 15px;
+    color: var(--amc-section-primary-color);
+}
+
+.download-queue__header > div {
+    display: flex;
+    gap: 6px;
+}
+
+.download-queue__header button {
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--amc-section-primary-color);
+    background-color: #ffffff;
+    border: 1.5px solid var(--amc-section-primary-color);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.download-queue__header button:hover:not(:disabled) {
+    background-color: var(--amc-section-primary-color);
+    color: #ffffff;
+}
+
+.download-queue__header button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.download-queue__list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.download-queue__list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.download-queue__list::-webkit-scrollbar-thumb {
+    background-color: var(--amc-section-primary-color);
+    border-radius: 3px;
+}
+
+/* ─── Элемент очереди ─── */
+.download-queue__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    border-left: 4px solid var(--amc-section-primary-color);
+    background-color: #ffffff;
+    transition: background-color 0.2s ease;
+}
+
+.download-queue__item-left {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.download-queue__item-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    word-break: break-word;
+}
+
+.download-queue__item-status {
+    font-size: 12px;
+    color: #666666;
+}
+
+.download-queue__item > button {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #999999;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.download-queue__item > button:hover {
+    background-color: #ffebeb;
+    color: #d13438;
+}
+
+/* ─── Статусные оттенки ─── */
+.download-queue__item.status-pending {
+    border-left-color: #94a3b8;
+}
+
+.download-queue__item.status-searching {
+    border-left-color: #3b82f6;
+    background-color: #f0f7ff;
+}
+
+.download-queue__item.status-downloading {
+    border-left-color: #3b82f6;
+    background-color: #f0f7ff;
+}
+
+.download-queue__item.status-processing,
+.download-queue__item.status-saving {
+    border-left-color: #a855f7;
+    background-color: #faf5ff;
+}
+
+.download-queue__item.status-done {
+    border-left-color: #10b981;
+    background-color: #ecfdf5;
+}
+
+.download-queue__item.status-not_found {
+    border-left-color: #f59e0b;
+    background-color: #fffbeb;
+}
+
+.download-queue__item.status-failed {
+    border-left-color: #ef4444;
+    background-color: #fef2f2;
+}
+
+/* ─── Прогресс-бар ─── */
+.download-queue__progress {
+    width: 100%;
+    height: 6px;
+    margin-top: 4px;
+    background-color: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.download-queue__progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg,
+        var(--amc-section-primary-color),
+        #72bdff
+    );
+    transition: width 0.25s ease;
+    border-radius: 3px;
+}
+
+.download-queue__saved {
+    font-size: 11px;
+    color: #10b981;
+    word-break: break-all;
+    margin-top: 2px;
+}

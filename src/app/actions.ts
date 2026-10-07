@@ -478,3 +478,112 @@ export async function createRadioTrackRecord(stationId: number, streamText: stri
 
 
 
+
+export async function updateRadioStation(stationId: number, newData: InternetRadioStation) {
+    if (!stationId || !newData) return { success: false, error: "id or data not provided!" };
+
+    try {
+        const data = await prisma.internet_radio_stations.update({
+            where: {
+                id: stationId,
+            },
+            data: {
+                order: newData.order,
+                name: newData.name,
+                url: newData.url,
+            },
+        });
+
+        return { success: true, data };
+    } catch (error) {
+        return { success: false, error: (error as any)?.message || "" };
+    }
+}
+
+export async function addRadioStation(data: Partial<InternetRadioStation>) {
+    if (!data?.name || !data.order || !data?.url) return { success: false, error: "Data not provided!" };
+
+    try {
+        const res = await prisma.internet_radio_stations.create({
+            data: {
+                order: data.order,
+                name: data.name,
+                url: data.url,
+            },
+        });
+
+        return { success: true, data: res };
+    } catch (error) {
+        return { success: false, error: (error as any)?.message || "" };
+    }
+}
+
+export async function deleteRadioStation(data: Partial<InternetRadioStation>) {
+    if (!data?.id) return { success: false, error: "Data not provided!" };
+
+    try {
+        const res = await prisma.internet_radio_stations.delete({
+            where: {
+                id: data.id
+            }
+        });
+
+        return { success: true, data: res };
+    } catch (error) {
+        return { success: false, error: (error as any)?.message || "" };
+    }
+}
+
+export type PlayedRadioTrack = Prisma.internet_radio_tracksGetPayload<{
+    include: {
+        station: true
+    }
+}>;
+
+export async function getPlayedRadioTracks() {
+    try {
+        const data = await prisma.internet_radio_tracks.findMany({
+            include: {
+                station: true
+            },
+            orderBy: [
+                {
+                    loaded_at: 'desc'
+                }
+            ]
+        });
+
+        return { success: true, data };
+    } catch (error) {
+        return { success: false, error: (error as any)?.message || "" };
+    }
+}
+
+
+
+export async function getCaptureSettings() {
+    return await prisma.internet_radio_capture_settings.findMany({});
+}
+
+export async function getSetting<T>(key: string, fallback: T): Promise<T> {
+    const row = await prisma.internet_radio_capture_settings.findUnique({ where: { key } });
+    if (!row) return fallback;
+    switch (row.value_type) {
+        case 'number': return Number(row.value) as T;
+        case 'boolean': return (row.value === 'true') as T;
+        case 'json': return JSON.parse(row.value);
+        default: return row.value as T;
+    }
+}
+
+export async function setSetting(key: string, value: any) {
+    const type = typeof value === 'number' ? 'number' 
+               : typeof value === 'boolean' ? 'boolean'
+               : typeof value === 'object' ? 'json'
+               : 'string';
+    await prisma.internet_radio_capture_settings.upsert({
+        where: { key },
+        create: { key, value: String(value), value_type: type },
+        update: { value: String(value), value_type: type },
+    });
+}

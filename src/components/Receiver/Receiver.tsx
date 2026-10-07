@@ -7,6 +7,7 @@ import { getInternetRadioStations, InternetRadioStation, loadData, saveData } fr
 import { applyColorOffset } from "@/utils/color";
 import "./Receiver.css";
 import AppeleyRC from "./RemoteController/AppeleyRC";
+import AppeleyMediaCenter from "../AppeleyMediaCenter/AppeleyMediaCenter";
 
 export default function AppeleyReceiver({ internetRadioStations, videoOutputRef, setVideoPowerOn }: {
     videoOutputRef: RefObject<HTMLVideoElement | null>;
@@ -14,6 +15,20 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
 
     internetRadioStations: InternetRadioStation[];
 }) {
+
+    const [radioStations, setRadioStations] = useState<InternetRadioStation[]>(internetRadioStations || []);
+    const [isMediaCenterOpened, setMediaCenterOpened] = useState(false);
+
+    const updateRadioStationList = async () => {
+
+        const res = await getInternetRadioStations();
+
+        if (res.success && res.data) {
+            setRadioStations(res.data);
+        }
+
+        // setLoading(false);
+    }
 
     const EQ_PRESETS: Record<string, MainControllerSettings['equalizer']['bands']> = {
         FLAT: {
@@ -120,6 +135,17 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
         return result;
     }
 
+    const openModalMediaCenter = () => {
+        if (controllerOutputsRef.current.appeleyMediaCenter) {
+            controllerOutputsRef.current.appeleyMediaCenter.isModalOpened = true;
+            setMediaCenterOpened(true);
+        }
+    }
+
+    const tryOpenElectronMediaCenterApp = async () => {
+        // Будет открывать Electron-медиа-центр по протоколу "appeley-app://"
+    }
+
     const controllerInputsRef = useRef<MainControllerInputs>({
         sourceData: {
             1: {},
@@ -137,6 +163,8 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
             },
             encoderMenuOptions: [
                 {
+                    displayCondition: (o) => o.currentSource === 1,
+
                     type: "property",
                     label: "REPEAT",
 
@@ -180,6 +208,8 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                     ],
                 },
                 {
+                    displayCondition: (o) => o.currentSource === 1,
+
                     type: "property",
                     label: "RANDOM",
 
@@ -222,6 +252,18 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                         },
                     ],
                 },
+
+                {
+                    displayCondition: (o) => o.currentSource === 2,
+
+                    type: "button",
+                    label: "CAPTURE AUDIO",
+
+                    onClick: () => {
+                        controllerInputsRef.current.sourceData[2].captureRequest = true; // Send capture request to <MainController />
+                        controllerOutputsRef.current.menu.navigation.menuOpened = false;
+                    }
+                }
             ],
             options: [
                 {
@@ -1424,6 +1466,35 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
             },
         },
 
+        appeleyMediaCenterMenu: {
+            navigation: {
+                _settingsBeforeUpdate: null,
+                openedIdxArray: [],
+                currentIdx: 0,
+                timerBeforeClose: (30 * 60),
+            },
+            options: {
+                selection: [
+                    {
+                        type: "button",
+                        label: "OPEN PAGE MODAL",
+                        onClick: () => {
+                            openModalMediaCenter();
+                        },
+                        scrollText: false,
+                    },
+                    {
+                        type: "button",
+                        label: "OPEN DESKTOP APP",
+                        onClick: async () => {
+                            await tryOpenElectronMediaCenterApp();
+                        },
+                        scrollText: true,
+                    }
+                ]
+            }
+        },
+
         currentSource: 1,
         mainVolume: 10,
         indicationColor: {
@@ -1536,9 +1607,9 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
 
     return (
         <div className="appeley-receiver">
-            <MainController internetRadioStations={internetRadioStations} inputsRef={controllerInputsRef} outputsRef={controllerOutputsRef} videoOutputRef={videoOutputRef} setVideoPowerOn={setVideoPowerOn} />
+            <MainController internetRadioStations={radioStations} inputsRef={controllerInputsRef} outputsRef={controllerOutputsRef} videoOutputRef={videoOutputRef} setVideoPowerOn={setVideoPowerOn} />
             <FrontPanel
-                internetRadioStations={internetRadioStations}
+                internetRadioStations={radioStations}
                 mainControllerInputsRef={controllerInputsRef}
                 mainControllerOutputsRef={controllerOutputsRef}
             />
@@ -1559,6 +1630,11 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                     </div>
                 </div>
             )}
+
+            {(isMediaCenterOpened) && <AppeleyMediaCenter onClose={() => {
+                setMediaCenterOpened(false);
+                updateRadioStationList();
+            }} />}
         </div>
     )
 }
