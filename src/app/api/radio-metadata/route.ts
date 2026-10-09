@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInternetRadioStations } from '@/app/actions';
 
-export const dynamic = 'force-dynamic';  // без кэша
-export const maxDuration = 15;            // максимум 15 сек на запрос (Vercel Pro)
+export const dynamic = 'force-dynamic';
+export const maxDuration = 15;  
 
 interface ICYMetadata {
     title: string;
@@ -10,10 +10,6 @@ interface ICYMetadata {
     raw: string;
 }
 
-/**
- * Читает один блок ICY-метаданных из потока и сразу закрывает соединение.
- * Возвращает null, если metadata не удалось прочитать.
- */
 async function readOneIcyMetadata(
     streamUrl: string,
     signal: AbortSignal,

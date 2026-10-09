@@ -587,3 +587,39 @@ export async function setSetting(key: string, value: any) {
         update: { value: String(value), value_type: type },
     });
 }
+
+
+
+export async function recordAdvertCapture(data: {
+    durationSec: number;
+    fileHash: string;
+    blobUrl?: string;
+    localPath?: string;
+    recognition: {
+        recognized: boolean;
+        acoustidId?: string;
+        musicbrainzId?: string;
+        artist?: string;
+        title?: string;
+        album?: string;
+        year?: number;
+        score?: number;
+    };
+}) {
+    return prisma.advert_captures.create({
+        data: {
+            duration_sec: data.durationSec,
+            file_hash: data.fileHash,
+            blob_url: data.blobUrl,
+            local_path: data.localPath,
+            recognition_state: data.recognition.recognized ? 'SUCCESS' : 'NOT_FOUND',
+            acoustid_id: data.recognition.acoustidId,
+            musicbrainz_id: data.recognition.musicbrainzId,
+            artist: data.recognition.artist,
+            title: data.recognition.title,
+            album: data.recognition.album,
+            year: data.recognition.year,
+            score: data.recognition.score,
+        },
+    });
+}

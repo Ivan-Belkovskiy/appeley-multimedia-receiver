@@ -5,6 +5,7 @@ import { useRadioCapture } from '@/hooks/useRadioCapture';
 import { useCaptureSettings } from '@/hooks/useCaptureSettings';
 import './RadioCaptureDetectionSection.css';
 import { requestCapturesFolder } from '@/utils/captureStorage';
+import AnimatedLoader from '@/components/UI/AnimatedLoader/AnimatedLoader';
 
 export default function RadioCaptureDetectionSection() {
     const { settings, update, loading } = useCaptureSettings();
@@ -21,7 +22,11 @@ export default function RadioCaptureDetectionSection() {
     const [manualUrl, setManualUrl] = useState('');
     const [manualDuration, setManualDuration] = useState(30);
 
-    if (loading || !settings) return <div>Загрузка настроек...</div>;
+    if (loading || !settings) return  (
+                    <div className="loading-overlay">
+                        <AnimatedLoader styles={{ scale: 5 }} />
+                    </div>
+                );
 
     const handleCapture = async (stationUrl: string, durationSec: number) => {
         try {

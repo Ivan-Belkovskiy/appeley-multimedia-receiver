@@ -1,6 +1,3 @@
-/* ═══════════════════════════════════════════════════════
-   OVERLAY / LOADER
-   ═══════════════════════════════════════════════════════ */
 .loading-overlay {
     position: absolute;
     width: 100%;
@@ -14,9 +11,6 @@
     z-index: 10;
 }
 
-/* ═══════════════════════════════════════════════════════
-   TOOLBAR (новая панель над таблицей)
-   ═══════════════════════════════════════════════════════ */
 .played-tracklist-toolbar {
     width: 100%;
     display: flex;
@@ -57,9 +51,6 @@
     cursor: not-allowed;
 }
 
-/* ═══════════════════════════════════════════════════════
-   TABLE
-   ═══════════════════════════════════════════════════════ */
 .played-track-table-container {
     position: relative;
     width: 100%;
@@ -67,7 +58,6 @@
     overflow-y: auto;
     border: 2px solid var(--amc-section-primary-color);
 
-    /* Красивый тонкий скроллбар */
     scrollbar-width: thin;
     scrollbar-color: var(--amc-section-primary-color) transparent;
 }
@@ -141,7 +131,6 @@
     background-color: #f3f8ff;
 }
 
-/* ─── Advert-строка ─── */
 .played-track-table tbody tr.advert-row {
     background-color: #fff7e6;
 }
@@ -163,7 +152,6 @@
     vertical-align: middle;
 }
 
-/* ─── Кнопка в строке ─── */
 .played-track__button {
     padding: 4px 10px;
     font-size: 12px;
@@ -187,7 +175,6 @@
     cursor: not-allowed;
 }
 
-/* ─── Чекбокс ─── */
 .played-track-table input[type="checkbox"] {
     width: 16px;
     height: 16px;
@@ -200,9 +187,6 @@
     opacity: 0.4;
 }
 
-/* ═══════════════════════════════════════════════════════
-   DETAILS / SUMMARY (как было)
-   ═══════════════════════════════════════════════════════ */
 .played-tracklist-details {
     width: 100%;
     display: flex;
@@ -229,9 +213,6 @@
     font-weight: bold;
 }
 
-/* ═══════════════════════════════════════════════════════
-   DOWNLOAD QUEUE
-   ═══════════════════════════════════════════════════════ */
 .download-queue {
     width: 100%;
     margin-top: 14px;
@@ -302,7 +283,6 @@
     border-radius: 3px;
 }
 
-/* ─── Элемент очереди ─── */
 .download-queue__item {
     display: flex;
     align-items: flex-start;
@@ -355,7 +335,6 @@
     color: #d13438;
 }
 
-/* ─── Статусные оттенки ─── */
 .download-queue__item.status-pending {
     border-left-color: #94a3b8;
 }
@@ -391,7 +370,6 @@
     background-color: #fef2f2;
 }
 
-/* ─── Прогресс-бар ─── */
 .download-queue__progress {
     width: 100%;
     height: 6px;

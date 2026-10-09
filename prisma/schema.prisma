@@ -74,3 +74,26 @@ model receiver_instances {
   device_ip  String   @db.VarChar(40)
   created_at DateTime @default(now())
 }
+
+
+model advert_captures {
+    id                Int      @id @default(autoincrement())
+    captured_at       DateTime @default(now())
+    duration_sec      Float
+    file_hash         String   @db.VarChar(64)
+
+    blob_url          String?  @db.VarChar(500)
+    local_path        String?  @db.VarChar(500)
+
+    recognition_state String   @default("PENDING") // PENDING | SUCCESS | NOT_FOUND | FAILED
+    acoustid_id       String?  @db.VarChar(100)
+    musicbrainz_id    String?  @db.VarChar(100)
+    artist            String?  @db.VarChar(250)
+    title             String?  @db.VarChar(250)
+    album             String?  @db.VarChar(250)
+    year              Int?
+    score             Float?
+
+    @@index([file_hash])
+    @@index([captured_at])
+}

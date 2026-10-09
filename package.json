@@ -14,8 +14,10 @@
     "@prisma/client": "^7.10.0",
     "@types/string-similarity": "^4.0.2",
     "@vercel/blob": "^2.8.0",
+    "@zibot/scdl": "^0.1.6",
     "axios": "^1.20.0",
     "browser-id3-writer": "^6.4.0",
+    "chromaprint.js": "^0.1.0",
     "dotenv": "^17.4.2",
     "music-metadata": "^11.13.0",
     "music-metadata-browser": "^2.5.11",
@@ -24,6 +26,7 @@
     "prisma": "^7.10.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "rusty-chromaprint-wasm": "^0.1.5",
     "string-similarity": "^4.0.4"
   },
   "devDependencies": {

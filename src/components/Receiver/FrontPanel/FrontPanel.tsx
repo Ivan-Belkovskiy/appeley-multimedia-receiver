@@ -1096,6 +1096,52 @@ export default function FrontPanel({
         },
 
         {
+            main: "CONNECTED TO",
+            animation: "default",
+            delayBeforeNext: (67 - 25),
+            topLeft: [
+                {
+                    active: (t) => t > 12,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
+                }
+            ],
+        },
+        {
+            main: "APPELEY",
+            animation: "scroll-left",
+            delayBeforeNext: (67 - 25),
+            topLeft: [
+                {
+                    active: (t) => t > 0,
+                    data: (t) => demoTopLeftAnimCallback((t + 7), 0, true),
+                }
+            ],
+        },
+        {
+            main: "MEDIA CENTER",
+            animation: "scroll-left",
+            delayBeforeNext: (67 - 25),
+            topLeft: [
+                {
+                    active: (t) => t > 0,
+                    data: (t) => demoTopLeftAnimCallback((t + 6), 0, true),
+                }
+            ],
+        },
+        
+        {
+            main: "",
+            animation: "scroll-left",
+            delayBeforeNext: 20,
+            topLeft: [
+                {
+                    active: (t) => t > 0 && t < 9,
+                    data: (t) => demoTopLeftAnimCallback((t + 5), 0, true),
+                }
+            ],
+        },
+
+        {
             main: "AUTOMATIC",
             animation: "default",
             delayBeforeNext: (67 - 25),
@@ -3364,22 +3410,40 @@ export default function FrontPanel({
                                                     updateDisplayData({ main: centerMainText('DETECTING') });
                                                 } else updateDisplayData({ main: [] });
                                             } else if (radioData.recognition?.phase === 'DONE') {
-                                                updateDisplayData({
-                                                    main: [],
-                                                    topLeft: [],
-                                                    otherIndication: {
-                                                        topLeftDecorationLine: true,
-                                                    }
-                                                    // topLeft: 'ID'.split(''),
-                                                });
-                                                // resetDemo();
-                                                animateScrollingText(
-                                                    animTimer,
-                                                    `File Saved To Selected Folder on Your Device! Press Encoder To Exit!`,
-                                                    // `${radioData.recognition.artist} - ${radioData.recognition.title}`,
-                                                    () => animTimer = 0,
-                                                    // true
-                                                );
+
+                                                if (radioData.recognition.artist) {
+                                                    updateDisplayData({ main: [], topLeft: 'ID'.split('') });
+                                                    animateScrollingText(
+                                                        animTimer,
+                                                        `DETECTION COMPLETE! ${radioData.recognition.artist} — ${radioData.recognition.title}`,
+                                                        () => animTimer = 0,
+                                                    );
+                                                } else {
+                                                    updateDisplayData({
+                                                        main: [],
+                                                        topLeft: [],
+                                                        otherIndication: {},
+                                                    });
+
+                                                    updateDisplayData({
+                                                        main: [],
+                                                        topLeft: [],
+                                                        otherIndication: {
+                                                            topLeftDecorationLine: true,
+                                                        }
+                                                        // topLeft: 'ID'.split(''),
+                                                    });
+                                                    // resetDemo();
+                                                    animateScrollingText(
+                                                        animTimer,
+                                                        `File Saved To Selected Folder on Your Device! Press Encoder To Exit!`,
+                                                        // `${radioData.recognition.artist} - ${radioData.recognition.title}`,
+                                                        () => animTimer = 0,
+                                                        // true
+                                                    );
+                                                }
+
+
 
                                                 animateTopLeftSelection(updateTimer / 30);
                                                 animTimer++;

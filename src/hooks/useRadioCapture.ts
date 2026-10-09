@@ -23,7 +23,7 @@ export function useRadioCapture() {
         abortRef.current = null;
     }, []);
 
-    
+
     const capture = useCallback(async (
         url: string,
         durationMs: number,
@@ -94,7 +94,7 @@ export function useRadioCapture() {
                 ?? `capture_${new Date().toISOString().replace(/[:.]/g, '-')}.mp3`;
 
             options.onStartDownloading?.();
-            
+
             const saved = await saveCaptureToFolder(folder, blob, fname);
 
             result.savedTo = {
@@ -108,5 +108,21 @@ export function useRadioCapture() {
         return result;
     }, []);
 
-    return { capture, cancelCapture };
+    const recognize = useCallback(async (audioBlob: Blob) => {
+        const { computeFingerprint } = await import('@/utils/fingerprint');
+        const fp = await computeFingerprint(audioBlob);
+
+        const res = await fetch('/api/radio-recognize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fingerprint: fp.fingerprint,
+                duration: fp.duration,
+            }),
+        });
+
+        return await res.json();
+    }, []);
+
+    return { capture, cancelCapture, recognize };
 }
