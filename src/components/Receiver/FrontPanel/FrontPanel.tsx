@@ -1188,34 +1188,46 @@ export default function FrontPanel({
         {
             main: "PLAYLIST MODE",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
+                // {
+                //     active: (t) => t > 0 && t < 30,
+                //     data: (t) => demoTopLeftAnimCallback(t, 12),
+                // }
             ],
         },
         {
             main: "INTERNET RADIO",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
+                // {
+                //     active: (t) => t > 0 && t < 30,
+                //     data: (t) => demoTopLeftAnimCallback(t, 12),
+                // }
             ],
         },
         {
             main: "AUTO ON/OFF",
             animation: "default",
-            delayBeforeNext: 100,
+            delayBeforeNext: 70,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 30,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    active: (t) => t > 0 && t < 26,
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
+                // {
+                //     active: (t) => t > 0 && t < 30,
+                //     data: (t) => demoTopLeftAnimCallback(t, 12),
+                // }
             ],
         },
 
@@ -2924,12 +2936,12 @@ export default function FrontPanel({
                                 }
                             }
 
-                            if ([1, 2].includes(mainOutputs.currentSource || 0)) updateDisplayData({
-                                ...displayDataRef.current,
-                                topLeft: (typeof mainOutputs.currentSource === 'number') ? (
-                                    MainControllerSources[mainOutputs.currentSource]
-                                ).split('') : []
-                            });
+                            // if ([1, 2].includes(mainOutputs.currentSource || 0)) updateDisplayData({
+                            //     ...displayDataRef.current,
+                            //     topLeft: (typeof mainOutputs.currentSource === 'number') ? (
+                            //         MainControllerSources[mainOutputs.currentSource]
+                            //     ).split('') : []
+                            // });
 
                             if (displayMode.selectedSource !== mainOutputs.currentSource) {
                                 if (mainOutputs.currentSource === 1) {
@@ -3213,7 +3225,7 @@ export default function FrontPanel({
                                                 animTimer += 1;
 
                                             } else {
-                                                if (displayMode.default) {
+                                                if (displayMode.default || sourceData.playbackData.isTrackSelected) {
                                                     const main = (
                                                         (currentTime === undefined || duration === undefined) ? ` ${trackNumber}`
                                                             : (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${trackNumber}  ${currentTime}/${duration}` : ` ${trackNumber}       ${currentTime}`

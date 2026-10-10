@@ -9,11 +9,13 @@ import "./Receiver.css";
 import AppeleyRC from "./RemoteController/AppeleyRC";
 import AppeleyMediaCenter from "../AppeleyMediaCenter/AppeleyMediaCenter";
 
-export default function AppeleyReceiver({ internetRadioStations, videoOutputRef, setVideoPowerOn }: {
+export default function AppeleyReceiver({ internetRadioStations, videoOutputRef, setVideoPowerOn, receiverOnly }: {
     videoOutputRef: RefObject<HTMLVideoElement | null>;
     setVideoPowerOn: Dispatch<SetStateAction<boolean | undefined>>;
 
     internetRadioStations: InternetRadioStation[];
+
+    receiverOnly?: boolean;
 }) {
 
     const [radioStations, setRadioStations] = useState<InternetRadioStation[]>(internetRadioStations || []);
@@ -1614,9 +1616,9 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                 mainControllerOutputsRef={controllerOutputsRef}
             />
 
-            <div className="appeley-receiver__container">
+            {(!receiverOnly) && <div className="appeley-receiver__container">
                 <button className="appeley-receiver__ui-button" onClick={() => setRCModalOpened(true)}>Remote Control</button>
-            </div>
+            </div>}
 
             {isRCModalOpened && (
                 <div className="remote-control-modal">

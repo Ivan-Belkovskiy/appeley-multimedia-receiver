@@ -98,6 +98,8 @@ export interface MainControllerUSBPlaybackData {
         data: string;
     };
 
+    isTrackSelected?: boolean; // To reset display mode to default
+
     dataType: "audio" | "video";
     // trackName?: string;
     // albumName?: string;
@@ -901,6 +903,8 @@ export default function MainController({
                 };
                 sourceData.playbackData.artist = id3?.common?.artist;
 
+                sourceData.playbackData.isTrackSelected = false;
+
                 if (id3?.format?.duration) {
                     sourceData.playbackData.trackDuration = id3.format.duration;
                 }
@@ -975,11 +979,12 @@ export default function MainController({
                 const navigationData = outputsRef.current.sourceData[1].navigationData;
                 if (!navigationData) throw new Error('Navigation data not provided!');
 
-                if (outputsRef.current.sourceData[1].playbackData) outputsRef.current.sourceData[1].playbackData = {
-                    ...outputsRef.current.sourceData[1].playbackData,
-                    trackName: undefined,
-                    albumName: undefined,
-                };
+                // if (outputsRef.current.sourceData[1].playbackData) outputsRef.current.sourceData[1].playbackData = {
+                //     ...outputsRef.current.sourceData[1].playbackData,
+                //     trackName: undefined,
+                //     albumName: undefined,
+                //     isTrackSelected: true,
+                // };
 
                 // alert(folderOffset)
                 // const currentFolder = navigationData.find((val, idx) => val.number);
@@ -1035,6 +1040,15 @@ export default function MainController({
                     trackNumber = (current.trackList.length - 1);
                     return tryReadTrack(folder, 0, 'next');
                 }
+
+                if (outputsRef.current.sourceData[1].playbackData) outputsRef.current.sourceData[1].playbackData = {
+                    ...outputsRef.current.sourceData[1].playbackData,
+                    trackNumber,
+                    folderNumber: current.number,
+                    trackName: undefined,
+                    albumName: undefined,
+                    isTrackSelected: true,
+                };
 
                 // if (trackNumber > current.trackCount - 1) trackNumber = (current.trackCount - 1);
 
@@ -1116,6 +1130,16 @@ export default function MainController({
                             trackDuration: audio.duration,
                             randomPlayInfo: prevRandom,
                         };
+
+                        d[1].isReadingID3 = true;
+                        getCurrentID3()
+                            .then(() => {
+                                d[1].isReadingID3 = false;
+                            })
+                            .catch((err) => {
+                                console.warn('ID3 read failed:', err);
+                                d[1].isReadingID3 = false;
+                            });
 
                         if (
                             outputsRef.current.settings.playMode.random &&
@@ -3442,6 +3466,8 @@ export default function MainController({
                                         tryReadTrack((folder), (track)).then(() => {
                                             d[1].isReading = false;
                                             d[1].dataToLoad = undefined;
+
+
                                         }).catch(err => {
                                             tryReadTrack(-1, 0, "next").then(() => {
                                                 d[1].isReading = false;
@@ -3588,12 +3614,12 @@ export default function MainController({
                                     // } else if (clickedEncoderBtn === 'center') clickedEncoderBtn = null;
 
                                 } else if (!d[1].isReadingID3) {
-                                    d[1].isReadingID3 = true;
-                                    getCurrentID3()
-                                        .catch((err) => {
-                                            console.warn('ID3 read failed:', err);
-                                            d[1].isReadingID3 = false;
-                                        });
+                                    // d[1].isReadingID3 = true;
+                                    // getCurrentID3()
+                                    //     .catch((err) => {
+                                    //         console.warn('ID3 read failed:', err);
+                                    //         d[1].isReadingID3 = false;
+                                    //     });
                                 } else {
 
 
