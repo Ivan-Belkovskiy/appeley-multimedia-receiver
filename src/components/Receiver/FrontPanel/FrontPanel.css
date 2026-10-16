@@ -23,6 +23,9 @@
 .front-panel__svg {
     width: 100%;
     height: 100%;
+    --webkit-app-region: drag;
+    /* cursor: move; */
+    user-select: none;
 }
 
 .front-panel__svg * {
@@ -36,6 +39,7 @@
 }
 
 .front-panel__button {
+    --webkit-app-region: no-drag;
     user-select: none;
 }
 

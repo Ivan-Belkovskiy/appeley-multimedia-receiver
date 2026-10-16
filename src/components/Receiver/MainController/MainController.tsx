@@ -57,6 +57,7 @@ export interface MainControllerInputs {
         1: {
             allowReading?: boolean;
             connectedUSBDevice?: USBFlashInfo;
+            requestNumberSelection?: boolean;
         };
         2: {
             allowReading?: boolean;
@@ -259,6 +260,15 @@ export interface MainControllerSettings {
         };
     };
     audio: {
+        loudness: {
+            on: boolean;
+            mode: 'ON' | 'AUTO';
+            maxLow: number;
+            maxHigh: number;
+        };
+        autoNormalization: {
+            on: boolean;
+        };
         volumeControl: {
             on: boolean;
             settings: {
@@ -416,6 +426,17 @@ export interface MainControllerOutputs {
                 timer: number;
                 isMoving: boolean;
             };
+
+            trackFolderSelection?: {
+                folder: string;
+                track: string;
+
+                selection: "folder" | "track";
+
+                error?: string;
+
+                timeBeforeClose: number;
+            }
 
 
 
@@ -579,26 +600,61 @@ export default function MainController({
     let masterGain: GainNode | null = null;
     let currentSource: MediaElementAudioSourceNode | null = null;
 
+    let normalizationNode: GainNode | null = null;
+
+    let loudnessLowShelf: BiquadFilterNode | null = null;
+    let loudnessHighShelf: BiquadFilterNode | null = null;
+
     const ensureAudioGraph = () => {
         if (audioContext) return;
-
         audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+
+
+        normalizationNode = audioContext.createGain();
+        normalizationNode.gain.value = 1.0;
 
         lowFilter = audioContext.createBiquadFilter();
         lowFilter.type = 'peaking';
-
         midFilter = audioContext.createBiquadFilter();
         midFilter.type = 'peaking';
-
         highFilter = audioContext.createBiquadFilter();
         highFilter.type = 'peaking';
-
         masterGain = audioContext.createGain();
         masterGain.gain.value = 1.0;
 
+        // const limiter = audioContext.createDynamicsCompressor();
+        // limiter.threshold.value = -1;
+        // limiter.knee.value = 0;
+        // limiter.ratio.value = 20;
+        // limiter.attack.value = 0.003;
+        // limiter.release.value = 0.1;
+
+        // masterGain.connect(limiter);
+        // limiter.connect(audioContext.destination);
+
+
+
+        normalizationNode.connect(lowFilter);
         lowFilter.connect(midFilter);
         midFilter.connect(highFilter);
-        highFilter.connect(masterGain);
+
+        // highFilter.connect(masterGain);
+
+        loudnessLowShelf = audioContext.createBiquadFilter();
+        loudnessLowShelf.type = 'lowshelf';
+        loudnessLowShelf.frequency.value = 200;
+        loudnessLowShelf.gain.value = 0;
+
+        loudnessHighShelf = audioContext.createBiquadFilter();
+        loudnessHighShelf.type = 'highshelf';
+        loudnessHighShelf.frequency.value = 6000;
+        loudnessHighShelf.gain.value = 0;
+
+        highFilter.connect(loudnessLowShelf);
+        loudnessLowShelf.connect(loudnessHighShelf);
+        loudnessHighShelf.connect(masterGain);
+
         masterGain.connect(audioContext.destination);
     };
 
@@ -623,6 +679,34 @@ export default function MainController({
         highFilter.frequency.value = bands.high.frequency;
         highFilter.Q.value = bands.high.q;
         highFilter.gain.value = highGain;
+    };
+
+    const applyLoudness = () => {
+        if (!loudnessLowShelf || !loudnessHighShelf || !audioContext) return;
+
+        const loud = outputsRef.current.settings.audio.loudness;
+        if (!loud?.on) {
+            loudnessLowShelf.gain.setTargetAtTime(0, audioContext.currentTime, 0.03);
+            loudnessHighShelf.gain.setTargetAtTime(0, audioContext.currentTime, 0.03);
+            return;
+        }
+
+        let lowBoost, highBoost;
+
+        if (loud.mode === 'AUTO') {
+            const v = outputsRef.current.mainVolume;
+            const factor = Math.max(0, (60 - v) / 60);
+
+
+            lowBoost = loud.maxLow * factor;
+            highBoost = loud.maxHigh * factor;
+        } else {
+            lowBoost = loud.maxLow;
+            highBoost = loud.maxHigh;
+        }
+
+        loudnessLowShelf.gain.setTargetAtTime(lowBoost, audioContext.currentTime, 0.03);
+        loudnessHighShelf.gain.setTargetAtTime(highBoost, audioContext.currentTime, 0.03);
     };
 
     // useEffect(() => {
@@ -655,6 +739,56 @@ export default function MainController({
 
         let _radioStreamText = false;
         let _radioStationId: number | null = null;
+
+        let id3ReadToken = 0;
+
+        let lastAutoNormOn: boolean | null = null;
+        let lastNormSource: number | null = null;
+
+        let lastLoudnessOn: boolean | null = null;
+        let lastLoudnessMode: string | null = null;
+        let lastLoudVolume = -1;
+
+        const gainCache = new Map<string, number>();
+
+        const computeTrackGain = async (
+            url: string,
+            targetRmsDb = -18,
+            maxGainDb = +12,
+            minGainDb = -12,
+        ): Promise<number | null> => {
+            if (gainCache.has(url)) return gainCache.get(url)!;
+
+            try {
+                const res = await fetch(url);
+                const arrayBuffer = await res.arrayBuffer();
+
+                const decodeCtx = new (window.OfflineAudioContext ||
+                    (window as any).webkitOfflineAudioContext)(1, 44100, 44100);
+
+                const audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer);
+                const data = audioBuffer.getChannelData(0);
+                const n = data.length;
+
+                const start = Math.floor(n * 0.1);
+                const end = Math.floor(n * 0.9);
+
+                let sumSq = 0;
+                for (let i = start; i < end; i++) sumSq += data[i] * data[i];
+
+                const rms = Math.sqrt(sumSq / (end - start));
+                const rmsDb = 20 * Math.log10(rms || 1e-6);
+
+                let gainDb = targetRmsDb - rmsDb;
+                gainDb = Math.max(minGainDb, Math.min(maxGainDb, gainDb));
+
+                gainCache.set(url, gainDb);
+                return gainDb;
+            } catch (err) {
+                console.warn('Gain computation failed:', url, err);
+                return null;
+            }
+        };
 
         const saveRadioTrackToDb = async (id: number, text: string) => {
             await createRadioTrackRecord(id, text);
@@ -862,20 +996,19 @@ export default function MainController({
             }
         });
 
-        const getCurrentID3 = () => new Promise(async (resolve, reject) => {
+        const getCurrentID3 = (
+            token: number,
+            folderNumber: number,
+            trackNumber: number,
+        ) => new Promise<boolean>(async (resolve, reject) => {
             try {
                 if (!outputsRef.current.sourceData[1]) throw new Error('Source data not provided!');
-
                 const sourceData = outputsRef.current.sourceData[1];
 
-                if (!sourceData.playbackData || !sourceData.navigationData) {
-                    throw new Error('Playback or navigation data not provided!');
-                }
+                if (!sourceData.navigationData) throw new Error('Navigation data not provided!');
 
-                const currentFolder = sourceData.navigationData.find(
-                    v => v.number === sourceData.playbackData!.folderNumber
-                );
-                const track = currentFolder?.trackList[sourceData.playbackData.trackNumber];
+                const currentFolder = sourceData.navigationData.find(v => v.number === folderNumber);
+                const track = currentFolder?.trackList[trackNumber];
                 if (!track) throw new Error('Track not found!');
 
                 let id3: any = null;
@@ -893,28 +1026,61 @@ export default function MainController({
                     id3 = res.id3;
                 }
 
-                sourceData.playbackData.trackName = {
+                if (token !== id3ReadToken) {
+                    console.log('ID3 read cancelled — stale token');
+                    return resolve(false);
+                }
+
+                const pb = outputsRef.current.sourceData[1].playbackData;
+                if (
+                    !pb ||
+                    pb.folderNumber !== folderNumber ||
+                    pb.trackNumber !== trackNumber
+                ) {
+                    console.log('ID3 read cancelled — track changed');
+                    return resolve(false);
+                }
+
+                pb.replayGainDb = (id3.common.replaygain_album_gain || id3.common.replaygain_track_gain);
+
+                pb.trackName = {
                     isID3Tag: !!id3?.common?.title,
                     data: id3?.common?.title || track.name,
                 };
-                sourceData.playbackData.albumName = {
+                pb.albumName = {
                     isID3Tag: !!id3?.common?.album,
                     data: id3?.common?.album || currentFolder!.name,
                 };
-                sourceData.playbackData.artist = id3?.common?.artist;
-
-                sourceData.playbackData.isTrackSelected = false;
+                pb.artist = id3?.common?.artist;
+                pb.isTrackSelected = false;
 
                 if (id3?.format?.duration) {
-                    sourceData.playbackData.trackDuration = id3.format.duration;
+                    pb.trackDuration = id3.format.duration;
                 }
 
                 resolve(true);
             } catch (error) {
-                console.warn('getCurrentID3 error:', error);
                 reject(error);
             }
         });
+
+        const applyNormalization = () => {
+            if (!normalizationNode) return;
+
+            if (outputsRef.current.currentSource !== 1) {
+                normalizationNode.gain.setTargetAtTime(1.0, audioContext!.currentTime, 0.02);
+                return;
+            }
+
+            const autoOn = outputsRef.current.settings.audio.autoNormalization.on;
+            const rgDb = outputsRef.current.sourceData[1]?.playbackData?.replayGainDb;
+
+            const target = (autoOn && rgDb != null)
+                ? Math.pow(10, rgDb / 20)
+                : 1.0;
+
+            normalizationNode.gain.setTargetAtTime(target, audioContext!.currentTime, 0.02);
+        };
 
         const generateRandomTrackFolderNumber = (
             currentFolder?: number,
@@ -974,7 +1140,7 @@ export default function MainController({
             return remaining[randomInRangeWithMax(0, remaining.length - 1)];
         };
 
-        const tryReadTrack = (folder: number, track: number, folderOffset?: "next" | "prev") => new Promise(async (resolve, reject) => {
+        const tryReadTrack = (folder: number, track: number, folderOffset?: "next" | "prev", selectLastTrack?: boolean) => new Promise(async (resolve, reject) => {
             try {
                 const navigationData = outputsRef.current.sourceData[1].navigationData;
                 if (!navigationData) throw new Error('Navigation data not provided!');
@@ -1035,8 +1201,13 @@ export default function MainController({
 
                 let trackNumber = track;
 
-                if (trackNumber < 0) trackNumber = 0;
-                if (trackNumber > current.trackList.length - 1) {
+                if (selectLastTrack) {
+                    trackNumber = current.trackList.length - 1;
+                }
+
+                if (trackNumber < 0) {
+                    return tryReadTrack((folder - 1), 1, undefined, true);
+                } else if (trackNumber > current.trackList.length - 1) {
                     trackNumber = (current.trackList.length - 1);
                     return tryReadTrack(folder, 0, 'next');
                 }
@@ -1099,7 +1270,7 @@ export default function MainController({
                     }
 
                     currentSource = audioContext!.createMediaElementSource(audio);
-                    currentSource.connect(lowFilter!);
+                    currentSource.connect(normalizationNode!);
 
                     audio.volume = 1.0;
 
@@ -1111,10 +1282,7 @@ export default function MainController({
 
 
 
-                    if (d[1].playbackData?.replayGainDb !== undefined && d[1].playbackData.replayGainDb !== null) {
-                        const gain = Math.pow(10, d[1].playbackData.replayGainDb / 20);
-                        d[1].normalizationGain = gain;
-                    }
+                    applyNormalization();
 
                     const onCanPlay = () => {
                         console.log('AUDIO LOADED:', trackUrl);
@@ -1131,15 +1299,22 @@ export default function MainController({
                             randomPlayInfo: prevRandom,
                         };
 
-                        d[1].isReadingID3 = true;
-                        getCurrentID3()
-                            .then(() => {
-                                d[1].isReadingID3 = false;
-                            })
-                            .catch((err) => {
-                                console.warn('ID3 read failed:', err);
-                                d[1].isReadingID3 = false;
-                            });
+                        const folderAtStart = available.number;
+                        const trackAtStart = trackNumber;
+                        const token = ++id3ReadToken;
+
+                        Promise.all([
+                            getCurrentID3(token, folderAtStart, trackAtStart).catch(() => null),
+                            computeTrackGain(trackUrl).then((gainDb) => {
+                                if (token !== id3ReadToken) return;
+                                const pb = outputsRef.current.sourceData[1].playbackData;
+                                if (!pb || pb.folderNumber !== folderAtStart || pb.trackNumber !== trackAtStart) return;
+                                pb.replayGainDb = gainDb ?? undefined;
+                                applyNormalization();
+                            }),
+                        ]).finally(() => {
+                            if (token === id3ReadToken) d[1].isReadingID3 = false;
+                        });
 
                         if (
                             outputsRef.current.settings.playMode.random &&
@@ -1255,11 +1430,13 @@ export default function MainController({
 
             const audio = new Audio();
             audio.preload = 'none';
-            audio.volume = outputsRef.current.mainVolume / 100;
+            // audio.volume = outputsRef.current.mainVolume / 100;
             audio.crossOrigin = 'anonymous';
             audio.src = station.url;
 
             audioPlayerRef.current = audio;
+
+            if (normalizationNode) normalizationNode.gain.value = 1.0;
 
             ensureAudioGraph();
             if (audioContext!.state === 'suspended') {
@@ -1272,7 +1449,7 @@ export default function MainController({
             }
 
             currentSource = audioContext!.createMediaElementSource(audio);
-            currentSource.connect(lowFilter!);
+            currentSource.connect(normalizationNode!);
 
             applyEQSettings();
 
@@ -2236,6 +2413,37 @@ export default function MainController({
             }
         }
 
+
+        const tryReadTrackByLoadedData = async () => {
+            const d = outputsRef.current.sourceData;
+
+            const folder = d[1]?.dataToLoad?.folderNumber ?? 0;
+            const track = d[1]?.dataToLoad?.trackNumber ?? 0;
+
+            if (outputsRef.current.currentSource === 1) {
+                tryReadTrack((folder), (track)).then(() => {
+                    d[1].isReading = false;
+                    d[1].dataToLoad = undefined;
+
+
+                }).catch(err => {
+                    if (outputsRef.current.currentSource === 1) {
+                        tryReadTrack(-1, 0, "next").then(() => {
+                            d[1].isReading = false;
+                            d[1].dataToLoad = undefined;
+                        }).catch((err) => {
+                            console.error("❌ Initial tryReadTrack failed:", err);
+                            d[1].isReading = false;
+                        });
+                    } else {
+                        d[1].isReading = false;
+                    }
+                });
+            } else {
+                d[1].isReading = false;
+            }
+        }
+
         const processMenuTimers = () => {
             if (outputsRef.current.menu.navigation.menuOpened) {
 
@@ -2258,6 +2466,83 @@ export default function MainController({
                 }
 
             }
+        }
+
+        const updateTrackFolderSelectionNumber = (num: number) => {
+            const outputUsbData = outputsRef.current.sourceData[1];
+
+            if (outputUsbData.trackFolderSelection) {
+                const selection = outputUsbData.trackFolderSelection.selection;
+
+                let newValue = (outputUsbData.trackFolderSelection[selection]) + String(num);
+                outputUsbData.trackFolderSelection[selection] = (newValue);
+
+                outputsRef.current.resetAnimationsTimer = {
+                    animTimer: true,
+                };
+                outputsRef.current.resetDemo = true;
+            }
+        }
+
+        const initNumberSelection = () => {
+            const inputUsbData = inputsRef.current.sourceData[1];
+            const outputUsbData = outputsRef.current.sourceData[1];
+
+            inputUsbData.requestNumberSelection = false;
+
+            if (
+                !inputUsbData.connectedUSBDevice ||
+                outputUsbData.isReading ||
+                !outputUsbData.navigationData ||
+                !outputUsbData.playbackData
+            ) return beeper.tripleBeep(
+                outputsRef.current.settings.audio.beeper.volume,
+                outputsRef.current.settings.audio.beeper.on
+            );
+
+
+            outputUsbData.trackFolderSelection = {
+                folder: '',
+                track: '',
+
+                selection: "folder",
+
+                timeBeforeClose: (60 * 30)
+            };
+
+        }
+
+        const processNumberSelection = () => {
+            const outputUsbData = outputsRef.current.sourceData[1];
+
+            if (outputUsbData.trackFolderSelection) {
+                const selection = outputUsbData.trackFolderSelection.selection;
+
+                processButtonClick('num_0', () => updateTrackFolderSelectionNumber(0));
+                processButtonClick('num_1', () => updateTrackFolderSelectionNumber(1));
+                processButtonClick('num_2', () => updateTrackFolderSelectionNumber(2));
+                processButtonClick('num_3', () => updateTrackFolderSelectionNumber(3));
+                processButtonClick('num_4', () => updateTrackFolderSelectionNumber(4));
+                processButtonClick('num_5', () => updateTrackFolderSelectionNumber(5));
+                processButtonClick('num_6', () => updateTrackFolderSelectionNumber(6));
+                processButtonClick('num_7', () => updateTrackFolderSelectionNumber(7));
+                processButtonClick('num_8', () => updateTrackFolderSelectionNumber(8));
+                processButtonClick('num_9', () => updateTrackFolderSelectionNumber(9));
+
+                if (outputUsbData.trackFolderSelection.timeBeforeClose > 0) {
+                    outputUsbData.trackFolderSelection.timeBeforeClose--;
+                } else {
+                    beeper.singleBeep(
+                        1,
+                        outputsRef.current.settings.audio.beeper.volume,
+                        outputsRef.current.settings.audio.beeper.on
+                    )
+                    outputUsbData.trackFolderSelection = undefined;
+                }
+            };
+
+
+
         }
 
         let updateTimer = 0;
@@ -2320,7 +2605,16 @@ export default function MainController({
                             if (srcBtnTimer > 0) {
                                 beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
 
-                                if (outputsRef.current.currentSource === 2) {
+                                inputsRef.current.sourceData[1].allowReading = false;
+                                inputsRef.current.sourceData[2].allowReading = false;
+
+                                if (outputsRef.current.currentSource === 1) {
+                                    const d = outputsRef.current.sourceData;
+                                    if (d[1].playbackData) d[1].dataToLoad = {
+                                        folderNumber: d[1].playbackData.folderNumber,
+                                        trackNumber: d[1].playbackData.trackNumber
+                                    };
+                                } else if (outputsRef.current.currentSource === 2) {
                                     // outputsRef.current.sourceData[2].
                                     stopMetadataPolling();
                                 }
@@ -2359,81 +2653,7 @@ export default function MainController({
                         }
                     } else srcBtnTimer = 0;
 
-                    // if (inputsRef.current.buttons.disp) {
 
-                    //     if (clickedOtherButton !== 'disp') {
-                    //         if (inputsRef.current.isDemoAnimating) resetDemo();
-                    //         else {
-                    //             outputsRef.current
-                    //         }
-                    //     }
-
-                    //     clickedOtherButton = 'disp';
-
-                    // }
-
-
-                    // Old radio capture handler
-                    // processButtonClick('num_0', async () => {
-                    //     if (outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened) return;
-
-                    //     if (outputsRef.current.currentSource !== 2) return;
-
-
-                    //     const d2 = outputsRef.current.sourceData[2];
-                    //     // if (!d2?.currentStationIndex && d2.currentStationIndex !== 0) return;
-                    //     if (typeof d2.currentStationIndex !== 'number') return;
-
-
-                    //     const station = internetRadioStations[d2.currentStationIndex];
-                    //     if (!station) return;
-
-                    //     // alert('Start Recognition');
-
-                    //     outputsRef.current.sourceData[2].recognition = {
-                    //         inProgress: true,
-                    //         startedAt: Date.now(),
-                    //     };
-
-                    //     try {
-                    //         const res = await fetch('/api/radio-capture', {
-                    //             method: 'POST',
-                    //             headers: { 'Content-Type': 'application/json' },
-                    //             body: JSON.stringify({
-                    //                 url: station.url,
-                    //                 durationMs: 10_000,
-                    //             }),
-                    //         });
-
-                    //         const data = await res.json();
-
-                    //         if (data.success && data.recognition?.success) {
-                    //             await createRadioTrackRecord(
-                    //                 d2.currentStationId!,
-                    //                 `${data.recognition.artist} - ${data.recognition.title}`,
-                    //             );
-
-                    //             outputsRef.current.sourceData[2].recognition = {
-                    //                 inProgress: false,
-                    //                 artist: data.recognition.artist,
-                    //                 title: data.recognition.title,
-                    //                 result: 'FOUND',
-                    //             };
-                    //         } else {
-                    //             outputsRef.current.sourceData[2].recognition = {
-                    //                 inProgress: false,
-                    //                 result: 'NOT_FOUND',
-                    //                 error: data.recognition?.error || data.error,
-                    //             };
-                    //         }
-                    //     } catch (err) {
-                    //         outputsRef.current.sourceData[2].recognition = {
-                    //             inProgress: false,
-                    //             result: 'ERROR',
-                    //             error: String(err),
-                    //         };
-                    //     }
-                    // });
 
                     processButtonClick('back', () => {
 
@@ -2452,6 +2672,11 @@ export default function MainController({
                         } else {
 
                             if (outputsRef.current.menu.navigation.menuOpened) {
+
+                                outputsRef.current.resetAnimationsTimer = {
+                                animTimer: true,
+                            };
+
                                 const openedIdxArray = outputsRef.current.menu.navigation.openedIdxArray;
                                 // alert(openedIdxArray.length);
                                 const navigation = outputsRef.current.menu.navigation;
@@ -2504,75 +2729,90 @@ export default function MainController({
                                 // if (outputsRef.current.menu.navigation._settingsBeforeUpdate) {
                                 //     outputsRef.current.settings = outputsRef.current.menu.navigation._settingsBeforeUpdate;
                                 // }
-                            }
+                            } else {
 
-                            const currentSrc = outputsRef.current.currentSource;
-                            if (currentSrc === 1) {
-                                const d = outputsRef.current.sourceData[1];
-                                if (d.menu?.menuType === 'navigation') {
-                                    if (d.menu.subCategory === 'file') {
-                                        d.menu.subCategory = null;
-                                        d.menu.subIndex = null;
+                                const currentSrc = outputsRef.current.currentSource;
+                                if (currentSrc === 1) {
+                                    const d = outputsRef.current.sourceData[1];
+                                    if (d.trackFolderSelection) {
 
-                                        outputsRef.current.resetAnimationsTimer = {
-                                            animTimer: true,
-                                        };
-                                    } else {
-                                        d.menu = undefined;
-                                    }
-                                }
-                            } else if (currentSrc === 2) {
-                                const d = outputsRef.current.sourceData[2];
+                                        const selection = d.trackFolderSelection.selection;
 
-                                if (d.navigation) {
-                                    d.navigation = undefined;
-                                }
-                            } else if (currentSrc === 6) {
-                                const d = outputsRef.current.sourceData["6"];
-                                if (d.ui?.elevatorCoursebotNavigation) {
-                                    const navigation = d.ui.elevatorCoursebotNavigation;
-                                    if (navigation.navigationTypeSelection) {
-                                        d.ui = {
-                                            selectedElevator: d.ui.selectedElevator,
+                                        if (d.trackFolderSelection[selection].length > 0) {
+                                            d.trackFolderSelection[selection] = d.trackFolderSelection[selection].slice(0, (
+                                                d.trackFolderSelection[selection].length - 1
+                                            ))
+                                        } else if (selection === 'track') d.trackFolderSelection.selection = 'folder';
+                                        else {
+                                            d.trackFolderSelection = undefined;
                                         }
-                                    } else if (navigation.floorSelection) {
-                                        d.ui.elevatorCoursebotNavigation = {
-                                            floorIdx: navigation.floorIdx,
-                                            navigationTypeSelection: {
-                                                idx: 0,
-                                                types: ["FLOOR SELECTION", "SLOT SELECTION"]
-                                            }
-                                        };
-                                    } else if (navigation.floorSlotView) {
-                                        d.ui.elevatorCoursebotNavigation = {
-                                            floorIdx: navigation.floorIdx,
-                                            navigationTypeSelection: {
-                                                idx: 1,
-                                                types: ["FLOOR SELECTION", "SLOT SELECTION"]
-                                            }
-                                        };
-                                    } else if (navigation.slotDataView) {
-                                        d.ui.elevatorCoursebotNavigation = {
-                                            floorIdx: navigation.floorIdx,
-                                            floorSlotIdx: navigation.floorSlotIdx,
-                                            floorSlotView: true,
-                                        };
-                                    }
-                                } else if (d.ui?.elevatorActionSelection) {
 
-                                    if (d.ui.elevatorActionSelection.currentAction) {
-                                        d.ui.elevatorActionSelection.currentAction = undefined;
-                                    } else {
-                                        d.ui = {
-                                            selectedElevator: d.ui.selectedElevator,
+                                    } else if (d.menu?.menuType === 'navigation') {
+                                        if (d.menu.subCategory === 'file') {
+                                            d.menu.subCategory = null;
+                                            d.menu.subIndex = null;
+
+                                            outputsRef.current.resetAnimationsTimer = {
+                                                animTimer: true,
+                                            };
+                                        } else {
+                                            d.menu = undefined;
                                         }
                                     }
+                                } else if (currentSrc === 2) {
+                                    const d = outputsRef.current.sourceData[2];
 
-                                } else if (d.ui?.elevatorListSelection) {
-                                    d.ui = {
-                                        elevatorCategorySelection: true,
-                                    };
+                                    if (d.navigation) {
+                                        d.navigation = undefined;
+                                    }
+                                } else if (currentSrc === 6) {
+                                    const d = outputsRef.current.sourceData["6"];
+                                    if (d.ui?.elevatorCoursebotNavigation) {
+                                        const navigation = d.ui.elevatorCoursebotNavigation;
+                                        if (navigation.navigationTypeSelection) {
+                                            d.ui = {
+                                                selectedElevator: d.ui.selectedElevator,
+                                            }
+                                        } else if (navigation.floorSelection) {
+                                            d.ui.elevatorCoursebotNavigation = {
+                                                floorIdx: navigation.floorIdx,
+                                                navigationTypeSelection: {
+                                                    idx: 0,
+                                                    types: ["FLOOR SELECTION", "SLOT SELECTION"]
+                                                }
+                                            };
+                                        } else if (navigation.floorSlotView) {
+                                            d.ui.elevatorCoursebotNavigation = {
+                                                floorIdx: navigation.floorIdx,
+                                                navigationTypeSelection: {
+                                                    idx: 1,
+                                                    types: ["FLOOR SELECTION", "SLOT SELECTION"]
+                                                }
+                                            };
+                                        } else if (navigation.slotDataView) {
+                                            d.ui.elevatorCoursebotNavigation = {
+                                                floorIdx: navigation.floorIdx,
+                                                floorSlotIdx: navigation.floorSlotIdx,
+                                                floorSlotView: true,
+                                            };
+                                        }
+                                    } else if (d.ui?.elevatorActionSelection) {
+
+                                        if (d.ui.elevatorActionSelection.currentAction) {
+                                            d.ui.elevatorActionSelection.currentAction = undefined;
+                                        } else {
+                                            d.ui = {
+                                                selectedElevator: d.ui.selectedElevator,
+                                            }
+                                        }
+
+                                    } else if (d.ui?.elevatorListSelection) {
+                                        d.ui = {
+                                            elevatorCategorySelection: true,
+                                        };
+                                    }
                                 }
+
                             }
 
                         }
@@ -2596,17 +2836,19 @@ export default function MainController({
                         } else {
                             const d = outputsRef.current.sourceData;
                             if (outputsRef.current.currentSource === 1) {
-                                let trackNum = d[1].playbackData?.folderNumber ?? 0;
-                                d[1].menu = {
-                                    menuType: "navigation",
-                                    mainIndex: trackNum,
+                                if (!d[1].trackFolderSelection) {
+                                    let trackNum = d[1].playbackData?.folderNumber ?? 0;
+                                    d[1].menu = {
+                                        menuType: "navigation",
+                                        mainIndex: trackNum,
 
-                                    subCategory: null,
-                                    subIndex: null,
-                                };
-                                outputsRef.current.resetAnimationsTimer = {
-                                    animTimer: true
-                                };
+                                        subCategory: null,
+                                        subIndex: null,
+                                    };
+                                    outputsRef.current.resetAnimationsTimer = {
+                                        animTimer: true
+                                    };
+                                }
                             } else if (outputsRef.current.currentSource === 2) {
                                 if (!d[2].navigation) {
                                     d[2].navigation = {
@@ -2631,7 +2873,8 @@ export default function MainController({
 
                         } else if (!outputsRef.current.menu.navigation.menuOpened &&
                             !outputsRef.current.sourceData[1].menu &&
-                            !outputsRef.current.sourceData[2].navigation
+                            !outputsRef.current.sourceData[2].navigation &&
+                            !outputsRef.current.sourceData[1].trackFolderSelection
                         ) {
                             outputsRef.current.menu.navigation = {
                                 currentIdx: 0,
@@ -2646,7 +2889,11 @@ export default function MainController({
                     });
 
                     processButtonClick('mediaCenter', () => {
-                        if (outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened) {
+                        if (
+                            outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened ||
+                            outputsRef.current.sourceData[1].trackFolderSelection ||
+                            outputsRef.current.sourceData[1].timeMove?.on
+                        ) {
 
                         } else {
                             outputsRef.current.appeleyMediaCenter = {
@@ -2667,6 +2914,10 @@ export default function MainController({
                             processExtendedMenuNavigation(outputsRef.current.appeleyMediaCenterMenu, 'scroll-left');
                         } else if (outputsRef.current.menu.navigation.menuOpened) {
                             // MENU NAVIGATION
+
+                            outputsRef.current.resetAnimationsTimer = {
+                                animTimer: true,
+                            };
 
                             const navigation = outputsRef.current.menu.navigation;
 
@@ -2718,22 +2969,24 @@ export default function MainController({
 
                                 const d = outputsRef.current.sourceData;
 
-                                if (d[1].menu?.menuType === 'navigation') {
-                                    if (d[1].menu.subCategory === 'file' && typeof d[1].menu.subIndex === 'number') {
-                                        if (d[1].menu.subIndex > 0) {
-                                            d[1].menu.subIndex--;
+                                if (!d[1].trackFolderSelection) {
+                                    if (d[1].menu?.menuType === 'navigation') {
+                                        if (d[1].menu.subCategory === 'file' && typeof d[1].menu.subIndex === 'number') {
+                                            if (d[1].menu.subIndex > 0) {
+                                                d[1].menu.subIndex--;
+                                            }
+                                        } else {
+                                            if (d[1].menu.mainIndex > 0) {
+                                                d[1].menu.mainIndex--;
+                                            }
                                         }
-                                    } else {
-                                        if (d[1].menu.mainIndex > 0) {
-                                            d[1].menu.mainIndex--;
+                                        outputsRef.current.resetAnimationsTimer = {
+                                            animTimer: true,
                                         }
-                                    }
-                                    outputsRef.current.resetAnimationsTimer = {
-                                        animTimer: true,
-                                    }
-                                } else if (d[1].playbackData) {
-                                    if (outputsRef.current.mainVolume > 0) {
-                                        outputsRef.current.mainVolume -= 1;
+                                    } else if (d[1].playbackData) {
+                                        if (outputsRef.current.mainVolume > 0) {
+                                            outputsRef.current.mainVolume -= 1;
+                                        }
                                     }
                                 }
                             } else if (outputsRef.current.currentSource === 2) {
@@ -2822,6 +3075,11 @@ export default function MainController({
                             processExtendedMenuNavigation(outputsRef.current.appeleyMediaCenterMenu, 'click');
                         } else if (outputsRef.current.menu.navigation.menuOpened) {
                             // MENU NAVIGATION
+
+                            outputsRef.current.resetAnimationsTimer = {
+                                animTimer: true,
+                            };
+
                             const navigation = outputsRef.current.menu.navigation;
 
                             navigation.timerBeforeClose = (30 * 60);
@@ -2838,6 +3096,7 @@ export default function MainController({
                                     // navigation.openedIdxArray.push(currentIdx);
                                     // navigation.isValueSelect = true;
                                     // navigation.currentIdx = 0;
+
 
                                     if (navigation.isValueSelect) {
 
@@ -2871,6 +3130,7 @@ export default function MainController({
                                             }
 
                                         } else if (typeof navigation.valueIdx === 'number') {
+                                            // alert(navigation.valueIdx);
                                             const value = currentElement.values[navigation.valueIdx].onSelect(outputsRef.current.settings);
                                             outputsRef.current.settings = value;
 
@@ -2892,8 +3152,10 @@ export default function MainController({
                                         } else {
                                             const currentValueIdx = currentElement.values.findIndex(val => val.reference?.(outputsRef.current.settings));
 
+                                            // alert(currentValueIdx);
+
                                             navigation.isValueSelect = true;
-                                            navigation.valueIdx = currentValueIdx || 0;
+                                            navigation.valueIdx = (currentValueIdx < 0) ? 0 : currentValueIdx;
                                         }
                                     }
                                     // if (currentValueIdx >= 0) {
@@ -2909,54 +3171,123 @@ export default function MainController({
                             if (outputsRef.current.currentSource === 1) {
                                 // USB ACTIONS
                                 const d = outputsRef.current.sourceData;
-                                if (d[1].timeMove?.on) {
-                                    d[1].timeMove = undefined;
-                                    if (audioPlayerRef.current) audioPlayerRef.current.play();
-                                } else if (d[1].menu?.menuType === 'navigation') {
-                                    if (d[1].menu.error) return;
-                                    if (d[1].menu.subCategory === 'file' && typeof d[1].menu.subIndex === 'number') {
-                                        const folder = d[1].menu.mainIndex;
-                                        const track = d[1].menu.subIndex;
-                                        tryReadTrack(folder, track);
+                                if (d[1].trackFolderSelection) {
 
-                                        d[1].menu = undefined;
-                                    } else {
-                                        const playingFolder = d[1].playbackData?.folderNumber ?? 0;
-                                        const fileIdx = d[1].playbackData?.trackNumber ?? 0;
-                                        d[1].menu.subCategory = 'file';
-                                        if (d[1].navigationData?.[
-                                            d[1].menu.mainIndex
-                                        ].isEmpty) {
-                                            d[1].menu.error = 'NO FILE';
-                                            setTimeout(() => {
-                                                if (d[1].menu) {
-                                                    d[1].menu.error = undefined;
-                                                    d[1].menu.subCategory = null;
-                                                    d[1].menu.subIndex = null;
-                                                }
-                                            }, 1000);
+                                    const selection = d[1].trackFolderSelection.selection;
+                                    const navigation = d[1].navigationData;
 
-                                            return beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);; // To prevent default beep(1);
+                                    const { folder: enteredFolder, track: enteredTrack } = d[1].trackFolderSelection;
+
+                                    const folderNumber = Number(enteredFolder) - 1;
+                                    const trackNumber = Number(enteredTrack) - 1;
+
+                                    if (d[1].trackFolderSelection.error) return;
+
+                                    if (selection === 'folder') {
+
+                                        if (navigation) {
+                                            const folder = navigation.find(f => f.number === folderNumber);
+
+                                            if (!folder || (folder.trackList.length === 0 || folder.isEmpty)) {
+
+                                                outputsRef.current.resetAnimationsTimer = {
+                                                    animTimer: true,
+                                                };
+
+                                                d[1].trackFolderSelection.error = (
+                                                    (folder && (folder.trackList.length === 0 || folder.isEmpty)) ? "FOLDER IS EMPTY" : "FOLDER NOT FOUND"
+
+                                                );
+
+                                                return beeper.tripleBeep(
+                                                    outputsRef.current.settings.audio.beeper.volume,
+                                                    outputsRef.current.settings.audio.beeper.on
+                                                );
+                                            }
                                         }
-                                        d[1].menu.subIndex = (playingFolder === d[1].menu.mainIndex) ? fileIdx : 0;
+
+                                        d[1].trackFolderSelection.selection = 'track';
+
+                                    } else {
+
+                                        if (navigation) {
+                                            const folder = navigation.find(f => f.number === folderNumber);
+                                            const track = folder?.trackList[trackNumber];
+
+                                            if (!track) {
+                                                outputsRef.current.resetAnimationsTimer = {
+                                                    animTimer: true,
+                                                };
+
+                                                d[1].trackFolderSelection.error = "TRACK NOT FOUND";
+
+                                                return beeper.tripleBeep(
+                                                    outputsRef.current.settings.audio.beeper.volume,
+                                                    outputsRef.current.settings.audio.beeper.on
+                                                );
+                                            }
+
+                                            tryReadTrack(
+                                                folderNumber,
+                                                trackNumber
+                                            ).catch(() => {
+                                                tryReadTrack(-1, 0, "next");
+                                            });
+                                        }
+
+                                        d[1].trackFolderSelection = undefined;
                                     }
 
-                                    outputsRef.current.resetAnimationsTimer = {
-                                        animTimer: true,
-                                    };
                                 } else {
-                                    if (d[1].playbackData) {
+                                    if (d[1].timeMove?.on) {
+                                        d[1].timeMove = undefined;
+                                        if (audioPlayerRef.current) audioPlayerRef.current.play();
+                                    } else if (d[1].menu?.menuType === 'navigation') {
+                                        if (d[1].menu.error) return;
+                                        if (d[1].menu.subCategory === 'file' && typeof d[1].menu.subIndex === 'number') {
+                                            const folder = d[1].menu.mainIndex;
+                                            const track = d[1].menu.subIndex;
+                                            tryReadTrack(folder, track);
 
-                                        if (!d[1].playbackData.isPaused) {
-                                            audioPlayerRef.current?.pause();
-                                            videoOutputRef.current?.pause();
-                                            d[1].playbackData.isPaused = true;
+                                            d[1].menu = undefined;
                                         } else {
-                                            audioPlayerRef.current?.play();
-                                            videoOutputRef.current?.play();
-                                            d[1].playbackData.isPaused = false;
+                                            const playingFolder = d[1].playbackData?.folderNumber ?? 0;
+                                            const fileIdx = d[1].playbackData?.trackNumber ?? 0;
+                                            d[1].menu.subCategory = 'file';
+                                            if (d[1].navigationData?.[
+                                                d[1].menu.mainIndex
+                                            ].isEmpty) {
+                                                d[1].menu.error = 'NO FILE';
+                                                setTimeout(() => {
+                                                    if (d[1].menu) {
+                                                        d[1].menu.error = undefined;
+                                                        d[1].menu.subCategory = null;
+                                                        d[1].menu.subIndex = null;
+                                                    }
+                                                }, 1000);
+
+                                                return beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);; // To prevent default beep(1);
+                                            }
+                                            d[1].menu.subIndex = (playingFolder === d[1].menu.mainIndex) ? fileIdx : 0;
                                         }
 
+                                        outputsRef.current.resetAnimationsTimer = {
+                                            animTimer: true,
+                                        };
+                                    } else {
+                                        if (d[1].playbackData) {
+
+                                            if (!d[1].playbackData.isPaused) {
+                                                audioPlayerRef.current?.pause();
+                                                videoOutputRef.current?.pause();
+                                                d[1].playbackData.isPaused = true;
+                                            } else {
+                                                audioPlayerRef.current?.play();
+                                                videoOutputRef.current?.play();
+                                                d[1].playbackData.isPaused = false;
+                                            }
+
+                                        }
                                     }
                                 }
                             } else if (outputsRef.current.currentSource === 2) {
@@ -3150,6 +3481,10 @@ export default function MainController({
                         } else if (outputsRef.current.menu.navigation.menuOpened) {
                             // MENU NAVIGATION
 
+                            outputsRef.current.resetAnimationsTimer = {
+                                animTimer: true,
+                            };
+
                             const navigation = outputsRef.current.menu.navigation;
 
                             navigation.timerBeforeClose = (30 * 60);
@@ -3208,23 +3543,25 @@ export default function MainController({
 
                                 const d = outputsRef.current.sourceData;
 
-                                if (d[1].menu?.menuType === 'navigation' && d[1].navigationData) {
-                                    const folderIdx = d[1].menu.mainIndex;
-                                    if (d[1].menu.subCategory === 'file' && typeof d[1].menu.subIndex === 'number') {
-                                        if (d[1].menu.subIndex < (d[1].navigationData[folderIdx].trackList.length - 1)) {
-                                            d[1].menu.subIndex++;
+                                if (!d[1].trackFolderSelection) {
+                                    if (d[1].menu?.menuType === 'navigation' && d[1].navigationData) {
+                                        const folderIdx = d[1].menu.mainIndex;
+                                        if (d[1].menu.subCategory === 'file' && typeof d[1].menu.subIndex === 'number') {
+                                            if (d[1].menu.subIndex < (d[1].navigationData[folderIdx].trackList.length - 1)) {
+                                                d[1].menu.subIndex++;
+                                            }
+                                        } else {
+                                            if (d[1].menu.mainIndex < (d[1].navigationData.length - 1)) {
+                                                d[1].menu.mainIndex++;
+                                            }
                                         }
-                                    } else {
-                                        if (d[1].menu.mainIndex < (d[1].navigationData.length - 1)) {
-                                            d[1].menu.mainIndex++;
+                                        outputsRef.current.resetAnimationsTimer = {
+                                            animTimer: true,
                                         }
-                                    }
-                                    outputsRef.current.resetAnimationsTimer = {
-                                        animTimer: true,
-                                    }
-                                } else if (d[1].playbackData) {
-                                    if (outputsRef.current.mainVolume < 100) {
-                                        outputsRef.current.mainVolume += 1;
+                                    } else if (d[1].playbackData) {
+                                        if (outputsRef.current.mainVolume < 100) {
+                                            outputsRef.current.mainVolume += 1;
+                                        }
                                     }
                                 }
                             } else if (outputsRef.current.currentSource === 2) {
@@ -3321,17 +3658,17 @@ export default function MainController({
                         processButtonClick('nextFolder', () => {
                             if (outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened) {
 
-                            } else if (!d[1].timeMove?.on) selectFolder('next');
+                            } else if (!d[1].timeMove?.on && !d[1].trackFolderSelection) selectFolder('next');
                         });
 
                         processButtonClick('nextTrack', () => {
                             if (outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened) {
 
-                            } else if (!d[1].timeMove?.on) selectTrack('next');
+                            } else if (!d[1].timeMove?.on && !d[1].trackFolderSelection) selectTrack('next');
                         }, (d[1].timeMove?.on ? 30 : 120), () => {
                             if (outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened) {
 
-                            } else if (!d[1].isReading && !d[1].error && (
+                            } else if (!d[1].isReading && !d[1].trackFolderSelection && !d[1].error && (
                                 typeof d[1].playbackData?.trackNumber === 'number' &&
                                 d[1].menu?.menuType !== 'navigation' &&
                                 d[1].playbackData.currentTime &&
@@ -3351,7 +3688,7 @@ export default function MainController({
                         }, () => {
                             timeMove();
                         }, () => {
-                            if (d[1].timeMove?.on && audioPlayerRef.current) {
+                            if (d[1].timeMove?.on && !d[1].trackFolderSelection && audioPlayerRef.current) {
                                 d[1].timeMove.timer = 0;
                                 d[1].timeMove.isMoving = false;
                                 // if (d[1].timeMove.timer % d[1].timeMove.interval === 0) {
@@ -3364,17 +3701,17 @@ export default function MainController({
                         processButtonClick('prevFolder', () => {
                             if (outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened) {
 
-                            } else if (!d[1].timeMove?.on) selectFolder('prev');
+                            } else if (!d[1].timeMove?.on && !d[1].trackFolderSelection) selectFolder('prev');
                         });
 
                         processButtonClick('prevTrack', () => {
                             if (outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened) {
 
-                            } else if (!d[1].timeMove?.on) selectTrack('prev');
+                            } else if (!d[1].timeMove?.on && !d[1].trackFolderSelection) selectTrack('prev');
                         }, (d[1].timeMove?.on ? 30 : 120), () => {
                             if (outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened) {
 
-                            } else if (!d[1].isReading && !d[1].error && (
+                            } else if (!d[1].isReading && !d[1].trackFolderSelection && !d[1].error && (
                                 typeof d[1].playbackData?.trackNumber === 'number' &&
                                 d[1].menu?.menuType !== 'navigation' &&
                                 d[1].playbackData.currentTime &&
@@ -3396,7 +3733,7 @@ export default function MainController({
                         }, () => {
                             if (outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened) {
 
-                            } else if (d[1].timeMove?.on && audioPlayerRef.current) {
+                            } else if (d[1].timeMove?.on && !d[1].trackFolderSelection && audioPlayerRef.current) {
                                 d[1].timeMove.timer = 0;
                                 d[1].timeMove.isMoving = false;
                                 // if (d[1].timeMove.timer % d[1].timeMove.interval === 0) {
@@ -3454,38 +3791,35 @@ export default function MainController({
                         //     }
                         // }
 
-                        if (inputsRef.current.sourceData[1].allowReading === true && inputsRef.current.sourceData[1].connectedUSBDevice) {
+                        const usbData = inputsRef.current.sourceData[1];
+                        if (usbData.requestNumberSelection) {
+                            initNumberSelection();
+                        }
+
+                        if (outputsRef.current.sourceData[1].trackFolderSelection) {
+                            processNumberSelection();
+                        }
+
+                        if (usbData.allowReading === true && usbData.connectedUSBDevice) {
                             if (d[1].dataToLoad) {
                                 if (!d[1].isReading) {
-                                    getNavigation().then((data) => {
-                                        d[1].navigationData = data as FolderInfo[];
+                                    if (d[1].navigationData) {
+                                        tryReadTrackByLoadedData();
+                                    } else {
+                                        getNavigation().then((data) => {
+                                            d[1].navigationData = data as FolderInfo[];
 
-                                        const folder = d[1]?.dataToLoad?.folderNumber ?? 0;
-                                        const track = d[1]?.dataToLoad?.trackNumber ?? 0;
+                                            tryReadTrackByLoadedData();
 
-                                        tryReadTrack((folder), (track)).then(() => {
+                                            // d[1].playbackData = {
+                                            //     folderNumber: 1,
+                                            // }
+                                        }).catch((err) => {
+                                            d[1].error = err;
                                             d[1].isReading = false;
-                                            d[1].dataToLoad = undefined;
-
-
-                                        }).catch(err => {
-                                            tryReadTrack(-1, 0, "next").then(() => {
-                                                d[1].isReading = false;
-                                                d[1].dataToLoad = undefined;
-                                            }).catch((err) => {
-                                                console.error("❌ Initial tryReadTrack failed:", err);
-                                                d[1].isReading = false;
-                                            });
                                         });
-
-                                        // d[1].playbackData = {
-                                        //     folderNumber: 1,
-                                        // }
-                                    }).catch((err) => {
-                                        d[1].error = err;
-                                        d[1].isReading = false;
-                                    });
-                                    d[1].isReading = true;
+                                        d[1].isReading = true;
+                                    }
                                 }
                             } else if (d[1].playbackData) {
                                 if (
@@ -3635,9 +3969,13 @@ export default function MainController({
                                         d[1].navigationData = data as FolderInfo[];
                                         console.log('NAVIGATION DATA:');
                                         console.log(data);
-                                        tryReadTrack(-1, 0, "next").then(() => {
+                                        if (outputsRef.current.currentSource === 1) {
+                                            tryReadTrack(-1, 0, "next").then(() => {
+                                                d[1].isReading = false;
+                                            });
+                                        } else {
                                             d[1].isReading = false;
-                                        });
+                                        }
 
                                         // d[1].playbackData = {
                                         //     folderNumber: 1,
@@ -3649,24 +3987,9 @@ export default function MainController({
                                     d[1].isReading = true;
                                 }
                             }
-                            // if (!d[1].isReading && !d[1].error && !d[1].navigationData) {
-                            //     getNavigation().then((data) => {
-                            //         d[1].navigationData = data as FolderInfo[];
-                            //         console.log('NAVIGATION DATA:');
-                            //         console.log(data);                                    
-                            //         d[1].isReading = false;
-                            //         // d[1].playbackData = {
-                            //         //     folderNumber: 1,
-                            //         // }
-                            //     }).catch((err) => {
-                            //         d[1].error = err;
-                            //         d[1].isReading = false;
-                            //     });
-                            //     d[1].isReading = true;
-                            // }
                         }
                     } else if (outputsRef.current.currentSource === 2) {
-                        // FM / Radio
+                        // Internet Radio
 
                         if (inputsRef.current.sourceData[2].allowReading !== true) return frameId = requestAnimationFrame(update);
 
@@ -4170,6 +4493,27 @@ export default function MainController({
                             }
                         }
 
+                    }
+
+                    const currentAutoOn = outputsRef.current.settings.audio.autoNormalization.on;
+                    const currentSource = outputsRef.current.currentSource ?? 0;
+
+                    if (lastAutoNormOn !== currentAutoOn || lastNormSource !== currentSource) {
+                        lastAutoNormOn = currentAutoOn;
+                        lastNormSource = currentSource;
+                        applyNormalization();
+                    }
+
+                    const loud = outputsRef.current.settings.audio.loudness;
+                    if (
+                        lastLoudnessOn !== loud.on ||
+                        lastLoudnessMode !== loud.mode ||
+                        (loud.on && loud.mode === 'AUTO' && lastLoudVolume !== outputsRef.current.mainVolume)
+                    ) {
+                        lastLoudnessOn = loud.on;
+                        lastLoudnessMode = loud.mode;
+                        lastLoudVolume = outputsRef.current.mainVolume;
+                        applyLoudness();
                     }
                     // outputsRef.current.display = {
                     //     mainData: '    APPELEY     '

@@ -55,6 +55,11 @@
         color: #0035e2;
         background-color: #fff;
     }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 }
 
 .usb-select-modal__message {

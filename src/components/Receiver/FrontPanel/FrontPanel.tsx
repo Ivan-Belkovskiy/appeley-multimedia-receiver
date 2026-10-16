@@ -1128,7 +1128,7 @@ export default function FrontPanel({
                 }
             ],
         },
-        
+
         {
             main: "",
             animation: "scroll-left",
@@ -2989,6 +2989,65 @@ export default function FrontPanel({
                                 })
                                 // alert(animTimer)
 
+                            } else if (mainOutputs.menu.navigation.menuOpened) {
+
+                                const navigation = mainOutputs.menu.navigation;
+                                const currentIdx = navigation.currentIdx;
+
+                                // const currentElement = mainOutputs.menu.options[currentIdx];
+                                const currentElement = getCurrentMenuElement(mainOutputs, mainOutputs.menu);
+
+                                const currentValue = (currentElement?.type === 'property' && navigation.isValueSelect) ? (
+                                    (
+                                        // navigation._inputData?.type === 'time' &&
+                                        currentElement.valueType === 'input'
+                                    ) ? (
+                                        (navigation._inputData?.type === 'time') ? (
+                                            navigation._inputData.currentValue.map((e, i) => (
+                                                (animTimer % 60 > 30 && i === navigation._inputData?.timeArrayIdx) ? `  ` : String(e).padStart(2, "0")
+                                            )).join(':')
+                                        ) : ``
+                                    ) : (
+                                        currentElement.values[navigation.valueIdx || 0]
+                                    )
+                                ) : undefined;
+
+
+                                animTimer++;
+
+
+                                if (currentElement) {
+                                    let displayText = currentElement.label;
+
+                                    if (currentValue) {
+                                        if (typeof currentValue === 'string' && navigation._inputData?.type === 'time' && currentElement.type !== 'button') {
+                                            displayText = ((currentElement.shortPropName || currentElement.label).length + 5) === 16 ? (
+                                                `${currentElement.shortPropName || currentElement.label}${currentValue}`
+                                            ) : `${currentElement.shortPropName || currentElement.label} ${currentValue}`
+                                        } else if (typeof currentValue !== 'string') {
+                                            displayText = `${typeof currentValue.shortPropName === 'string' ? currentValue.shortPropName : currentElement.label} ${currentValue.label}`
+                                        }
+                                    }
+
+                                    updateDisplayData({
+                                        main: (displayText.length <= 16) ? centerMainText(displayText) : [],
+                                        topLeft: (currentValue ? 'SET' : 'MENU').split(''),
+                                        otherIndication: {
+                                            topLeftDecorationLine: true,
+                                        }
+                                    });
+
+                                    if (displayText.length > 16) {
+                                        animateScrollingText(animTimer, displayText, () => animTimer = 0);
+                                        // animTimer++;
+                                    } else {
+                                        // animTimer = 0;
+                                    }
+
+                                    if (navigation.menuType !== 'main') {
+                                        animateTopLeftSelection(Math.floor((updateTimer / 30)));
+                                    }
+                                }
                             } else {
                                 if (mainOutputs.currentSource === 0) {
                                     // CD/DVD
@@ -3077,7 +3136,32 @@ export default function FrontPanel({
                                         //     displayMode.volume = true; // Activate volume disp mode; 
                                         // }
 
-                                        if (sourceData.timeMove?.on) {
+                                        if (sourceData.trackFolderSelection) {
+
+                                            if (sourceData.trackFolderSelection.error) {
+                                                updateDisplayData({
+                                                    main: centerMainText(sourceData.trackFolderSelection.error),
+                                                });
+
+                                                if (animTimer > (60 * 1)) sourceData.trackFolderSelection.error = undefined;
+                                            } else {
+                                                const selection = sourceData.trackFolderSelection.selection;
+                                                let main = `${selection}: ${(
+                                                    (animTimer % 60 < 30) ? sourceData.trackFolderSelection[selection] : ''
+                                                )}`;
+                                                let topLeft = (selection === 'track') ? `${(
+                                                    sourceData.trackFolderSelection.folder.padStart(2, "0").padStart(3, "F")
+                                                )}` : '';
+                                                // let topLeft = '';
+
+                                                updateDisplayData({
+                                                    main: `  ${main}`.split(''),
+                                                    topLeft: topLeft.split(''),
+                                                });
+                                            }
+
+                                            animTimer++;
+                                        } else if (sourceData.timeMove?.on) {
                                             let rightPart = (mainOutputs.settings.display.playTimeFormat === 'CURRENT_TIME_AND_DURATION') ? `${currentTime}/${duration}` : currentTime;
 
 
@@ -3896,59 +3980,7 @@ export default function FrontPanel({
                             }
 
 
-                            if (mainOutputs.menu.navigation.menuOpened) {
 
-                                const navigation = mainOutputs.menu.navigation;
-                                const currentIdx = navigation.currentIdx;
-
-                                // const currentElement = mainOutputs.menu.options[currentIdx];
-                                const currentElement = getCurrentMenuElement(mainOutputs, mainOutputs.menu);
-
-                                const currentValue = (currentElement?.type === 'property' && navigation.isValueSelect) ? (
-                                    (
-                                        // navigation._inputData?.type === 'time' &&
-                                        currentElement.valueType === 'input'
-                                    ) ? (
-                                        (navigation._inputData?.type === 'time') ? (
-                                            navigation._inputData.currentValue.map((e, i) => (
-                                                (animTimer % 60 > 30 && i === navigation._inputData?.timeArrayIdx) ? `  ` : String(e).padStart(2, "0")
-                                            )).join(':')
-                                        ) : ``
-                                    ) : (
-                                        currentElement.values[navigation.valueIdx || 0]
-                                    )
-                                ) : undefined;
-
-
-                                animTimer++;
-
-
-                                if (currentElement) {
-                                    let displayText = currentElement.label;
-
-                                    if (currentValue) {
-                                        if (typeof currentValue === 'string' && navigation._inputData?.type === 'time' && currentElement.type !== 'button') {
-                                            displayText = ((currentElement.shortPropName || currentElement.label).length + 5) === 16 ? (
-                                                `${currentElement.shortPropName || currentElement.label}${currentValue}`
-                                            ) : `${currentElement.shortPropName || currentElement.label} ${currentValue}`
-                                        } else if (typeof currentValue !== 'string') {
-                                            displayText = `${typeof currentValue.shortPropName === 'string' ? currentValue.shortPropName : currentElement.label} ${currentValue.label}`
-                                        }
-                                    }
-
-                                    updateDisplayData({
-                                        main: centerMainText(displayText),
-                                        topLeft: (currentValue ? 'SET' : 'MENU').split(''),
-                                        otherIndication: {
-                                            topLeftDecorationLine: true,
-                                        }
-                                    });
-
-                                    if (navigation.menuType !== 'main') {
-                                        animateTopLeftSelection(Math.floor((updateTimer / 30)));
-                                    }
-                                }
-                            }
 
 
 
@@ -3960,6 +3992,12 @@ export default function FrontPanel({
                                         on: true,
                                         activePreset: mainOutputs.settings.equalizer.preset
                                     } : undefined,
+                                    LOUDNESS: {
+                                        on: (mainOutputs.settings.audio.loudness.on)
+                                    },
+                                    NORMALIZATION: {
+                                        on: (mainOutputs.settings.audio.autoNormalization.on)
+                                    }
                                 }
                             })
                             // if (demoTimer > 0) {

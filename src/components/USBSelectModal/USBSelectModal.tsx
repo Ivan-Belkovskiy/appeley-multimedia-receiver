@@ -174,7 +174,7 @@ export default function USBSelectModal({ connectedDevice, onSelect, onClose }: {
                 <div className="usb-select-modal__buttons">
                     <button className="usb-select-modal__button" onClick={() => onClose?.()}>Назад</button>
                     <button className="usb-select-modal__button" onClick={() => setModalOpened(true)}>Создать USB-накопитель</button>
-                    <button className="usb-select-modal__button" onClick={handleDeviceConnect}>Подключить устройство</button>
+                    <button className="usb-select-modal__button" onClick={handleDeviceConnect} disabled={!!connected}>Подключить устройство</button>
                 </div>
             </div>
 

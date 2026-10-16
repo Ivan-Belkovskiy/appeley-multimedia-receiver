@@ -8,6 +8,7 @@ import { applyColorOffset } from "@/utils/color";
 import "./Receiver.css";
 import AppeleyRC from "./RemoteController/AppeleyRC";
 import AppeleyMediaCenter from "../AppeleyMediaCenter/AppeleyMediaCenter";
+import beeper from "@/utils/beeper";
 
 export default function AppeleyReceiver({ internetRadioStations, videoOutputRef, setVideoPowerOn, receiverOnly }: {
     videoOutputRef: RefObject<HTMLVideoElement | null>;
@@ -164,6 +165,16 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                 // optionValues: []
             },
             encoderMenuOptions: [
+                {
+                    displayCondition: (o) => o.currentSource === 1,
+
+                    type: "button",
+                    label: "SELECT TRACK",
+
+                    onClick: () => {
+                        controllerInputsRef.current.sourceData[1].requestNumberSelection = true;
+                    }
+                },
                 {
                     displayCondition: (o) => o.currentSource === 1,
 
@@ -796,6 +807,43 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
 
                     innerOptions: [
                         {
+                            type: "property",
+                            label: "VOLUME NORMALIZATION",
+
+                            values: [
+                                {
+                                    label: "ON",
+                                    shortPropName: "VOL NORM",
+                                    onSelect: (s) => ({
+                                        ...s,
+                                        audio: {
+                                            ...s.audio,
+                                            autoNormalization: {
+                                                ...s.audio.autoNormalization,
+                                                on: true
+                                            }
+                                        }
+                                    }),
+                                    reference: (s) => s.audio.autoNormalization.on === true,
+                                },
+                                {
+                                    label: "OFF",
+                                    shortPropName: "VOL NORM",
+                                    onSelect: (s) => ({
+                                        ...s,
+                                        audio: {
+                                            ...s.audio,
+                                            autoNormalization: {
+                                                ...s.audio.autoNormalization,
+                                                on: false
+                                            }
+                                        }
+                                    }),
+                                    reference: (s) => s.audio.autoNormalization.on === false,
+                                }
+                            ]
+                        },
+                        {
                             type: "block",
                             label: "VOLUME CONTROL",
 
@@ -995,6 +1043,49 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                         //         }
                         //     ]
                         // },
+                        {
+                            type: "block",
+                            label: "LOUDNESS",
+
+                            innerOptions: [
+                                {
+                                    type: "property",
+                                    label: "LOUDNESS ON/OFF",
+                                    values: [
+                                        { label: "OFF", shortPropName: "LOUDNESS", onSelect: s => ({ ...s, audio: { ...s.audio, loudness: { ...s.audio.loudness, on: false } } }), reference: s => !s.audio.loudness.on },
+                                        { label: "ON", shortPropName: "LOUDNESS", onSelect: s => ({ ...s, audio: { ...s.audio, loudness: { ...s.audio.loudness, on: true, mode: 'ON' } } }), reference: s => s.audio.loudness.on && s.audio.loudness.mode === 'ON' },
+                                        { label: "AUTO", shortPropName: "LOUDNESS", onSelect: s => ({ ...s, audio: { ...s.audio, loudness: { ...s.audio.loudness, on: true, mode: 'AUTO' } } }), reference: s => s.audio.loudness.on && s.audio.loudness.mode === 'AUTO' },
+                                    ],
+                                },
+                                {
+                                    type: "block",
+                                    label: "LOUDNESS SET",
+                                    displayCondition: (o) => o.settings.audio.loudness.on,
+                                    innerOptions: [
+                                        {
+                                            type: "property",
+                                            label: "BASS BOOST",
+                                            shortPropName: "LOUD BASS",
+                                            values: [6, 8, 9, 12].map(g => ({
+                                                label: `+${g} dB`,
+                                                onSelect: s => ({ ...s, audio: { ...s.audio, loudness: { ...s.audio.loudness, maxLow: g } } }),
+                                                reference: s => s.audio.loudness.maxLow === g,
+                                            })),
+                                        },
+                                        {
+                                            type: "property",
+                                            label: "TREBLE BOOST",
+                                            shortPropName: "LOUD HIGH",
+                                            values: [2, 3, 4, 6].map(g => ({
+                                                label: `+${g} dB`,
+                                                onSelect: s => ({ ...s, audio: { ...s.audio, loudness: { ...s.audio.loudness, maxHigh: g } } }),
+                                                reference: s => s.audio.loudness.maxHigh === g,
+                                            })),
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
                         {
                             type: "block",
                             label: "BEEP",
@@ -1338,6 +1429,10 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                 },
             },
             audio: {
+                loudness: { on: false, mode: 'AUTO', maxLow: 9, maxHigh: 4 },
+                autoNormalization: {
+                    on: false
+                },
                 volumeControl: {
                     on: false,
                     settings: {

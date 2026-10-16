@@ -38,6 +38,14 @@ export interface DisplayOtherIndication {
         rightData?: DisplayMainIndication[];
     };
 
+    NORMALIZATION?: {
+        on: boolean;
+    };
+
+    LOUDNESS?: {
+        on: boolean;
+    }
+
 
     EQ?: {
         on: boolean;
@@ -567,6 +575,32 @@ export default function Display({
                             fontFamily="&quot;ヒラギノ角ゴ Pro W3&quot;, &quot;Hiragino Kaku Gothic Pro&quot;, Osaka, &quot;メイリオ&quot;, Meiryo, &quot;ＭＳ Ｐゴシック&quot;, &quot;MS PGothic&quot;"
                             fontWeight="normal" textAnchor="start"><tspan x="0" dy="0">EQ</tspan></text>
                     </g>
+                </g>
+
+
+
+            </g>
+
+            <g transform="translate(3 0) scale(1)">
+                <g strokeLinecap="butt">
+                    <path d="M599.89897,271.3433l3.5907,-7.10526h28.71019l-3.5907,7.10526z"
+                        fill={staticColor(otherIndication?.LOUDNESS?.on)}
+                        stroke={staticColor(otherIndication?.LOUDNESS?.on)}
+                        strokeWidth="0.5" />
+                    <text transform="translate(605.23291,268.98947) scale(0.10391,0.10391)"
+                        fontSize="40" xmlSpace="preserve" fill={"#000"} stroke="none"
+                        strokeWidth="1" fontFamily="sans-serif" fontWeight="normal"
+                        textAnchor="start"><tspan x="0" dy="0">LOUDNESS</tspan></text>
+                </g>
+                <g strokeLinecap="butt">
+                    <path d="M630.88219,271.3433l3.5907,-7.10526h38.16965l0.02999,7.10526z"
+                        fill={staticColor(otherIndication?.NORMALIZATION?.on)}
+                        stroke={staticColor(otherIndication?.NORMALIZATION?.on)}
+                        strokeWidth="0.5" />
+                    <text transform="translate(635.77345,268.98947) scale(0.10391,0.10391)"
+                        fontSize="40" xmlSpace="preserve" fill={"#000"} stroke="none"
+                        strokeWidth="1" fontFamily="sans-serif" fontWeight="normal"
+                        textAnchor="start"><tspan x="0" dy="0">NORMALIZATION</tspan></text>
                 </g>
             </g>
             {/* <MainIndicator data={data?.[0]} />

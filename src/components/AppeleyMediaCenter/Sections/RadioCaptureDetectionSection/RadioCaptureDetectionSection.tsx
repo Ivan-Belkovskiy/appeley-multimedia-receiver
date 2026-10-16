@@ -113,7 +113,7 @@ export default function RadioCaptureDetectionSection() {
                 </div>
             </div>
 
-            <div className="capture-manual">
+            {/* <div className="capture-manual">
                 <h2 className="capture-manual__title">Ручной захват</h2>
 
                 <div className="capture-manual__row">
@@ -140,7 +140,7 @@ export default function RadioCaptureDetectionSection() {
                         Захватить
                     </button>
                 </div>
-            </div>
+            </div> */}
 
             <div className="capture-status">
                 {status.type === 'idle' && <span>Готов к захвату</span>}
