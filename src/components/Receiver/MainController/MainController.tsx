@@ -2547,6 +2547,8 @@ export default function MainController({
 
         let updateTimer = 0;
 
+        let _connectedUSBDevice: USBFlashInfo | null = null;
+
         const update = () => {
             // alert(outputsRef.current.powerOn)
             // alert(123)
@@ -2674,8 +2676,8 @@ export default function MainController({
                             if (outputsRef.current.menu.navigation.menuOpened) {
 
                                 outputsRef.current.resetAnimationsTimer = {
-                                animTimer: true,
-                            };
+                                    animTimer: true,
+                                };
 
                                 const openedIdxArray = outputsRef.current.menu.navigation.openedIdxArray;
                                 // alert(openedIdxArray.length);
@@ -3987,6 +3989,23 @@ export default function MainController({
                                     d[1].isReading = true;
                                 }
                             }
+                        } else if (usbData.connectedUSBDevice === undefined || (
+                            _connectedUSBDevice?.kind !== usbData.connectedUSBDevice.kind ||
+                            _connectedUSBDevice?.id !== usbData.connectedUSBDevice.id
+                        )) {
+                            if (audioPlayerRef.current) {
+                                audioPlayerRef.current.pause();
+                                audioPlayerRef.current = null;
+                                if (outputsRef.current.sourceData[1].playbackData) {
+                                    outputsRef.current.sourceData[1].playbackData.isPlaying = false;
+                                }
+                            }
+
+                            outputsRef.current.sourceData[1] = {
+                                dataToLoad: outputsRef.current.sourceData[1].dataToLoad,
+                                normalizationGain: outputsRef.current.sourceData[1].normalizationGain,
+                            }
+                            _connectedUSBDevice = usbData.connectedUSBDevice || null;
                         }
                     } else if (outputsRef.current.currentSource === 2) {
                         // Internet Radio
