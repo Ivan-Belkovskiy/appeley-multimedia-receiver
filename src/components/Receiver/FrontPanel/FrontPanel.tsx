@@ -3470,7 +3470,19 @@ export default function FrontPanel({
 
                                         if (radioData.recognition) {
 
-                                            if (radioData.recognition.phase === 'WAITING' && radioData.recognition.downloadTo === 'local') {
+                                            if (radioData.recognition.phase === 'CANCELLED') {
+                                                updateDisplayData({
+                                                    main: centerMainText(`CAPTURE STOPPED`),
+                                                    topLeft: [],
+                                                });
+
+                                                if (animTimer > (60 * 3)) {
+                                                    animTimer = 0;
+                                                    radioData.recognition = undefined;
+                                                }
+
+                                                animTimer++;
+                                            } else if (radioData.recognition.phase === 'WAITING' && radioData.recognition.downloadTo === 'local') {
 
                                                 updateDisplayData({
                                                     main: centerMainText(`SELECT FOLDER`),
@@ -3544,7 +3556,25 @@ export default function FrontPanel({
                                                 animateTopLeftSelection(updateTimer / 30);
                                                 animTimer++;
                                             } else if (radioData.recognition?.phase === 'ERROR') {
-                                                updateDisplayData({ main: centerMainText('ID ERROR') });
+                                                updateDisplayData({ main: centerMainText(radioData.recognition.error || 'CAPTURE ERROR') });
+
+                                                if (animTimer > (60 * 3)) {
+                                                    animTimer = 0;
+                                                    radioData.recognition = undefined;
+                                                }
+
+                                                animTimer++;
+                                            } else if (radioData.recognition.phase === 'NOT_RECOGNIZED') {
+                                                updateDisplayData({
+                                                    main: centerMainText("TRACK NOT FOUND")
+                                                });
+
+                                                if (animTimer > (60 * 3)) {
+                                                    animTimer = 0;
+                                                    radioData.recognition = { phase: "DONE" };
+                                                }
+
+                                                animTimer++;
                                             }
                                             // if (radioData.recognition.inProgress) {
                                             //     updateDisplayData({

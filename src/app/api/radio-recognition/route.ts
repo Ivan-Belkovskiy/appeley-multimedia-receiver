@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic';
 
 const ACOUSTID_KEY = process.env.ACOUSTID_API_KEY!;
 const MUSICBRAINZ_UA = 'AppeleyReceiver/1.0';
-// const MUSICBRAINZ_UA = 'AppeleyReceiver/1.0 (https://github.com/your-username)';
 
 interface AcoustIDResponse {
     status: 'ok' | 'error';
@@ -25,9 +24,16 @@ interface AcoustIDResponse {
 export async function POST(req: NextRequest) {
     const { fingerprint, duration } = await req.json();
 
-    if (!fingerprint || !duration) {
+    const durationNum = Math.round(Number(duration));
+
+    if (
+        !fingerprint ||
+        typeof fingerprint !== 'string' ||
+        !Number.isFinite(durationNum) ||
+        durationNum < 1
+    ) {
         return NextResponse.json(
-            { ok: false, error: 'fingerprint and duration required' },
+            { ok: false, error: 'fingerprint and valid duration (>= 1 sec) required' },
             { status: 400 },
         );
     }
@@ -35,21 +41,33 @@ export async function POST(req: NextRequest) {
     try {
         const params = new URLSearchParams({
             client: ACOUSTID_KEY,
-            duration: String(duration),
+            duration: String(durationNum),
             fingerprint,
             meta: 'recordings+releasegroups+compress',
         });
 
-        const acoustidRes = await fetch('https://api.acoustid.org/v2/lookup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString(),
-            signal: AbortSignal.timeout(10_000),
+        const acoustidRes = await fetch(`https://api.acoustid.org/v2/lookup?client=${ACOUSTID_KEY}&duration=${String(durationNum)}&fingerprint=${fingerprint}&meta=recordings&format=json`, {
+            // method: 'POST',
+            // headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            // body: params.toString(),
+            // signal: AbortSignal.timeout(10_000),
         });
 
+        console.log("RESULT!!!\n\n\n");
+
+        
+        // const acoustidRes = await fetch('https://api.acoustid.org/v2/lookup', {
+        //     method: 'POST',
+        //     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        //     body: params.toString(),
+        //     signal: AbortSignal.timeout(10_000),
+        // });
+        
         const acoustidData: AcoustIDResponse = await acoustidRes.json();
+        console.log(acoustidData);
 
         if (acoustidData.status !== 'ok') {
+            console.error(acoustidData.error)
             return NextResponse.json({
                 ok: false,
                 error: acoustidData.error?.message ?? 'AcoustID error',
@@ -73,7 +91,7 @@ export async function POST(req: NextRequest) {
         let year: number | undefined;
         let coverUrl: string | undefined;
         let genre: string | undefined;
-
+// 23 15 2 3 8
         if (releaseGroup?.id) {
             try {
                 const mbRes = await fetch(

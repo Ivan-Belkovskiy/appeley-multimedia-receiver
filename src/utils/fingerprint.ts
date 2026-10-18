@@ -1,41 +1,38 @@
-'use client';
-
 import { fingerprintFromSamples } from 'rusty-chromaprint-wasm';
 
-export async function computeFingerprint(audioBlob: Blob): Promise<{
-    fingerprint: string;
-    duration: number;
-}> {
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
+export async function blobToFingerprint(blob: Blob): Promise<{ compressed: string; duration: number } | null> {
+    const arrayBuffer = await blob.arrayBuffer();
 
-    const channelData = audioBuffer.numberOfChannels > 1
-        ? (() => {
-            const left = audioBuffer.getChannelData(0);
-            const right = audioBuffer.getChannelData(1);
-            const mono = new Float32Array(left.length);
-            for (let i = 0; i < left.length; i++) {
-                mono[i] = (left[i] + right[i]) / 2;
-            }
-            return mono;
-        })()
-        : audioBuffer.getChannelData(0);
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+    let audioBuffer: AudioBuffer;
+    try {
+        audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    } catch (err) {
+        console.error('decodeAudioData failed:', err);
+        await audioCtx.close();
+        return null;
+    }
+
+    const channelData = audioBuffer.getChannelData(0);
+    const sampleRate = audioBuffer.sampleRate;
+    const channels = 1;
 
     const samples = new Int16Array(channelData.length);
     for (let i = 0; i < channelData.length; i++) {
-        const clamped = Math.max(-1, Math.min(1, channelData[i]));
-        samples[i] = Math.round(clamped * 32767);
+        samples[i] = Math.max(-32768, Math.min(32767, Math.round(channelData[i] * 32768)));
     }
 
-    const result = fingerprintFromSamples(
-        audioBuffer.sampleRate,
-        1, 
-        samples,
-    );
+    const { compressed } = fingerprintFromSamples(sampleRate, channels, samples);
 
-    return {
-        fingerprint: result.compressed,
-        duration: Math.round(audioBuffer.duration),
-    };
+    const duration = Math.round(audioBuffer.duration);
+
+    await audioCtx.close();
+
+    if (!compressed || !duration || duration < 1) {
+        console.warn('Invalid fingerprint data:', { compressed: !!compressed, duration });
+        return null;
+    }
+
+    return { compressed, duration };
 }

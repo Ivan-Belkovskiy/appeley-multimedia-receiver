@@ -142,7 +142,7 @@ export default function RadioCaptureDetectionSection() {
                 </div>
             </div> */}
 
-            <div className="capture-status">
+            {/* <div className="capture-status">
                 {status.type === 'idle' && <span>Готов к захвату</span>}
 
                 {status.type === 'capturing' && (
@@ -178,7 +178,7 @@ export default function RadioCaptureDetectionSection() {
                 {status.type === 'error' && (
                     <span style={{ color: 'red' }}>❌ Ошибка: {status.message}</span>
                 )}
-            </div>
+            </div> */}
         </div>
     );
 }

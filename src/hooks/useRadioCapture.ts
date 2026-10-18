@@ -108,21 +108,5 @@ export function useRadioCapture() {
         return result;
     }, []);
 
-    const recognize = useCallback(async (audioBlob: Blob) => {
-        const { computeFingerprint } = await import('@/utils/fingerprint');
-        const fp = await computeFingerprint(audioBlob);
-
-        const res = await fetch('/api/radio-recognize', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                fingerprint: fp.fingerprint,
-                duration: fp.duration,
-            }),
-        });
-
-        return await res.json();
-    }, []);
-
-    return { capture, cancelCapture, recognize };
+    return { capture, cancelCapture };
 }

@@ -8,6 +8,7 @@ import { clamp, randomInRangeWithMax } from "@/utils/math";
 import { useRadioCapture } from "@/hooks/useRadioCapture";
 import { getCaptureSettings } from "@/app/captureSettings.actions";
 import { requestCapturesFolder } from "@/utils/captureStorage";
+import { blobToFingerprint } from "@/utils/fingerprint";
 
 export interface MainControllerInputButtons {
     powerOnOff?: boolean;
@@ -461,7 +462,7 @@ export interface MainControllerOutputs {
             streamTitle?: string;
 
             recognition?: {
-                phase: 'WAITING' | 'CAPTURING' | 'DOWNLOADING' | 'DETECTING' | 'DONE' | 'ERROR';
+                phase: 'WAITING' | 'CAPTURING' | 'DOWNLOADING' | 'DETECTING' | 'DONE' | 'ERROR' | 'CANCELLED' | 'NOT_RECOGNIZED';
                 downloadTo?: "local" | "vercel_blob" | "electron" | "all";
                 startedAt?: number;
                 captureEndsAt?: number;
@@ -469,7 +470,7 @@ export interface MainControllerOutputs {
                 title?: string;
                 album?: string;
                 error?: string;
-                source?: 'acrcloud' | 'audd' | 'manual';
+                source?: 'acrcloud' | 'audd' | 'acoustid' | 'manual';
             };
         };
         6: {
@@ -686,8 +687,8 @@ export default function MainController({
 
         const loud = outputsRef.current.settings.audio.loudness;
         if (!loud?.on) {
-            loudnessLowShelf.gain.setTargetAtTime(0, audioContext.currentTime, 0.03);
-            loudnessHighShelf.gain.setTargetAtTime(0, audioContext.currentTime, 0.03);
+            loudnessLowShelf.gain.setTargetAtTime(0, (isFinite(audioContext.currentTime) ? audioContext.currentTime : 0), 0.03);
+            loudnessHighShelf.gain.setTargetAtTime(0, (isFinite(audioContext.currentTime) ? audioContext.currentTime : 0), 0.03);
             return;
         }
 
@@ -705,8 +706,8 @@ export default function MainController({
             highBoost = loud.maxHigh;
         }
 
-        loudnessLowShelf.gain.setTargetAtTime(lowBoost, audioContext.currentTime, 0.03);
-        loudnessHighShelf.gain.setTargetAtTime(highBoost, audioContext.currentTime, 0.03);
+        loudnessLowShelf.gain.setTargetAtTime(lowBoost, (isFinite(audioContext.currentTime) ? audioContext.currentTime : 0), 0.03);
+        loudnessHighShelf.gain.setTargetAtTime(highBoost, (isFinite(audioContext.currentTime) ? audioContext.currentTime : 0), 0.03);
     };
 
     // useEffect(() => {
@@ -1068,7 +1069,7 @@ export default function MainController({
             if (!normalizationNode) return;
 
             if (outputsRef.current.currentSource !== 1) {
-                normalizationNode.gain.setTargetAtTime(1.0, audioContext!.currentTime, 0.02);
+                normalizationNode.gain.setTargetAtTime(1.0, (isFinite(audioContext!.currentTime) ? audioContext!.currentTime : 0), 0.02);
                 return;
             }
 
@@ -1079,7 +1080,7 @@ export default function MainController({
                 ? Math.pow(10, rgDb / 20)
                 : 1.0;
 
-            normalizationNode.gain.setTargetAtTime(target, audioContext!.currentTime, 0.02);
+            normalizationNode.gain.setTargetAtTime(target, (isFinite(audioContext!.currentTime) ? audioContext!.currentTime : 0), 0.02);
         };
 
         const generateRandomTrackFolderNumber = (
@@ -1637,7 +1638,18 @@ export default function MainController({
                         outputsRef.current.resetDemo = true;
 
                         if (captureSettings.storageType === 'local') {
-                            await requestCapturesFolder();
+                            const res = await requestCapturesFolder();
+                            if (!res) {
+                                outputsRef.current.sourceData[2].recognition = {
+                                    phase: "ERROR",
+                                    error: "ACCESS BLOCKED"
+                                };
+                                outputsRef.current.resetAnimationsTimer = { animTimer: true };
+                                return beeper.tripleBeep(
+                                    outputsRef.current.settings.audio.beeper.volume,
+                                    outputsRef.current.settings.audio.beeper.on
+                                );
+                            }
                         }
 
                         outputsRef.current.sourceData[2].recognition = {
@@ -1661,23 +1673,81 @@ export default function MainController({
                                 saveLocally: (captureSettings.storageType === 'local'),
                             });
 
-                            outputsRef.current.resetDemo = true;
-                            outputsRef.current.sourceData[2].recognition = {
-                                ...outputsRef.current.sourceData[2].recognition,
-                                phase: "DONE",
 
-                                captureEndsAt: Date.now()
+                            if (captureResult) {
+
+                                outputsRef.current.sourceData[2].recognition = {
+                                    ...outputsRef.current.sourceData[2].recognition,
+                                    phase: "DETECTING",
+                                }
+
+                                const fingerprintData = await blobToFingerprint(captureResult.blob);
+
+                                if (fingerprintData) {
+                                    const recognitionRes = await fetch('/api/radio-recognition', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            fingerprint: fingerprintData.compressed,
+                                            duration: fingerprintData.duration,
+                                        }),
+                                    });
+
+                                    const recognition = await recognitionRes.json();
+
+                                    // alert(JSON.stringify(recognition));
+
+                                    if (recognition.ok) {
+                                        outputsRef.current.sourceData[2].recognition = {
+                                            ...outputsRef.current.sourceData[2].recognition,
+                                            phase: 'DONE',
+                                            artist: recognition.match.artist,
+                                            title: recognition.match.title,
+                                            album: recognition.match.album,
+                                            source: 'acoustid',
+                                        };
+                                    } else if (recognition.error === 'NOT_FOUND') {
+                                        beeper.tripleBeep(
+                                            outputsRef.current.settings.audio.beeper.volume,
+                                            outputsRef.current.settings.audio.beeper.on
+                                        )
+                                        outputsRef.current.sourceData[2].recognition = {
+                                            ...outputsRef.current.sourceData[2].recognition,
+                                            phase: 'NOT_RECOGNIZED',
+                                            source: 'acoustid',
+                                            error: undefined
+                                        };
+                                    } else {
+                                        outputsRef.current.sourceData[2].recognition = {
+                                            ...outputsRef.current.sourceData[2].recognition,
+                                            phase: 'DONE',
+                                            captureEndsAt: Date.now()
+                                        };
+                                    }
+                                }
                             }
+
+
+                            // outputsRef.current.resetDemo = true;
+                            // outputsRef.current.sourceData[2].recognition = {
+                            //     ...outputsRef.current.sourceData[2].recognition,
+                            //     phase: "DONE",
+
+                            //     captureEndsAt: Date.now()
+                            // }
                         } catch (error) {
                             beeper.tripleBeep(
                                 outputsRef.current.settings.audio.beeper.volume,
                                 outputsRef.current.settings.audio.beeper.on,
-                            )
-                            outputsRef.current.sourceData[2].recognition = {
-                                ...outputsRef.current.sourceData[2].recognition,
-                                phase: "ERROR",
-                                error: (error as any)?.message || "CAPTURE ERROR",
-                                captureEndsAt: Date.now()
+                            );
+
+                            if (outputsRef.current.sourceData[2].recognition.phase !== 'CANCELLED') {
+                                outputsRef.current.sourceData[2].recognition = {
+                                    ...outputsRef.current.sourceData[2].recognition,
+                                    phase: "ERROR",
+                                    error: (error as any)?.message || "CAPTURE ERROR",
+                                    captureEndsAt: Date.now()
+                                }
                             }
                         }
                     }
@@ -3072,6 +3142,14 @@ export default function MainController({
 
                             if (["DONE", "ERROR"].includes(outputsRef.current.sourceData[2].recognition.phase)) {
                                 outputsRef.current.sourceData[2].recognition = undefined;
+                            } else {
+                                cancelCapture();
+                                outputsRef.current.sourceData[2].recognition.phase = "CANCELLED";
+                                outputsRef.current.resetAnimationsTimer = { animTimer: true };
+                                return beeper.tripleBeep(
+                                    outputsRef.current.settings.audio.beeper.volume,
+                                    outputsRef.current.settings.audio.beeper.on
+                                );
                             }
                         } else if (outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened) {
                             processExtendedMenuNavigation(outputsRef.current.appeleyMediaCenterMenu, 'click');
