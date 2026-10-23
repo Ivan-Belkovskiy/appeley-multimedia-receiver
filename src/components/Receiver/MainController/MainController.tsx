@@ -9,6 +9,8 @@ import { useRadioCapture } from "@/hooks/useRadioCapture";
 import { getCaptureSettings } from "@/app/captureSettings.actions";
 import { requestCapturesFolder } from "@/utils/captureStorage";
 import { blobToFingerprint } from "@/utils/fingerprint";
+import { useRingBufferCapture } from "@/hooks/useRingBufferCapture";
+import { loadAnnouncementRef } from "@/utils/announcementStorage";
 
 export interface MainControllerInputButtons {
     powerOnOff?: boolean;
@@ -290,10 +292,18 @@ export interface MainControllerSettings {
     };
 
     advanced: {
+
+        internetRadio: {
+            automaticAdvertCapture: {
+                on: boolean;
+                // location: "folder-on-device";
+            };
+        };
+
         autoOnOff: {
             autoON: {
                 active: boolean;
-                time: [number, number]; // [hours, minuts]
+                time: [number, number]; // [hours, minutes]
             };
             autoOFF: {
                 active: boolean;
@@ -472,6 +482,22 @@ export interface MainControllerOutputs {
                 error?: string;
                 source?: 'acrcloud' | 'audd' | 'acoustid' | 'manual';
             };
+
+            autoAdvertCapture?: {
+                mode: "FOLDER_SELECT" | "READY" | "ACCESS_BLOCKED" | "CAPTURING" | "ENDED" | "ERROR" | "DOWNLOADING";
+
+                startedAt?: number;
+                streamTitle?: string;
+
+                endedAt?: number;
+
+                downloadLocation?: "local-folder";
+
+                error?: string;
+
+                timer: number;
+
+            }
         };
         6: {
             // MyLift
@@ -561,8 +587,11 @@ export interface MainControllerOutputs {
     };
 
     appeleyMediaCenter?: {
-        isOpened: true;
+        isOpened: boolean;
         isModalOpened?: boolean;
+
+        error?: string;
+        timer: number;
         // isLoading?: boolean;
     };
 
@@ -722,6 +751,31 @@ export default function MainController({
 
     const { capture, cancelCapture } = useRadioCapture();
 
+    const ringBuffer = useRingBufferCapture(300, 2);
+    const announcementRef = useRef<{ samples: Float32Array; sampleRate: number } | null>(null);
+
+    useEffect(() => {
+        loadAnnouncementRef().then((ref) => {
+            announcementRef.current = ref
+                ? { samples: ref.samples, sampleRate: ref.sampleRate }
+                : null;
+
+            // if (ref) {
+            //     outputsRef.current.sourceData[2].announcementStatus =
+            //         ref.source === 'file' ? 'LOADED (FILE)' : 'LOADED (RECORDED)';
+            // } else {
+            //     outputsRef.current.sourceData[2].announcementStatus = 'NOT FOUND';
+            // }
+
+            // setTimeout(() => {
+            //     if (outputsRef.current.sourceData[2].announcementStatus) {
+            //         outputsRef.current.sourceData[2].announcementStatus = undefined;
+            //         outputsRef.current.resetAnimationsTimer = { animTimer: true };
+            //     }
+            // }, 5000);
+        });
+    }, []);
+
     useEffect(() => {
         let frameId: number;
 
@@ -740,6 +794,13 @@ export default function MainController({
 
         let _radioStreamText = false;
         let _radioStationId: number | null = null;
+
+        let advertState: 'IDLE' | 'ACTIVE' = 'IDLE';
+        let advertStartedAt = 0;
+        let advertStreamTitle = '';
+
+        const isAdvertTitle = (raw?: string) =>
+            !!raw && /advert/i.test(raw);
 
         let id3ReadToken = 0;
 
@@ -823,6 +884,77 @@ export default function MainController({
                 outputsRef.current.sourceData[2].currentArtist = data.artist;
                 outputsRef.current.sourceData[2].streamTitle = data.raw;
 
+                if (outputsRef.current.settings.advanced.internetRadio.automaticAdvertCapture.on) {
+                    const isAdvert = isAdvertTitle(data.raw);
+
+                    const d2 = outputsRef.current.sourceData[2];
+
+                    if (isAdvert && d2.autoAdvertCapture?.mode === 'READY') {
+                        d2.autoAdvertCapture.mode = 'CAPTURING';
+                        d2.autoAdvertCapture.timer = 0;
+                        d2.autoAdvertCapture.startedAt = Date.now();
+                        d2.autoAdvertCapture.streamTitle = data.raw;
+                        console.log('🟡 ADVERT started:', data.raw);
+                    } else if (!isAdvert && d2.autoAdvertCapture?.mode === 'CAPTURING') {
+                        const endedAt = Date.now();
+
+                        (async () => {
+                            d2.autoAdvertCapture = { ...d2.autoAdvertCapture, mode: 'DOWNLOADING', timer: 0 };
+                            try {
+                                const detectedDuration = (endedAt - (d2.autoAdvertCapture.startedAt ?? endedAt)) / 1000;
+
+                                if (detectedDuration < 8) {
+                                    console.warn(`Advert too short (${detectedDuration.toFixed(1)}s), skipping`);
+                                    d2.autoAdvertCapture = { mode: 'READY', timer: 0 };
+                                    return;
+                                }
+
+                                const WAIT_MS = 15000;
+                                console.log(`⏳ Waiting ${WAIT_MS / 1000}s so the announcement tail is fully captured...`);
+                                await new Promise(r => setTimeout(r, WAIT_MS));
+
+                                const lookback = Math.min(detectedDuration + 55, 290);
+
+                                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                                const filename = `Advert_${timestamp}.wav`;
+
+                                console.log(`🟢 Saving last ${lookback.toFixed(1)}s → ${filename}`);
+
+                                await ringBuffer.saveWav(lookback, filename, {
+                                    stereo: true,
+                                    announcementRef: announcementRef.current,
+                                    trim: {
+                                        startThresholdDb: -20,
+                                        endSilenceThresholdDb: -40,
+                                        minSilenceMs: 300,
+                                        endMinSilenceMs: 500,
+                                        maxEndSilenceMs: 3000,
+                                        startSearchStartSec: 10,
+                                        startSearchEndSec: 45,   
+                                        endSearchBackSec: 40,   
+                                        useDoubleAttack: true,
+                                        useValidation: true
+                                    },
+                                });
+
+                                beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+                                d2.autoAdvertCapture = { mode: 'ENDED', downloadLocation: 'local-folder', endedAt, timer: 0 };
+                            } catch (err:any) {
+                                beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+                                console.error('Advert save failed:', err);
+                                d2.autoAdvertCapture = {
+                                    mode: 'ERROR',
+                                    error: err?.message ?? 'FILE SAVE ERROR',
+                                    endedAt,
+                                    timer: 0,
+                                };
+                            }
+                        })();
+                    }
+
+
+                }
+
                 if (
                     _radioStreamText !== data.raw ||
                     _radioStationId !== outputsRef.current.sourceData[2].currentStationId
@@ -850,7 +982,7 @@ export default function MainController({
 
             metadataIntervalId = setInterval(() => {
                 fetchRadioMetadata(streamUrl);
-            }, 30000);
+            }, 6000);
         };
 
         const stopMetadataPolling = () => {
@@ -861,6 +993,35 @@ export default function MainController({
             metadataAbortController?.abort();
             metadataAbortController = null;
         };
+
+        let _autoCaptureOn = false;
+        const processAutoCaptureChanges = () => {
+            if (_autoCaptureOn !== outputsRef.current.settings.advanced.internetRadio.automaticAdvertCapture.on) {
+                outputsRef.current.sourceData[2].autoAdvertCapture = {
+                    mode: "FOLDER_SELECT",
+                    timer: 0,
+                };
+                requestCapturesFolder().then((val) => {
+                    if (val) {
+                        beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+                        outputsRef.current.sourceData[2].autoAdvertCapture = {
+                            mode: "READY",
+                            timer: 0,
+                        };
+                    } else {
+                        beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+                        outputsRef.current.sourceData[2].autoAdvertCapture = {
+                            mode: "ACCESS_BLOCKED",
+                            timer: 0,
+                        };
+                    }
+
+                    outputsRef.current.resetAnimationsTimer = { animTimer: true };
+                });
+
+                _autoCaptureOn = outputsRef.current.settings.advanced.internetRadio.automaticAdvertCapture.on;
+            }
+        }
 
         // const startMetadataPolling = (streamUrl: string) => {
         //     if (metadataSourceRef.current) {
@@ -1452,11 +1613,16 @@ export default function MainController({
             currentSource = audioContext!.createMediaElementSource(audio);
             currentSource.connect(normalizationNode!);
 
+            ringBuffer.attach(audioContext!, currentSource).catch(err =>
+                console.warn('Ring buffer attach error:', err)
+            );
+
             applyEQSettings();
 
             audioPlayerRef.current = audio;
 
             startMetadataPolling(station.url);
+
 
             audio.addEventListener('waiting', () => {
                 outputsRef.current.sourceData[2].isBuffering = true;
@@ -2688,6 +2854,7 @@ export default function MainController({
                                     };
                                 } else if (outputsRef.current.currentSource === 2) {
                                     // outputsRef.current.sourceData[2].
+                                    ringBuffer.detach();
                                     stopMetadataPolling();
                                 }
 
@@ -2970,6 +3137,7 @@ export default function MainController({
                         } else {
                             outputsRef.current.appeleyMediaCenter = {
                                 isOpened: true,
+                                timer: 0,
                             };
                             outputsRef.current.appeleyMediaCenterMenu.navigation = {
                                 currentIdx: 0,
@@ -4095,7 +4263,10 @@ export default function MainController({
                             inputsRef.current.sourceData[2].captureRequest = false;
                         }
 
+
                         const d2 = outputsRef.current.sourceData[2];
+
+                        processAutoCaptureChanges();
 
                         if (audioPlayerRef.current && !d2.isPaused) audioPlayerRef.current.play().catch(console.error);
 

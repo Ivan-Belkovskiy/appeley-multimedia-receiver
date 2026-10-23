@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInternetRadioStations } from '@/app/actions';
 
+const METADATA_CACHE_TTL = 3000;
+const metadataCache = new Map<string, { data: any; ts: number }>();
+
+
 export const dynamic = 'force-dynamic';
 export const maxDuration = 15;  
 
@@ -122,6 +126,12 @@ export async function GET(request: NextRequest) {
     }
 
     try {
+
+        const cached = metadataCache.get(url);
+        if (cached && Date.now() - cached.ts < METADATA_CACHE_TTL) {
+            return NextResponse.json(cached.data, { headers: { 'Cache-Control': 'no-store' } });
+        }
+
         const metadata = await readOneIcyMetadata(url, request.signal);
 
         if (!metadata) {
@@ -130,6 +140,9 @@ export async function GET(request: NextRequest) {
                 { status: 204 }, 
             );
         }
+
+        metadataCache.set(url, { data: metadata, ts: Date.now() });
+
 
         return NextResponse.json(metadata, {
             headers: {

@@ -2982,11 +2982,27 @@ export default function FrontPanel({
 
                                 animTimer += 4;
 
-                                updateDisplayData({
-                                    ...displayDataRef.current,
-                                    main,
-                                    topLeft,
-                                })
+                                if (mainOutputs.appeleyMediaCenter?.error) {
+                                    updateDisplayData({
+                                        main: centerMainText(mainOutputs.appeleyMediaCenter.error)
+                                    });
+
+                                    if (mainOutputs.appeleyMediaCenter.timer > (60 * 2)) {
+                                        mainOutputs.appeleyMediaCenter = {
+                                            isOpened: true,
+                                            timer: 0,
+                                        };
+                                    } else {
+                                        mainOutputs.appeleyMediaCenter.timer++;
+                                    }
+                                } else {
+
+                                    updateDisplayData({
+                                        ...displayDataRef.current,
+                                        main,
+                                        topLeft,
+                                    });
+                                }
                                 // alert(animTimer)
 
                             } else if (mainOutputs.menu.navigation.menuOpened) {
@@ -3468,7 +3484,59 @@ export default function FrontPanel({
 
                                     } else {
 
-                                        if (radioData.recognition) {
+                                        if (radioData.autoAdvertCapture && radioData.autoAdvertCapture.mode === 'FOLDER_SELECT') {
+                                            updateDisplayData({
+                                                main: centerMainText('SELECT FOLDER'),
+                                                topLeft: [],
+                                            });
+                                        } else if (radioData.autoAdvertCapture && (radioData.autoAdvertCapture.mode === 'READY' && radioData.autoAdvertCapture.timer < (60 * 3))) {
+                                            // if (animTimer < (60 * 3)) {
+                                            updateDisplayData({
+                                                main: centerMainText('READY TO CAPTURE')
+                                            });
+                                            // }
+                                            radioData.autoAdvertCapture.timer++;
+                                        } else if (radioData.autoAdvertCapture?.mode === 'CAPTURING') {
+                                            const elapsed = Date.now() - (radioData.autoAdvertCapture.startedAt ?? Date.now());
+                                            const seconds = Math.floor(elapsed / 1000);
+                                            const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
+                                            const ss = String(seconds % 60).padStart(2, '0');
+
+
+                                            if (radioData.autoAdvertCapture.timer < (60 * 4)) {
+                                                updateDisplayData({
+                                                    main: centerMainText(`AUTO-CAPTURE`),
+                                                    topLeft: [],
+                                                    // otherIndication: { topLeftDecorationLine: true },
+                                                });
+                                            } else {
+                                                if (updateTimer % 4 === 0) {
+                                                    animTimer++;
+                                                }
+
+                                                updateDisplayData({
+                                                    main: centerMainText(`${(updateTimer % 60 < 30) ? "CAPTURING" : "         "}  ${mm}:${ss}`),
+                                                    topLeft: topLeftSpinAnimation(animTimer, [1, 2, 3]),
+                                                    otherIndication: { topLeftDecorationLine: true },
+                                                });
+                                            }
+
+                                            radioData.autoAdvertCapture.timer++;
+
+                                        } else if (radioData.autoAdvertCapture?.mode === 'DOWNLOADING') {
+                                            animTimer = 0;
+                                            if (updateTimer % 60 < 30) {
+                                                updateDisplayData({ main: centerMainText('DOWNLOADING') });
+                                            } else updateDisplayData({ main: [] });
+                                        } else if (radioData.autoAdvertCapture?.mode === 'ENDED') {
+                                            if (animTimer < (60 * 5)) {
+                                                updateDisplayData({ main: centerMainText('CAPTURE COMPLETE') });
+                                            } else {
+                                                radioData.autoAdvertCapture = { mode: "READY", timer: 0 };
+                                                animTimer = 0;
+                                            }
+                                            animTimer++;
+                                        } else if (radioData.recognition) {
 
                                             if (radioData.recognition.phase === 'CANCELLED') {
                                                 updateDisplayData({

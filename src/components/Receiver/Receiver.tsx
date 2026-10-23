@@ -146,7 +146,27 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
     }
 
     const tryOpenElectronMediaCenterApp = async () => {
-        // Будет открывать Electron-медиа-центр по протоколу "appeley-app://"
+
+        // @ts-ignore window.api available only in Electron App
+        if (window.api?.openMediaCenterWindow) {
+            (window as any).api.openMediaCenterWindow();
+            if (controllerOutputsRef.current.appeleyMediaCenter) {
+                controllerOutputsRef.current.appeleyMediaCenter = {
+                    isOpened: true,
+                    timer: 0,
+                };
+            }
+        } else {
+            beeper.tripleBeep(controllerOutputsRef.current.settings.audio.beeper.volume, controllerOutputsRef.current.settings.audio.beeper.on);
+            controllerOutputsRef.current.appeleyMediaCenter = {
+                isOpened: true,
+                error: "CANNOT OPEN APP",
+                timer: 0,
+            };
+        }
+
+
+
     }
 
     const controllerInputsRef = useRef<MainControllerInputs>({
@@ -1187,6 +1207,120 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                     innerOptions: [
                         {
                             type: "block",
+                            label: "INTERNET RADIO",
+
+                            innerOptions: [
+                                {
+                                    type: "block",
+                                    label: "AUTO-CAPTURE ADVERT-TRACKS",
+
+                                    innerOptions: [
+                                        {
+                                            type: "property",
+                                            label: "AUTO-CAPTURE SET",
+
+                                            values: [
+                                                {
+                                                    label: "ON",
+                                                    shortPropName: "AUTO-CAPTURE",
+
+                                                    onSelect: (s) => {
+                                                        controllerOutputsRef.current.menu.navigation.menuOpened = false;
+                                                        // beeper.singleBeep(1, (controllerOutputsRef.current.settings.audio.beeper.volume), (controllerOutputsRef.current.settings.audio.beeper.on))
+                                                        return ({
+                                                            ...s,
+                                                            advanced: {
+                                                                ...s.advanced,
+                                                                internetRadio: {
+                                                                    ...s.advanced.internetRadio,
+                                                                    automaticAdvertCapture: {
+                                                                        ...s.advanced.internetRadio.automaticAdvertCapture,
+                                                                        on: true
+                                                                    }
+                                                                }
+                                                            }
+                                                        });
+                                                    },
+
+                                                    reference: (s) => s.advanced.internetRadio.automaticAdvertCapture.on === true,
+                                                },
+
+                                                {
+                                                    label: "OFF",
+                                                    shortPropName: "AUTO-CAPTURE",
+
+                                                    onSelect: (s) => ({
+                                                        ...s,
+                                                        advanced: {
+                                                            ...s.advanced,
+                                                            internetRadio: {
+                                                                ...s.advanced.internetRadio,
+                                                                automaticAdvertCapture: {
+                                                                    ...s.advanced.internetRadio.automaticAdvertCapture,
+                                                                    on: false
+                                                                }
+                                                            }
+                                                        }
+                                                    }),
+
+                                                    reference: (s) => s.advanced.internetRadio.automaticAdvertCapture.on === false,
+                                                }
+                                            ],
+                                        },
+                                        // {
+                                        //     type: "property",
+                                        //     label: "AUTO-CAPTURE LOCATION",
+
+                                        //     values: [
+                                        //         {
+                                        //             label: "ON",
+                                        //             shortPropName: "AUTO-CAPTURE",
+
+                                        //             onSelect: (s) => ({
+                                        //                 ...s,
+                                        //                 advanced: {
+                                        //                     ...s.advanced,
+                                        //                     internetRadio: {
+                                        //                         ...s.advanced.internetRadio,
+                                        //                         automaticAdvertCapture: {
+                                        //                             ...s.advanced.internetRadio.automaticAdvertCapture,
+                                        //                             on: true
+                                        //                         }
+                                        //                     }
+                                        //                 }
+                                        //             }),
+
+                                        //             reference: (s) => s.advanced.internetRadio.automaticAdvertCapture.on === true,
+                                        //         },
+
+                                        //         {
+                                        //             label: "OFF",
+                                        //             shortPropName: "AUTO-CAPTURE",
+
+                                        //             onSelect: (s) => ({
+                                        //                 ...s,
+                                        //                 advanced: {
+                                        //                     ...s.advanced,
+                                        //                     internetRadio: {
+                                        //                         ...s.advanced.internetRadio,
+                                        //                         automaticAdvertCapture: {
+                                        //                             ...s.advanced.internetRadio.automaticAdvertCapture,
+                                        //                             on: false
+                                        //                         }
+                                        //                     }
+                                        //                 }
+                                        //             }),
+
+                                        //             reference: (s) => s.advanced.internetRadio.automaticAdvertCapture.on === false,
+                                        //         }
+                                        //     ],
+                                        // }
+                                    ],
+                                }
+                            ]
+                        },
+                        {
+                            type: "block",
                             label: "AUTO-ON-OFF",
 
                             innerOptions: [
@@ -1453,6 +1587,11 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
             },
 
             advanced: {
+                internetRadio: {
+                    automaticAdvertCapture: {
+                        on: false,
+                    }
+                },
                 autoOnOff: {
                     autoON: {
                         active: false,
@@ -1585,6 +1724,8 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                         label: "OPEN DESKTOP APP",
                         onClick: async () => {
                             await tryOpenElectronMediaCenterApp();
+
+                            return false;
                         },
                         scrollText: true,
                     }
