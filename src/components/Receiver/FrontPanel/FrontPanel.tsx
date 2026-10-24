@@ -747,36 +747,57 @@ export default function FrontPanel({
         {
             main: "APPELEY",
             animation: "default",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 12,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
+            // delayBeforeNext: 75,
+            // topLeft: [
+            //     {
+            //         active: (t) => t > 12,
+            //         data: (t) => demoTopLeftAnimCallback(t, 12),
+            //     }
+            // ],
         },
         {
             main: "MULTIMEDIA",
             animation: "scroll-left",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
-                    // data: (t) => demoTopLeftAnimCallback((t < 18 ? (t + 11) : (t + 11)), 0),
+                    data: (t) => demoTopLeftAnimCallback((t + 7), 0, true),
                 }
             ],
+            // delayBeforeNext: 75,
+            // topLeft: [
+            //     {
+            //         active: (t) => t > 0,
+            //         data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+            //         // data: (t) => demoTopLeftAnimCallback((t < 18 ? (t + 11) : (t + 11)), 0),
+            //     }
+            // ],
         },
         {
             main: "RECEIVER",
             animation: "scroll-left",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    data: (t) => demoTopLeftAnimCallback((t + 6), 0, true),
                 }
             ],
+            // delayBeforeNext: 75,
+            // topLeft: [
+            //     {
+            //         active: (t) => t > 0,
+            //         data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+            //     }
+            // ],
         },
         {
             main: "",
@@ -784,10 +805,16 @@ export default function FrontPanel({
             delayBeforeNext: 20,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 6,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    active: (t) => t > 0 && t < 9,
+                    data: (t) => demoTopLeftAnimCallback((t + 5), 0, true),
                 }
             ],
+            // topLeft: [
+            //     {
+            //         active: (t) => t > 0 && t < 6,
+            //         data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+            //     }
+            // ],
         },
         {
             main: "CD/DVD",
@@ -820,24 +847,38 @@ export default function FrontPanel({
         {
             main: "DUAL AV-IN:",
             animation: "default",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 12,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
+            // delayBeforeNext: 75,
+            // topLeft: [
+            //     {
+            //         active: (t) => t > 12,
+            //         data: (t) => demoTopLeftAnimCallback(t, 12),
+            //     }
+            // ],
         },
         {
             main: "FRONT, REAR",
             animation: "scroll-left",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    data: (t) => demoTopLeftAnimCallback((t + 7), 0, true),
                 }
             ],
+            // delayBeforeNext: 75,
+            // topLeft: [
+            //     {
+            //         active: (t) => t > 0,
+            //         data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+            //     }
+            // ],
         },
         {
             main: "",
@@ -845,10 +886,16 @@ export default function FrontPanel({
             delayBeforeNext: 20,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 6,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    active: (t) => t > 0 && t < 8,
+                    data: (t) => demoTopLeftAnimCallback((t + 6), 0, true),
                 }
             ],
+            // topLeft: [
+            //     {
+            //         active: (t) => t > 0 && t < 6,
+            //         data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+            //     }
+            // ],
         },
         {
             main: "BUILT-IN",
@@ -889,10 +936,17 @@ export default function FrontPanel({
             delayBeforeNext: 20,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 9,
+                    active: (t) => t > 0 && t < 8,
                     data: (t) => demoTopLeftAnimCallback((t + 5), 0, true),
                 }
             ],
+            // delayBeforeNext: 20,
+            // topLeft: [
+            //     {
+            //         active: (t) => t > 0 && t < 9,
+            //         data: (t) => demoTopLeftAnimCallback((t + 5), 0, true),
+            //     }
+            // ],
         },
 
         // {
@@ -1153,7 +1207,7 @@ export default function FrontPanel({
             ],
         },
         {
-            main: "VOLUME",
+            main: "VOLUME CONTROL",
             animation: "scroll-left",
             delayBeforeNext: (67 - 25),
             topLeft: [
@@ -1163,25 +1217,25 @@ export default function FrontPanel({
                 }
             ],
         },
-        {
-            main: "CONTROL",
-            animation: "scroll-left",
-            delayBeforeNext: (67 - 25),
-            topLeft: [
-                {
-                    active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback((t + 6), 0, true),
-                }
-            ],
-        },
+        // {
+        //     main: "CONTROL",
+        //     animation: "scroll-left",
+        //     delayBeforeNext: (67 - 25),
+        //     topLeft: [
+        //         {
+        //             active: (t) => t > 0,
+        //             data: (t) => demoTopLeftAnimCallback((t + 6), 0, true),
+        //         }
+        //     ],
+        // },
         {
             main: "",
             animation: "scroll-left",
             delayBeforeNext: 20,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 9,
-                    data: (t) => demoTopLeftAnimCallback((t + 5), 0, true),
+                    active: (t) => t > 0 && t < 8,
+                    data: (t) => demoTopLeftAnimCallback((t + 6), 0, true),
                 }
             ],
         },
@@ -1435,11 +1489,11 @@ export default function FrontPanel({
         {
             main: "VARIABLE COLOR",
             animation: "default",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 12,
-                    data: (t) => demoTopLeftAnimCallback(t, 12),
+                    data: (t) => demoTopLeftAnimCallback(t, 12, true),
                 }
             ],
             otherIndication: [
@@ -1454,11 +1508,11 @@ export default function FrontPanel({
         {
             main: "INDICATION",
             animation: "scroll-left",
-            delayBeforeNext: 75,
+            delayBeforeNext: (67 - 25),
             topLeft: [
                 {
                     active: (t) => t > 0,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    data: (t) => demoTopLeftAnimCallback((t + 7), 0, true),
                 }
             ],
         },
@@ -1468,8 +1522,8 @@ export default function FrontPanel({
             delayBeforeNext: 20,
             topLeft: [
                 {
-                    active: (t) => t > 0 && t < 6,
-                    data: (t) => demoTopLeftAnimCallback((t + 13), 0),
+                    active: (t) => t > 0 && t < 8,
+                    data: (t) => demoTopLeftAnimCallback((t + 6), 0, true),
                 }
             ],
         },
@@ -3496,6 +3550,18 @@ export default function FrontPanel({
                                             });
                                             // }
                                             radioData.autoAdvertCapture.timer++;
+                                        } else if (radioData.autoAdvertCapture && (radioData.autoAdvertCapture.mode === 'ACCESS_BLOCKED')) {
+                                            // if (animTimer < (60 * 3)) {
+                                            updateDisplayData({
+                                                main: centerMainText('ACCESS BLOCKED')
+                                            });
+                                            // }
+                                            radioData.autoAdvertCapture.timer++;
+                                            if (radioData.autoAdvertCapture.timer > (60 * 3)) {
+                                                mainOutputs.settings.advanced.internetRadio.automaticAdvertCapture.on = false;
+                                                radioData.autoAdvertCapture = undefined;
+                                                // alert(JSON.stringify(radioData.autoAdvertCapture))
+                                            }
                                         } else if (radioData.autoAdvertCapture?.mode === 'CAPTURING') {
                                             const elapsed = Date.now() - (radioData.autoAdvertCapture.startedAt ?? Date.now());
                                             const seconds = Math.floor(elapsed / 1000);
@@ -3507,7 +3573,7 @@ export default function FrontPanel({
                                                 updateDisplayData({
                                                     main: centerMainText(`AUTO-CAPTURE`),
                                                     topLeft: [],
-                                                    // otherIndication: { topLeftDecorationLine: true },
+                                                    otherIndication: { AUTO_CAPTURE: { on: true } },
                                                 });
                                             } else {
                                                 if (updateTimer % 4 === 0) {
@@ -3517,7 +3583,7 @@ export default function FrontPanel({
                                                 updateDisplayData({
                                                     main: centerMainText(`${(updateTimer % 60 < 30) ? "CAPTURING" : "         "}  ${mm}:${ss}`),
                                                     topLeft: topLeftSpinAnimation(animTimer, [1, 2, 3]),
-                                                    otherIndication: { topLeftDecorationLine: true },
+                                                    otherIndication: { topLeftDecorationLine: true, AUTO_CAPTURE: { on: true } },
                                                 });
                                             }
 
@@ -3526,11 +3592,20 @@ export default function FrontPanel({
                                         } else if (radioData.autoAdvertCapture?.mode === 'DOWNLOADING') {
                                             animTimer = 0;
                                             if (updateTimer % 60 < 30) {
-                                                updateDisplayData({ main: centerMainText('DOWNLOADING') });
-                                            } else updateDisplayData({ main: [] });
+                                                updateDisplayData({
+                                                    main: centerMainText('DOWNLOADING'),
+                                                    otherIndication: { topLeftDecorationLine: true, AUTO_CAPTURE: { on: true } },
+                                                });
+                                            } else updateDisplayData({
+                                                main: [],
+                                                otherIndication: { topLeftDecorationLine: true, AUTO_CAPTURE: { on: true } },
+                                            });
                                         } else if (radioData.autoAdvertCapture?.mode === 'ENDED') {
                                             if (animTimer < (60 * 5)) {
-                                                updateDisplayData({ main: centerMainText('CAPTURE COMPLETE') });
+                                                updateDisplayData({
+                                                    main: centerMainText('CAPTURE COMPLETE'),
+                                                    otherIndication: { topLeftDecorationLine: true, AUTO_CAPTURE: { on: true } },
+                                                });
                                             } else {
                                                 radioData.autoAdvertCapture = { mode: "READY", timer: 0 };
                                                 animTimer = 0;
@@ -4095,7 +4170,8 @@ export default function FrontPanel({
                                     },
                                     NORMALIZATION: {
                                         on: (mainOutputs.settings.audio.autoNormalization.on)
-                                    }
+                                    },
+                                    AUTO_CAPTURE: { on: (mainOutputs.settings.advanced.internetRadio.automaticAdvertCapture.on && mainOutputs.currentSource === 2) }
                                 }
                             })
                             // if (demoTimer > 0) {

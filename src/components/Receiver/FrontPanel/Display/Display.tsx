@@ -44,6 +44,10 @@ export interface DisplayOtherIndication {
 
     LOUDNESS?: {
         on: boolean;
+    };
+
+    AUTO_CAPTURE?: {
+        on: boolean;
     }
 
 
@@ -602,6 +606,42 @@ export default function Display({
                         strokeWidth="1" fontFamily="sans-serif" fontWeight="normal"
                         textAnchor="start"><tspan x="0" dy="0">NORMALIZATION</tspan></text>
                 </g>
+            </g>
+
+            <g transform="translate(19 0)">
+                <path d="M619.58785,283.62583l3.90507,-7.10526h12.6763h12.27675l-3.90507,7.10526z"
+                    fill="none" stroke={staticColor(otherIndication?.AUTO_CAPTURE?.on)} strokeWidth="0.45" strokeLinecap="butt" />
+                <path d="M619.58785,283.62583l3.90507,-7.10526h12.6763h-0.029l-3.90507,7.10526z"
+                    fill={staticColor(otherIndication?.AUTO_CAPTURE?.on)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
+                <g>
+                    <path d="M643.31574,277.60072l-1.6242,2.61964h1.97403l-1.97403,2.3253"
+                        fill="none" stroke={staticColor(otherIndication?.AUTO_CAPTURE?.on)} strokeWidth="0.5" strokeLinecap="round" />
+                    <g>
+                        <path
+                            d="M637.18414,282.84362l0.00604,-2.41228h2.5261l1.1831,0.96627v1.4259z"
+                            fill="none" stroke={staticColor(otherIndication?.AUTO_CAPTURE?.on)} strokeWidth="0.3" strokeLinecap="butt" />
+                        <g>
+                            <g fill="none" stroke={staticColor(otherIndication?.AUTO_CAPTURE?.on)} strokeWidth="0.325"
+                                strokeLinecap="butt">
+                                <path
+                                    d="M636.43847,278.87235c0.42973,-1.03505 1.51169,-1.69789 2.67685,-1.54866c0.92638,0.11865 1.67251,0.72079 2.01733,1.52045" />
+                                <path
+                                    d="M636.90912,279.15396c0.31658,-0.85737 1.19228,-1.41476 2.13748,-1.29371c0.74868,0.09589 1.34789,0.5927 1.60957,1.24712" />
+                                <path
+                                    d="M637.44264,279.53898c0.15764,-0.68535 0.81267,-1.15253 1.52489,-1.06132c0.56366,0.07219 1.0045,0.47379 1.1539,0.98663" />
+                            </g>
+                            <path d="M638.78556,279.64236v0.75311" fill="none" stroke={staticColor(otherIndication?.AUTO_CAPTURE?.on)}
+                                strokeWidth="0.3" strokeLinecap="round" />
+                            <path
+                                d="M638.4412,279.71225c0,-0.19018 0.15418,-0.34436 0.34436,-0.34436c0.19018,0 0.34435,0.15418 0.34435,0.34436c0,0.19018 -0.15417,0.34435 -0.34435,0.34435c-0.19018,0 -0.34436,-0.15417 -0.34436,-0.34435z"
+                                fill={staticColor(otherIndication?.AUTO_CAPTURE?.on)} stroke="none" strokeWidth="0" strokeLinecap="butt" />
+                        </g>
+                    </g>
+                </g>
+                <text transform="translate(623.58717,280.98334) scale(0.07889,0.07889)"
+                    fontSize="40" xmlSpace="preserve" fill="#000000" stroke="none"
+                    strokeWidth="1" strokeLinecap="butt" fontFamily="Sans Serif"
+                    fontWeight="normal" textAnchor="start"><tspan x="0" dy="0">AUTO</tspan></text>
             </g>
             {/* <MainIndicator data={data?.[0]} />
             <MainIndicator offset={((26) * 1)} data={data?.[1]} /> */}

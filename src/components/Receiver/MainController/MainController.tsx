@@ -891,6 +891,7 @@ export default function MainController({
 
                     if (isAdvert && d2.autoAdvertCapture?.mode === 'READY') {
                         d2.autoAdvertCapture.mode = 'CAPTURING';
+                        beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
                         d2.autoAdvertCapture.timer = 0;
                         d2.autoAdvertCapture.startedAt = Date.now();
                         d2.autoAdvertCapture.streamTitle = data.raw;
@@ -930,8 +931,8 @@ export default function MainController({
                                         endMinSilenceMs: 500,
                                         maxEndSilenceMs: 3000,
                                         startSearchStartSec: 10,
-                                        startSearchEndSec: 45,   
-                                        endSearchBackSec: 40,   
+                                        startSearchEndSec: 45,
+                                        endSearchBackSec: 40,
                                         useDoubleAttack: true,
                                         useValidation: true
                                     },
@@ -939,7 +940,7 @@ export default function MainController({
 
                                 beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
                                 d2.autoAdvertCapture = { mode: 'ENDED', downloadLocation: 'local-folder', endedAt, timer: 0 };
-                            } catch (err:any) {
+                            } catch (err: any) {
                                 beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
                                 console.error('Advert save failed:', err);
                                 d2.autoAdvertCapture = {
@@ -997,27 +998,30 @@ export default function MainController({
         let _autoCaptureOn = false;
         const processAutoCaptureChanges = () => {
             if (_autoCaptureOn !== outputsRef.current.settings.advanced.internetRadio.automaticAdvertCapture.on) {
-                outputsRef.current.sourceData[2].autoAdvertCapture = {
-                    mode: "FOLDER_SELECT",
-                    timer: 0,
-                };
-                requestCapturesFolder().then((val) => {
-                    if (val) {
-                        beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
-                        outputsRef.current.sourceData[2].autoAdvertCapture = {
-                            mode: "READY",
-                            timer: 0,
-                        };
-                    } else {
-                        beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
-                        outputsRef.current.sourceData[2].autoAdvertCapture = {
-                            mode: "ACCESS_BLOCKED",
-                            timer: 0,
-                        };
-                    }
 
-                    outputsRef.current.resetAnimationsTimer = { animTimer: true };
-                });
+                if (outputsRef.current.settings.advanced.internetRadio.automaticAdvertCapture.on) {
+                    outputsRef.current.sourceData[2].autoAdvertCapture = {
+                        mode: "FOLDER_SELECT",
+                        timer: 0,
+                    };
+                    requestCapturesFolder().then((val) => {
+                        if (val) {
+                            beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+                            outputsRef.current.sourceData[2].autoAdvertCapture = {
+                                mode: "READY",
+                                timer: 0,
+                            };
+                        } else {
+                            beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+                            outputsRef.current.sourceData[2].autoAdvertCapture = {
+                                mode: "ACCESS_BLOCKED",
+                                timer: 0,
+                            };
+                        }
+
+                        outputsRef.current.resetAnimationsTimer = { animTimer: true };
+                    });
+                }
 
                 _autoCaptureOn = outputsRef.current.settings.advanced.internetRadio.automaticAdvertCapture.on;
             }
@@ -2819,6 +2823,8 @@ export default function MainController({
 
                     processMenuTimers();
 
+                    processAutoCaptureChanges();
+
                     if (updateTimer % 10 === 0) {
                         applyEQSettings();
                     }
@@ -4266,7 +4272,7 @@ export default function MainController({
 
                         const d2 = outputsRef.current.sourceData[2];
 
-                        processAutoCaptureChanges();
+                        // processAutoCaptureChanges();
 
                         if (audioPlayerRef.current && !d2.isPaused) audioPlayerRef.current.play().catch(console.error);
 
