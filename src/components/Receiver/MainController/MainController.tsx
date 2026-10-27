@@ -640,6 +640,7 @@ export default function MainController({
         audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
 
 
+        beeper.connectAudioContext(audioContext);
 
         normalizationNode = audioContext.createGain();
         normalizationNode.gain.value = 1.0;
@@ -684,6 +685,10 @@ export default function MainController({
         highFilter.connect(loudnessLowShelf);
         loudnessLowShelf.connect(loudnessHighShelf);
         loudnessHighShelf.connect(masterGain);
+
+        
+        // alert('Connect')
+        // beeper.connectAudioContext(audioContext, masterGain);
 
         masterGain.connect(audioContext.destination);
     };
@@ -739,14 +744,6 @@ export default function MainController({
         loudnessHighShelf.gain.setTargetAtTime(highBoost, (isFinite(audioContext.currentTime) ? audioContext.currentTime : 0), 0.03);
     };
 
-    // useEffect(() => {
-    //     alert(123)
-    // if (inputsRef.current.buttons) {
-
-    //     if (inputsRef.current.buttons.powerOnOff) console.info('Power On Button!')
-
-    // }
-    // }, [inputsRef.current]);
     const metadataSourceRef = useRef<EventSource | null>(null);
 
     const { capture, cancelCapture } = useRadioCapture();
@@ -2788,6 +2785,8 @@ export default function MainController({
         let updateTimer = 0;
 
         let _connectedUSBDevice: USBFlashInfo | null = null;
+
+        ensureAudioGraph();
 
         const update = () => {
             // alert(outputsRef.current.powerOn)
