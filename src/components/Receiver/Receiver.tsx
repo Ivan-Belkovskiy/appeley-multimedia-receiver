@@ -1616,7 +1616,8 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
 
         autoOnOffMenu: {
             navigation: {
-                _settingsBeforeUpdate: null,
+                _settingsBeforePreview: null,
+                 _brightnessAnimations: null,
                 openedIdxArray: [],
                 currentIdx: 0,
                 timerBeforeClose: (30 * 60),
@@ -1696,7 +1697,8 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
 
         appeleyMediaCenterMenu: {
             navigation: {
-                _settingsBeforeUpdate: null,
+                _settingsBeforePreview: null,
+                _brightnessAnimations: null,
                 openedIdxArray: [],
                 currentIdx: 0,
                 timerBeforeClose: (30 * 60),
