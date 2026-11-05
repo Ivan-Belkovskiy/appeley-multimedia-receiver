@@ -79,7 +79,7 @@ export default function Encoder({
 
     return (
         <g
-            className="encoder"
+            className="encoder animating-element"
             stroke="#000000"
             strokeLinecap="butt"
             onPointerDown={handlePointerDown}

@@ -18,6 +18,10 @@ interface DisplayData {
     main: DisplayMainIndication[];
     topLeft?: DisplayMainIndication[];
     otherIndication?: DisplayOtherIndication;
+    brightnessLevel?: {
+        buttons?: number;
+        display?: number;
+    };
 }
 
 type DemoAnimationType = "default" | "scroll-left" | "left-to-right";
@@ -159,6 +163,8 @@ export default function FrontPanel({
     // }
 }) {
 
+
+
     const [displayData, setDisplayData] = useState<DisplayData>({
         main: []
     });
@@ -166,6 +172,7 @@ export default function FrontPanel({
     const displayDataRef = useRef<DisplayData>({
         main: []
     }); // For access in requestAnimationFrame()
+
 
     const updateDisplayData = (data: DisplayData) => {
         displayDataRef.current = data;
@@ -180,7 +187,7 @@ export default function FrontPanel({
 
     const [openedModal, setOpenedModal] = useState<'usb-select' | null>(null);
 
-
+    const mainIndicationColor = (displayData.brightnessLevel?.buttons && outputValues?.indicationColor?.buttons) ? brightnessFilter(outputValues?.indicationColor?.buttons?.color, displayData.brightnessLevel.buttons) : (outputValues?.indicationColor?.buttons?.color);
 
     const handleUSBSelect = () => {
         setOpenedModal('usb-select');
@@ -1980,8 +1987,16 @@ export default function FrontPanel({
             demoTimer = ((mainOutputs.settings?.demo?.interval ?? 20) * 60);
 
             mainOutputs.indicationColor = {
-                display: mainOutputs.settings.indication.display.color || "#0088ff",
-                buttons: mainOutputs.settings.indication.buttons.color || "#0088ff"
+                display: {
+                    color: mainOutputs.settings.indication.display.color || "#0088ff",
+                    type: mainOutputs.settings.indication.display.type,
+                    animTimer: 0,
+                },
+                buttons: {
+                    color: mainOutputs.settings.indication.buttons.color || "#0088ff",
+                    type: mainOutputs.settings.indication.buttons.type,
+                    animTimer: 0,
+                }
             };
         }
 
@@ -2465,7 +2480,10 @@ export default function FrontPanel({
             if (current?.indicationColor?.display) {
                 mainOutputs.indicationColor = {
                     ...mainOutputs.indicationColor,
-                    display: current.indicationColor.display
+                    display: {
+                        color: current.indicationColor.display,
+                        type: 'static',
+                    }
                 };
                 // mainOutputs.indicationColor.display = current.indicationColor.display;
             }
@@ -2473,7 +2491,10 @@ export default function FrontPanel({
             if (current?.indicationColor?.buttons) {
                 mainOutputs.indicationColor = {
                     ...mainOutputs.indicationColor,
-                    buttons: current.indicationColor.buttons
+                    buttons: {
+                        color: current.indicationColor.buttons,
+                        type: 'static',
+                    }
                 };
             }
 
@@ -2716,7 +2737,7 @@ export default function FrontPanel({
                             topLeft: (currentValue ? 'SET' : 'MENU').split(''),
                             otherIndication: {
                                 topLeftDecorationLine: true,
-                            }
+                            },
                         });
 
                         // if (navigation.menuType !== 'main') {
@@ -2785,7 +2806,7 @@ export default function FrontPanel({
 
                     }
 
-
+                    // if (!isDemoAnimating && mainOutputs.indicationColor?.display?.type === 'animated') setDisplayAnimTimer(updateTimer);
 
                     if (displayAction === "INIT") {
 
@@ -2938,8 +2959,14 @@ export default function FrontPanel({
                         } else {
 
                             mainOutputs.indicationColor = {
-                                display: mainOutputs.settings.indication.display.color || "#0088ff",
-                                buttons: mainOutputs.settings.indication.buttons.color || "#0088ff"
+                                display: {
+                                    color: mainOutputs.settings.indication.display.color || "#0088ff",
+                                    type: mainOutputs.settings.indication.display.type,
+                                },
+                                buttons: {
+                                    color: mainOutputs.settings.indication.buttons.color || "#0088ff",
+                                    type: mainOutputs.settings.indication.buttons.type,
+                                }
                             };
 
                             if (
@@ -3104,7 +3131,15 @@ export default function FrontPanel({
                                         topLeft: (currentValue ? 'SET' : 'MENU').split(''),
                                         otherIndication: {
                                             topLeftDecorationLine: true,
-                                        }
+                                        },
+                                        brightnessLevel: {
+                                            display: (mainOutputs.menu.navigation._brightnessAnimations?.display ? (
+                                                (animTimer % 60 > 30) ? 0.35 : 0.5
+                                            ) : undefined),
+                                            buttons: (mainOutputs.menu.navigation._brightnessAnimations?.buttons ? (
+                                                (animTimer % 60 > 30) ? -0.05 : 0
+                                            ) : undefined),
+                                        },
                                     });
 
                                     if (displayText.length > 16) {
@@ -3940,7 +3975,7 @@ export default function FrontPanel({
                                         } else {
                                             updateDisplayData({
                                                 ...displayDataRef.current,
-                                                main: `IP ${"   .   .   . "}`.split(''),
+                                                main: `IP:${"   .   .   . "}`.split(''),
                                                 topLeft: [],
                                             })
                                         }
@@ -3948,7 +3983,7 @@ export default function FrontPanel({
                                     } else if (sourceData.connectionInfo.ip.indexOf(" ") > -1) {
                                         updateDisplayData({
                                             ...displayDataRef.current,
-                                            main: `IP ${sourceData.connectionInfo.ip}`.split(''),
+                                            main: `IP:${sourceData.connectionInfo.ip}`.split(''),
                                             topLeft: [],
                                         })
                                     } else {
@@ -3958,15 +3993,23 @@ export default function FrontPanel({
 
                                             if (sourceData.ui?.error) {
                                                 updateDisplayData({
-                                                    main: centerMainText(sourceData.ui.error || ""),
+                                                    main: centerMainText(sourceData.ui.error.message || ""),
                                                     topLeft: [],
                                                     otherIndication: {}
-                                                })
+                                                });
+                                                if (sourceData.ui.error.displayTime > 0) {
+                                                    sourceData.ui.error.displayTime--;
+                                                } else sourceData.ui.error = undefined;
                                             } else if (sourceData.ui?.elevatorCategorySelection) {
                                                 animateTopLeftSelection(Math.floor((updateTimer / 30)));
                                                 updateDisplayData({
                                                     ...displayDataRef.current,
-                                                    main: centerMainText("Мои Лифты")
+                                                    main: centerMainText("Мои Лифты"),
+                                                    otherIndication: {
+                                                        ...displayDataRef.current.otherIndication,
+                                                        topLeftDecorationLine: true,
+                                                        Elevator: false,
+                                                    }
                                                 });
                                             } else if (sourceData.ui?.elevatorListSelection) {
 
@@ -3978,9 +4021,10 @@ export default function FrontPanel({
                                                 updateDisplayData({
                                                     ...displayDataRef.current,
                                                     main: [],
-                                                    topLeft: [],
+                                                    topLeft: "LIST".split(''),
                                                     otherIndication: {
                                                         topRightData: {
+                                                            decorationLine: true,
                                                             ELEVATOR: true,
                                                             leftData: String(
                                                                 (sourceData.ui.elevatorListSelection.currentLift || 0) + 1
@@ -3989,11 +4033,12 @@ export default function FrontPanel({
                                                             rightData: String(
                                                                 sourceData.data.elevators.length
                                                             ).padStart(4, "0").split(''),
-                                                        }
+                                                        },
+                                                        topLeftDecorationLine: true,
                                                     }
                                                 });
 
-                                                animateTopLeftSelection(Math.floor((updateTimer / 30)));
+                                                // animateTopLeftSelection(Math.floor((updateTimer / 30)));
 
                                                 animateScrollingText(animTimer, (
                                                     sourceData.data.elevators?.[
@@ -4022,14 +4067,16 @@ export default function FrontPanel({
                                                         const floor = sourceData.selectedElevatorData?.floors?.[idx - 1];
                                                         if (floor?.videoData?.title) {
                                                             data = ` ${idx}F: `.split('');
-                                                            animateScrollingText(animTimer, `     ${floor.videoData.title}`, () => {
-                                                                animTimer = 0;
-                                                            });
-                                                            data[0] = ' ';
-                                                            data[1] = `${idx}`;
-                                                            data[2] = 'F';
-                                                            data[3] = ':';
-                                                            data[4] = ' ';
+                                                            // animateScrollingText(animTimer, `     ${floor.videoData.title}`, () => {
+                                                            //     animTimer = 0;
+                                                            // });
+
+                                                            data = returnAnimatedScrollingText(animTimer, floor.videoData.title, () => animTimer = 0, false, 12);
+                                                            data.unshift(' ');
+                                                            data.unshift(':');
+                                                            data.unshift('F');
+                                                            data.unshift(`${idx}`);
+                                                            data.unshift(' ');
                                                             animTimer++;
                                                         } else {
                                                             data = centerMainText(`${idx} F`);
@@ -4047,12 +4094,24 @@ export default function FrontPanel({
                                                     /*if (slotIdx === -1) {
                                                         data = slotsData['AUTOSAVE'].data.title
                                                     } else */if (typeof slotIdx === 'number' && slotIdx >= 0) {
-                                                            animateScrollingText(animTimer, slotsData.fragments[slotIdx]?.data?.title || "", () => {
+
+                                                            data = returnAnimatedScrollingText(animTimer, slotsData.fragments[slotIdx]?.data?.title || "", () => {
                                                                 animTimer = 0;
-                                                            });
-                                                            data = displayDataRef.current.main;
+                                                            }, false, 9);
                                                             animTimer++;
-                                                        } else data = data.split('');
+
+                                                            data.unshift(" ", " ");
+                                                            // data.push(" ", "");
+
+                                                            if (navigation.slotDataIdx > 0) data[0] = "<";
+                                                            if (navigation.slotDataIdx < 4) data[13] = " ";
+                                                            if (navigation.slotDataIdx < 4) data[14] = " ";
+                                                            if (navigation.slotDataIdx < 4) data[15] = ">";
+                                                        } else {
+                                                            data = centerMainText('AUTO-SAVE');
+                                                            if (navigation.slotDataIdx > 0) data[0] = "<";
+                                                            if (navigation.slotDataIdx < 4) data[15] = ">";
+                                                        }
 
                                                     } else {
                                                         data = data.split('');
@@ -4112,25 +4171,23 @@ export default function FrontPanel({
                                             // })
                                         } else if (sourceData.connectionError) {
 
-                                            let dispTxt = `ERROR: ${sourceData.connectionError || ""}`;
-
-                                            if (animTimer < (60 * 5)) {
-                                                scrollPosition = 0;
-                                            } else if ((animTimer - (60 * 5)) % 20 === 0) {
-                                                scrollPosition++;
-                                                if (scrollPosition > (
-                                                    dispTxt.length
-                                                )) animTimer = 0;
-                                            }
-
-
                                             updateDisplayData({
                                                 ...displayDataRef.current,
-                                                main: dispTxt.slice(scrollPosition).split(''),
+                                                main: centerMainText("CONNECTION ERROR"),
                                                 topLeft: [],
                                             });
 
                                             animTimer++;
+
+                                            if (animTimer > (60 * 4)) {
+                                                sourceData.isConnected = false;
+                                                sourceData.isConnecting = false;
+                                                sourceData.connectionError = undefined;
+                                                sourceData.connectionInfo = undefined;
+                                                sourceData.ui = undefined;
+                                                sourceData.selectedElevatorData = undefined;
+                                                sourceData.data = undefined;
+                                            }
 
                                         } else if (!sourceData.isConnecting) {
                                             updateDisplayData({
@@ -4172,7 +4229,7 @@ export default function FrontPanel({
                                         on: (mainOutputs.settings.audio.autoNormalization.on)
                                     },
                                     AUTO_CAPTURE: { on: (mainOutputs.settings.advanced.internetRadio.automaticAdvertCapture.on && mainOutputs.currentSource === 2) }
-                                }
+                                },
                             })
                             // if (demoTimer > 0) {
                             //     demoTimer--;
@@ -4195,6 +4252,8 @@ export default function FrontPanel({
                     }
 
                     updateTimer++;
+
+
 
                 } else {
                     if (
@@ -4252,7 +4311,7 @@ export default function FrontPanel({
     }
 
     return (
-        <div className="front-panel">
+        <div className={`front-panel ${(outputValues.indicationColor?.buttons?.type === 'animated' && powerOn) ? 'animated-indication' : ''} ${outputValues.menu.navigation._brightnessAnimations?.buttons ? 'no-animate-buttons' : ''}`}>
             {/* <img className="front-panel__main" src="/images/front-panel/12_version/FrontPanel_No_Display.svg" /> */}
 
             <svg className="front-panel__svg" version="1.1"
@@ -4285,57 +4344,27 @@ export default function FrontPanel({
 
                         <image x="1325.55644" y="808.91449" transform="scale(0.27279,0.27279)" width="376" height="70" xlinkHref="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXgAAABGCAYAAADGmo/PAAADzklEQVR4AezU0UotMQwFUPX//3mkoAjn+NB2GiZt1sBwr9JmkhXZX9dmz8fgs9l41+B4HzvNd/JsbQ9R843WzXC+eez09pr1ztRbb+Zcbw/t3NfMB9whQIAAgfwCAj7/jnRIIKeArtILCPj0K9IgAQIE5gQE/JybWwQIEEgvIODTr6hqg+YmQOCugIC/K+g+AQIEkgoI+KSL0RYBAgTuClQN+Ltu7hMgQCC9gIBPvyINEiBAYE5AwM+5uUWAQFWBjeYeCvjPwCeDWdR4J8/WzE6fr83Y82Zw2LGHHtvoMzu69fQ8FPA9BZ0hQIAAgRwCAj7HHnRB4EfAPwTWCQj4dZYqESBAIJWAgE+1Ds0QIEBgnYCAX2e5QyU9EiBQSEDAF1q2UQkQqCUg4Gvt27QECBQSWBrwhdyMSoAAgfQCAj79ijRIgACBOQEBP+fmFgECSwUUixAQ8BGqahIgQCCBgIBPsAQtECBAIEJAwEeoqplNQD8ESgoI+JJrNzQBAhUEBHyFLZuRAIGSAgJ+wdqVIECAQEYBAZ9xK3oiQIDAAgEBvwBRCQIECMwJxN4aCvgr8Ikds6961Hh9X489FTVbqxvbeV/11sfTb1+nTr0KPL239v3Xnu7+3GpGvSO9DQX8SGFnCRAgQOBZAQH/rL+vE4gUULu4gIAv/gdgfAIEzhUQ8Ofu1mQECBQXEPDF/wDujO8uAQK5BQR87v3ojgABAtMCAn6azkUCBAjkFsgb8LnddEeAAIH0AgI+/Yo0SIAAgTmBoYD/DHzm2l97K3C87tJrJ/qr1t1A4MG/btb/L7Dt7tLrp6pRsRu4/+DwyV7p4cIBF3p7beeGAr5d8BIgQIDAHgICfo896ZIAAQLDAgJ+mMyF6gLmJ7CLgIDfZVP6JECAwKCAgB8Ec5wAAQK7CAj4bJvSDwECBBYJCPhFkMoQIEAgm4CAz7YR/RAgQGBO4O2WgH8j8QsCBAicISDgz9ijKQgQIPAmIODfSPyCAIH/BPxuPwEBv9/OdEyAAIEuAQHfxeQQAQIE9hMQ8Pvt7MyOTUWAwHIBAb+cVEECBAjkEBDwOfagCwIECCwXKBLwy90UJECAQHoBAZ9+RRokQIDAnICAn3NzK5nAleCJIkkw2hU1W6ubfb7W4++7U6+tZwHfFLwECBA4UEDAH7hUIxEgQKAJCPim4CXwlIDvEggUEPCBuEoTIEDgSQEB/6S+bxMgQCBQQMAH4j5fWgcECFQWEPCVt292AgSOFhDwR6/XcAQIVBa4E/CV3cxOgACB9AICPv2KNEiAAIE5gW8AAAD//xxuBtAAAAAGSURBVAMAsWJpoU0RHk8AAAAASUVORK5CYII=" fill="none" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
 
-                        {/* <path d="M21.36827,186.09175v-26.21743h39.51692v14.01293l-17.33694,12.20449z" fill="#000000" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="0.5" strokeLinecap="butt" /> */}
+                        {/* <path d="M21.36827,186.09175v-26.21743h39.51692v14.01293l-17.33694,12.20449z" fill="#000000" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="0.5" strokeLinecap="butt" /> */}
 
-                        <g className="on_off_button"
+                        <g className="on_off_button animating-element"
                             {...buttonHandlers('powerOnOff')}
-                        // onMouseDown={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     powerOnOff: true
-                        // }}
-
-                        // onMouseUp={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     powerOnOff: false
-                        // }}
-
-                        // onMouseLeave={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     powerOnOff: false
-                        // }}
-
-
-                        // onTouchStart={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     powerOnOff: true
-                        // }}
-
-                        // onTouchEnd={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     powerOnOff: false
-                        // }}
-
-                        // onTouchCancel={() => mainInputs.buttons = {
-                        //     ...mainInputs.buttons,
-                        //     powerOnOff: false
-                        // }}
                         >
-                            <path d="M21.36827,186.09175v-26.21743h39.51692v14.01293l-17.33694,12.20449z" fill="#000000" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="0.5" strokeLinecap="butt" />
-                            <g fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2.5">
+                            <path d="M21.36827,186.09175v-26.21743h39.51692v14.01293l-17.33694,12.20449z" fill="#000000" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="0.5" strokeLinecap="butt" />
+                            <g fill="none" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="2.5">
                                 <path d="M37.90628,168.12837c1.20925,0.97584 1.98274,2.47007 1.98274,4.14498c0,2.94005 -2.38338,5.32345 -5.32343,5.32345c-2.94007,0 -5.32345,-2.38338 -5.32345,-5.32345c0,-1.54676 0.65968,-2.93946 1.71302,-3.91207" strokeLinecap="butt" />
                                 <path d="M34.46363,172.85177v-9.44677" strokeLinecap="round" />
                             </g>
-                            <text transform="translate(26.6853,183.66108) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <text transform="translate(26.6853,183.66108) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">ON/OFF</tspan>
                             </text>
                         </g>
 
-                        <path d="M44.62796,144.35214z" fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="butt" />
-                        {/* <g fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2.5">
+                        <path d="M44.62796,144.35214z" fill="none" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="butt" />
+                        {/* <g fill="none" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="2.5">
                             <path d="M37.90628,168.12837c1.20925,0.97584 1.98274,2.47007 1.98274,4.14498c0,2.94005 -2.38338,5.32345 -5.32343,5.32345c-2.94007,0 -5.32345,-2.38338 -5.32345,-5.32345c0,-1.54676 0.65968,-2.93946 1.71302,-3.91207" strokeLinecap="butt" />
                             <path d="M34.46363,172.85177v-9.44677" strokeLinecap="round" />
                         </g>
-                        <text transform="translate(26.6853,183.66108) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                        <text transform="translate(26.6853,183.66108) scale(0.10407,0.10407)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                             <tspan x="0" dy="0">ON/OFF</tspan>
                         </text> */}
                         {/* <!-- DISPLAY (Main Window) --> */}
@@ -4346,7 +4375,7 @@ export default function FrontPanel({
 
                         {/* Encoder */}
                         <Encoder
-                            indicationColor={(outputValues?.powerOn || outputValues.autoOnOff?.ON?.buttonIndication || outputValues.autoOnOff?.ON?.isInterrupted) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)}
+                            indicationColor={(outputValues?.powerOn || outputValues.autoOnOff?.ON?.buttonIndication || outputValues.autoOnOff?.ON?.isInterrupted) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)}
 
                             onButtonClick={() => mainInputs.buttons = {
                                 ...mainInputs.buttons,
@@ -4472,131 +4501,106 @@ export default function FrontPanel({
                             <tspan x="0" dy="0">USB</tspan>
                         </text>
 
-                        <Display powerOn={(powerOn || outputValues.autoOnOff?.ON?.activated)} mainData={displayData.main || []} topLeftData={displayData.topLeft || []} otherIndication={{
-                            ...displayData.otherIndication
-                        }} indicationColor1={outputValues?.indicationColor?.display} />
+                        <Display
+                            powerOn={(powerOn || outputValues.autoOnOff?.ON?.activated)}
+                            mainData={displayData.main || []}
+                            topLeftData={displayData.topLeft || []}
+                            otherIndication={{
+                                ...displayData.otherIndication
+                            }}
+                            indicationColor1={outputValues?.indicationColor?.display?.color}
+                            indicationType={outputValues.indicationColor?.display?.type}
+                            // indicationAnimTimer={displayAnimTimer.current}
+                            disableAnimations={(!!outputValues.menu.navigation._brightnessAnimations?.display)}
+                            brightnessLevel={displayData.brightnessLevel?.display}
+                        />
 
                         {/* New Buttons */}
 
 
-                        <path d="M314.78551,386.56898l20.90032,-15.94654h26.9943v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            {...buttonHandlers('num_1')}
-                        // onMouseDown={() => setNumberButtonState(1, true)}
+                        <g className="front-panel__button animating-element" {...buttonHandlers('num_1')}>
+                            <path d="M314.78551,386.56898l20.90032,-15.94654h26.9943v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text style={{ userSelect: 'none' }} transform="translate(342.28565,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                                <tspan x="0" dy="0">1</tspan>
+                            </text>
+                        </g>
 
-                        // onMouseUp={() => setNumberButtonState(1, false)}
+                        <g className="front-panel__button animating-element" {...buttonHandlers('num_2')}>
+                            <path d="M374.80695,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text style={{ userSelect: 'none' }} transform="translate(388.90636,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                                <tspan x="0" dy="0">2</tspan>
+                            </text>
+                        </g>
 
-                        // onMouseLeave={() => setNumberButtonState(1, false)}
-                        />
-                        <path d="M374.80695,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            {...buttonHandlers('num_2')}
-                        // onMouseDown={() => setNumberButtonState(2, true)}
+                        <g className="front-panel__button animating-element" {...buttonHandlers('num_3')}>
+                            <path d="M423.03846,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text style={{ userSelect: 'none' }} transform="translate(437.13787,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                                <tspan x="0" dy="0">3</tspan>
+                            </text>
+                        </g>
 
-                        // onMouseUp={() => setNumberButtonState(2, false)}
+                        <g className="front-panel__button animating-element" {...buttonHandlers('num_4')}>
+                            <path d="M471.26997,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text style={{ userSelect: 'none' }} transform="translate(485.36938,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                                <tspan x="0" dy="0">4</tspan>
+                            </text>
+                        </g>
 
-                        // onMouseLeave={() => setNumberButtonState(2, false)}
-                        />
-                        <path d="M423.03846,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            {...buttonHandlers('num_3')}
-                        // onMouseDown={() => setNumberButtonState(3, true)}
+                        <g className="front-panel__button animating-element" {...buttonHandlers('num_5')}>
+                            <path d="M519.50149,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text style={{ userSelect: 'none' }} transform="translate(533.60088,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                                <tspan x="0" dy="0">5</tspan>
+                            </text>
+                        </g>
 
-                        // onMouseUp={() => setNumberButtonState(3, false)}
+                        <g className="front-panel__button animating-element" {...buttonHandlers('num_6')}>
+                            <path d="M567.73299,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text style={{ userSelect: 'none' }} transform="translate(581.8324,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                                <tspan x="0" dy="0">6</tspan>
+                            </text>
+                        </g>
 
-                        // onMouseLeave={() => setNumberButtonState(3, false)}
-                        />
-                        <path d="M471.26997,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            {...buttonHandlers('num_4')}
-                        // onMouseDown={() => setNumberButtonState(4, true)}
+                        <g className="front-panel__button animating-element" {...buttonHandlers('num_7')}>
+                            <path d="M615.96451,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text style={{ userSelect: 'none' }} transform="translate(630.06391,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                                <tspan x="0" dy="0">7</tspan>
+                            </text>
+                        </g>
 
-                        // onMouseUp={() => setNumberButtonState(4, false)}
+                        <g className="front-panel__button animating-element" {...buttonHandlers('num_8')}>
+                            <path d="M664.19602,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text style={{ userSelect: 'none' }} transform="translate(678.29542,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                                <tspan x="0" dy="0">8</tspan>
+                            </text>
+                        </g>
 
-                        // onMouseLeave={() => setNumberButtonState(4, false)}
-                        />
-                        <path d="M519.50149,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            {...buttonHandlers('num_5')}
-                        // onMouseDown={() => setNumberButtonState(5, true)}
+                        <g className="front-panel__button animating-element" {...buttonHandlers('num_9')}>
+                            <path d="M712.42753,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text style={{ userSelect: 'none' }} transform="translate(726.52694,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                                <tspan x="0" dy="0">9</tspan>
+                            </text>
+                        </g>
 
-                        // onMouseUp={() => setNumberButtonState(5, false)}
+                        <g className="front-panel__button animating-element" {...buttonHandlers('num_0')}>
+                            <path d="M760.12314,386.56898v-15.94654h26.9943l20.90032,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text style={{ userSelect: 'none' }} transform="translate(772.2174,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                                <tspan x="0" dy="0">0</tspan>
+                            </text>
+                        </g>
 
-                        // onMouseLeave={() => setNumberButtonState(5, false)}
-                        />
 
-                        <path d="M567.73299,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            {...buttonHandlers('num_6')}
-                        // onMouseDown={() => setNumberButtonState(6, true)}
 
-                        // onMouseUp={() => setNumberButtonState(6, false)}
 
-                        // onMouseLeave={() => setNumberButtonState(6, false)}
-                        />
 
-                        <path d="M615.96451,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            {...buttonHandlers('num_7')}
-                        // onMouseDown={() => setNumberButtonState(7, true)}
 
-                        // onMouseUp={() => setNumberButtonState(7, false)}
 
-                        // onMouseLeave={() => setNumberButtonState(7, false)}
-                        />
 
-                        <path d="M712.42753,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            {...buttonHandlers('num_9')}
-                        // onMouseDown={() => setNumberButtonState(9, true)}
 
-                        // onMouseUp={() => setNumberButtonState(9, false)}
 
-                        // onMouseLeave={() => setNumberButtonState(9, false)}
-                        />
-
-                        <path d="M664.19602,386.56898v-15.94654h36.1047v15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            {...buttonHandlers('num_8')}
-                        // onMouseDown={() => setNumberButtonState(8, true)}
-
-                        // onMouseUp={() => setNumberButtonState(8, false)}
-
-                        // onMouseLeave={() => setNumberButtonState(8, false)}
-                        />
-                        <path d="M760.12314,386.56898v-15.94654h26.9943l20.90032,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt"
-                            {...buttonHandlers('num_0')}
-                        // onMouseDown={() => setNumberButtonState(0, true)}
-
-                        // onMouseUp={() => setNumberButtonState(0, false)}
-
-                        // onMouseLeave={() => setNumberButtonState(0, false)}
-                        />
-                        <text style={{ userSelect: 'none' }} transform="translate(342.28565,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
-                            <tspan x="0" dy="0">1</tspan>
-                        </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(388.90636,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
-                            <tspan x="0" dy="0">2</tspan>
-                        </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(437.13787,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
-                            <tspan x="0" dy="0">3</tspan>
-                        </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(485.36938,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
-                            <tspan x="0" dy="0">4</tspan>
-                        </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(533.60088,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
-                            <tspan x="0" dy="0">5</tspan>
-                        </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(581.8324,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
-                            <tspan x="0" dy="0">6</tspan>
-                        </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(630.06391,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
-                            <tspan x="0" dy="0">7</tspan>
-                        </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(678.29542,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
-                            <tspan x="0" dy="0">8</tspan>
-                        </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(726.52694,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
-                            <tspan x="0" dy="0">9</tspan>
-                        </text>
-                        <text style={{ userSelect: 'none' }} transform="translate(772.2174,383.76662) scale(0.34554,0.34554)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
-                            <tspan x="0" dy="0">0</tspan>
-                        </text>
 
                         {/* Eject Button */}
                         <g
-                            className="front-panel__button"
+                            className="front-panel__button animating-element"
                             {...buttonHandlers('eject')}
                         // onMouseDown={() => mainInputs.buttons = {
                         //     ...mainInputs.buttons,
@@ -4613,8 +4617,8 @@ export default function FrontPanel({
                         //     eject: false
                         // }}
                         >
-                            <path d="M784.07045,191.39962v-26.23561h59.4761l-32.54389,26.23561z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
-                            <g fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="0" strokeLinecap="butt">
+                            <path d="M784.07045,191.39962v-26.23561h59.4761l-32.54389,26.23561z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <g fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="0" strokeLinecap="butt">
                                 <path d="M794.12055,178.82562l6.66351,-7.92912l6.6635,7.92912z" />
                                 <path d="M794.12055,183.02175v-2.47191h13.32702v2.47191z" />
                             </g>
@@ -4623,7 +4627,7 @@ export default function FrontPanel({
                         {/* SRC SELECT BUTTON */}
                         <g
                             strokeLinecap="butt"
-                            className="front-panel__button"
+                            className="front-panel__button animating-element"
 
                             {...buttonHandlers('srcSelect')}
                         // onMouseDown={() => mainInputs.buttons = {
@@ -4641,14 +4645,14 @@ export default function FrontPanel({
                         //     srcSelect: false
                         // }}
                         >
-                            <path d="M20.00585,383.15799l-0.04979,-15.94654h44.33409l19.39423,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" />
-                            <text transform="translate(23.6884,378.88225) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <path d="M20.00585,383.15799l-0.04979,-15.94654h44.33409l19.39423,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" />
+                            <text transform="translate(23.6884,378.88225) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">SOURCE</tspan>
                             </text>
                         </g>
                         <g
                             strokeLinecap="butt"
-                            className="front-panel__button"
+                            className="front-panel__button animating-element"
                             {...buttonHandlers('disp')}
                         // onMouseDown={() => mainInputs.buttons = {
                         //     ...mainInputs.buttons,
@@ -4665,8 +4669,8 @@ export default function FrontPanel({
                         //     disp: false
                         // }}
                         >
-                            <path d="M94.81812,383.15799l-19.39423,-15.94654h56.96734l19.39423,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" />
-                            <text transform="translate(100.99737,378.88225) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <path d="M94.81812,383.15799l-19.39423,-15.94654h56.96734l19.39423,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" />
+                            <text transform="translate(100.99737,378.88225) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">DISP</tspan>
                             </text>
                         </g>
@@ -4688,9 +4692,9 @@ export default function FrontPanel({
                                 menu: false
                             }}
                         >
-                            <path d="M144.86696,258.49572l-4.39119,30.58669h-84.01073l21.64225,-30.58669z" fill="#2b3439" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" />
-                            <path d="M139.04958,262.7642l-3.59411,22.04973h-69.20245l15.06673,-22.04973z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" />
-                            <text transform="translate(82.89284,278.48479) scale(0.33052,0.33052)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <path d="M144.86696,258.49572l-4.39119,30.58669h-84.01073l21.64225,-30.58669z" fill="#2b3439" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="2" />
+                            <path d="M139.04958,262.7642l-3.59411,22.04973h-69.20245l15.06673,-22.04973z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="2" />
+                            <text transform="translate(82.89284,278.48479) scale(0.33052,0.33052)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">MENU</tspan>
                             </text>
                         </g> */}
@@ -4712,16 +4716,16 @@ export default function FrontPanel({
                                 back: false
                             }}
                         >
-                            <path d="M78.10729,328.46726l-21.64225,-30.58669h84.01073l4.39119,30.58669z" fill="#2b3439" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" />
-                            <path d="M81.31975,324.19878l-15.06673,-22.04973h69.20245l3.59411,22.04973z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" />
-                            <text transform="translate(85.76175,317.523) scale(0.33052,0.33052)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <path d="M78.10729,328.46726l-21.64225,-30.58669h84.01073l4.39119,30.58669z" fill="#2b3439" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="2" />
+                            <path d="M81.31975,324.19878l-15.06673,-22.04973h69.20245l3.59411,22.04973z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="2" />
+                            <text transform="translate(85.76175,317.523) scale(0.33052,0.33052)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">BACK</tspan>
                             </text>
                         </g> */}
 
                         {/* <!-- Menu Button --> */}
                         <g
-                            className="front-panel__button"
+                            className="front-panel__button animating-element"
                             {...buttonHandlers('menu')}
                         // onMouseDown={() => mainInputs.buttons = {
                         //     ...mainInputs.buttons,
@@ -4738,14 +4742,14 @@ export default function FrontPanel({
                         //     menu: false
                         // }}
                         >
-                            <path d="M83.68439,215.49771l-19.39423,15.94654h-44.33409l0.04979,-15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
-                            <text transform="translate(27.21783,226.96182) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <path d="M83.68439,215.49771l-19.39423,15.94654h-44.33409l0.04979,-15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text transform="translate(27.21783,226.96182) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">MENU</tspan>
                             </text>
                         </g>
                         {/* <!-- Back Button --> */}
                         <g
-                            className="front-panel__button"
+                            className="front-panel__button  animating-element"
                             {...buttonHandlers('back')}
                         // onMouseDown={() => mainInputs.buttons = {
                         //     ...mainInputs.buttons,
@@ -4762,17 +4766,17 @@ export default function FrontPanel({
                         //     back: false
                         // }}
                         >
-                            <path d="M75.42391,231.44425l19.39423,-15.94654h56.96734l-19.39423,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
-                            <text transform="translate(100.51709,227.02132) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
+                            <path d="M75.42391,231.44425l19.39423,-15.94654h56.96734l-19.39423,15.94654z" fill="#7e7e7e" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="1.5" strokeLinecap="butt" />
+                            <text transform="translate(100.51709,227.02132) scale(0.26274,0.26274)" fontSize="40" xmlSpace="preserve" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke="none" strokeWidth="1" strokeLinecap="butt" fontFamily="sans-serif" fontWeight="normal" textAnchor="start">
                                 <tspan x="0" dy="0">BACK</tspan>
                             </text>
                         </g>
 
                         {/* Track/Folder Button Controller Group  */}
-                        <g className="front-panel__contoller-btn-group" transform="translate(38, 0)">
-                            <path d="M32.61318,340.10761v-84.7712h84.77119v84.7712z" fill="#2b3439" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="butt" />
-                            <path d="M33.38338,339.0635l41.90378,-41.90377l41.25712,41.25712" fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="round" />
-                            <path d="M116.97138,256.16127l-41.25711,41.25712l-41.90377,-41.90377" fill="none" stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="round" />
+                        <g className="front-panel__contoller-btn-group animating-element" transform="translate(38, 0)">
+                            <path d="M32.61318,340.10761v-84.7712h84.77119v84.7712z" fill="#2b3439" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="butt" />
+                            <path d="M33.38338,339.0635l41.90378,-41.90377l41.25712,41.25712" fill="none" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="round" />
+                            <path d="M116.97138,256.16127l-41.25711,41.25712l-41.90377,-41.90377" fill="none" stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="round" />
 
                             {/* <!-- Next Folder Button --> */}
                             <g
@@ -4795,7 +4799,7 @@ export default function FrontPanel({
                             //     nextFolder: false
                             // }}
                             >
-                                <path d="M32.61318,255.33642h84.77119l-41.93724,41.5235z" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
+                                <path d="M32.61318,255.33642h84.77119l-41.93724,41.5235z" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} />
                                 <path d="M68.05183,278.86107l7.03489,-15.60482l6.859,15.60482z" fill="#ffffff" stroke="#e6e6e6" />
                             </g>
                             {/* <!-- Next Track Button --> */}
@@ -4819,7 +4823,7 @@ export default function FrontPanel({
                             //     nextTrack: false
                             // }}
                             >
-                                <path d="M116.97138,254.92343v84.77119l-41.22046,-42.24027z" fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
+                                <path d="M116.97138,254.92343v84.77119l-41.22046,-42.24027z" fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} />
                                 <path d="M102.30795,291.64505l3.6593,-6.28808l3.5678,6.28808l-3.62331,-3.60625z" fill="#ffffff" stroke="#e6e6e6" />
                                 <g fill="#ffffff" stroke="#e6e6e6">
                                     <path d="M89.56821,294.07748l9.11211,3.66958l-9.11211,3.57783z" />
@@ -4848,7 +4852,7 @@ export default function FrontPanel({
                             //     prevTrack: false
                             // }}
                             >
-                                <path d="M33.02617,339.69462v-84.77119l41.22046,42.24028z" fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
+                                <path d="M33.02617,339.69462v-84.77119l41.22046,42.24028z" fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} />
                                 <path d="M50.75127,285.35697l-3.65929,6.28808l-3.5678,-6.28808l3.62331,3.60624z" fill="#ffffff" stroke="#e6e6e6" />
                                 <g fill="#ffffff" stroke="#e6e6e6">
                                     <path d="M60.89068,301.32489l-9.11212,-3.57783l9.11212,-3.66958z" />
@@ -4877,7 +4881,7 @@ export default function FrontPanel({
                             //     prevFolder: false
                             // }}
                             >
-                                <path d="M117.38437,339.28163h-84.77119l42.67506,-41.87264z" fill={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} />
+                                <path d="M117.38437,339.28163h-84.77119l42.67506,-41.87264z" fill={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} />
                                 <path d="M81.94572,317.57596l-6.859,15.60482l-7.03489,-15.60482z" fill="#ffffff" stroke="#e6e6e6" />
                             </g>
                         </g>
@@ -4889,13 +4893,13 @@ export default function FrontPanel({
 
                         {/* APPELEY Media Center Button */}
                         <g
-                            className="front-panel__button"
+                            className="front-panel__button animating-element"
                             {...buttonHandlers('mediaCenter')}
                         >
 
                             <path
                                 d="M31.02003,340.10768l-11.18542,-17.40831v-48.90489l11.18542,-18.458h32.15569v84.7712z"
-                                fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? (outputValues?.indicationColor?.buttons) : brightnessFilter(outputValues?.indicationColor?.buttons || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="butt" />
+                                fill={(outputValues?.powerOn) ? brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.1) : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.4)} stroke={(outputValues?.powerOn) ? mainIndicationColor : brightnessFilter(outputValues?.indicationColor?.buttons?.color || "#72bdff", -0.3)} strokeWidth="2" strokeLinecap="butt" />
                             <g strokeWidth="2.5">
                                 <path d="M37.99309,294.43214l2.2734,-9.19693h8.78356l-1.65337,8.98919"
                                     fill="none" stroke={(outputValues?.powerOn) ? ("#ffffff") : brightnessFilter("#ffffff", -0.5)} strokeLinecap="round" />

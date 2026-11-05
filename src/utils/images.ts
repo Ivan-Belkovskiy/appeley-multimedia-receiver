@@ -1,5 +1,4 @@
 import { FolderEntry } from "@/components/FileNavigationModal/FileNavigationModal";
-import { Dirent } from "fs";
 
 export const getImageForDirEntry = (entry: FolderEntry) => {
     if (entry.isDirectory) return "/images/navigation/folder.svg";

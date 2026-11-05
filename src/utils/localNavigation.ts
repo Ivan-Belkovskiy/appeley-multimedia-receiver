@@ -3,7 +3,7 @@ import { FolderInfo } from '@/components/Receiver/MainController/MainController'
 const EXTENSIONS_AUDIO = ['.mp3', '.wma', '.wav', '.m4a', '.flac', '.aac', '.ogg'];
 const EXTENSIONS_VIDEO = ['.mp4', '.webm', '.mkv', '.mov'];
 
-const MAX_DEPTH = 10;  
+const MAX_LEVEL = 10;  
 
 export async function buildNavigationFromDirectoryHandle(
     rootHandle: FileSystemDirectoryHandle,
@@ -14,9 +14,9 @@ export async function buildNavigationFromDirectoryHandle(
     async function walk(
         dirHandle: FileSystemDirectoryHandle,
         relativePath: string,
-        depth: number,
+        level: number,
     ) {
-        if (depth > MAX_DEPTH) return;
+        if (level > MAX_LEVEL) return;
 
         const trackList: FolderInfo['trackList'] = [];
         const subDirs: FileSystemDirectoryHandle[] = [];
@@ -42,10 +42,10 @@ export async function buildNavigationFromDirectoryHandle(
         trackList.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
         subDirs.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
-        if (trackList.length > 0 || depth === 0) {
+        if (trackList.length > 0 || level === 0) {
             folders.push({
                 number: folderCounter++,
-                name: depth === 0 ? 'ROOT' : dirHandle.name,
+                name: level === 0 ? 'ROOT' : dirHandle.name,
                 path: relativePath,
                 isEmpty: trackList.length === 0,
                 trackList,
@@ -54,7 +54,7 @@ export async function buildNavigationFromDirectoryHandle(
 
         for (const sub of subDirs) {
             const subPath = relativePath ? `${relativePath}/${sub.name}` : sub.name;
-            await walk(sub, subPath, depth + 1);
+            await walk(sub, subPath, level + 1);
         }
     }
 

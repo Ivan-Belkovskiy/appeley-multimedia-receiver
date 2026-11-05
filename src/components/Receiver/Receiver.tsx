@@ -92,12 +92,15 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                         ...s.indication,
                         [property]: {
                             type: 'static',
-                            color: applyColorOffset('#0088ff', (i * step)),
+                            color: applyColorOffset('#00c3ff', ((i * step))),
                         }
                     }
                 }),
-                reference: (s) => s.indication[property].color === applyColorOffset('#0088ff', (i * step)),
-                displayPreview: true
+                reference: (s) => s.indication[property].color === applyColorOffset('#00c3ff', (i * step)) && s.indication[property].type === 'static',
+                displayPreview: true,
+                animations: {
+                    [property]: true
+                }
             });
         }
 
@@ -124,11 +127,11 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                 //         ...s.indication,
                 //         [property]: {
                 //             type: 'static',
-                //             color: applyColorOffset('#0088ff', (i * step)),
+                //             color: applyColorOffset('#00c3ff', (i * step)),
                 //         }
                 //     }
                 // }),
-                // reference: (s) => s.indication[property].color === applyColorOffset('#0088ff', (i * step)),
+                // reference: (s) => s.indication[property].color === applyColorOffset('#00c3ff', (i * step)),
                 displayPreview: true
             });
         }
@@ -178,7 +181,7 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
     const controllerOutputsRef = useRef<MainControllerOutputs>({
         menu: {
             navigation: {
-                _settingsBeforeUpdate: null,
+                _settingsBeforePreview: null,
                 openedIdxArray: [],
                 currentIdx: 0,
                 timerBeforeClose: (30 * 60),
@@ -373,37 +376,26 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
 
                             values: [
                                 ...generateColorItems('buttons', 40, 0.025),
+                                {
+                                    shortPropName: "BTN",
+                                    label: "ANIMATE 01",
+                                    onSelect: (s) => ({
+                                        ...s,
+                                        indication: {
+                                            ...s.indication,
+                                            buttons: {
+                                                type: 'animated',
+                                                color: '#2bff00'
+                                            }
+                                        }
+                                    }),
+                                    reference: (s) => s.indication.buttons.type === 'animated',
+                                    displayPreview: true,
+                                    animations: {
+                                        buttons: true
+                                    }
+                                }
                             ],
-                            // values: [
-                            //     {
-                            //         label: "01",
-                            //         onSelect: (s) => ({
-                            //             ...s,
-                            //             indication: {
-                            //                 ...s.indication,
-                            //                 buttons: {
-                            //                     type: 'static',
-                            //                     color: '#0088ff',
-                            //                 }
-                            //             }
-                            //         }),
-                            //         reference: (s) => s.indication.buttons.color === '#0088ff',
-                            //     },
-                            //     {
-                            //         label: "02",
-                            //         onSelect: (s) => ({
-                            //             ...s,
-                            //             indication: {
-                            //                 ...s.indication,
-                            //                 buttons: {
-                            //                     type: 'static',
-                            //                     color: '#00eeff',
-                            //                 }
-                            //             }
-                            //         }),
-                            //         reference: (s) => s.indication.buttons.color === '#00eeff',
-                            //     },
-                            // ],
                         },
                         {
                             type: "property",
@@ -411,37 +403,26 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
 
                             values: [
                                 ...generateColorItems('display', 40, 0.025),
+                                {
+                                    shortPropName: "DISP",
+                                    label: "ANIMATE 01",
+                                    onSelect: (s) => ({
+                                        ...s,
+                                        indication: {
+                                            ...s.indication,
+                                            display: {
+                                                type: 'animated',
+                                                color: '#2bff00'
+                                            }
+                                        }
+                                    }),
+                                    reference: (s) => s.indication.display.type === 'animated',
+                                    displayPreview: true,
+                                    animations: {
+                                        display: true
+                                    }
+                                }
                             ],
-                            // values: [
-                            //     {
-                            //         label: "01",
-                            //         onSelect: (s) => ({
-                            //             ...s,
-                            //             indication: {
-                            //                 ...s.indication,
-                            //                 display: {
-                            //                     type: 'static',
-                            //                     color: '#0088ff',
-                            //                 }
-                            //             }
-                            //         }),
-                            //         reference: (s) => s.indication.display.color === '#0088ff',
-                            //     },
-                            //     {
-                            //         label: "02",
-                            //         onSelect: (s) => ({
-                            //             ...s,
-                            //             indication: {
-                            //                 ...s.indication,
-                            //                 display: {
-                            //                     type: 'static',
-                            //                     color: applyColorOffset('#00eeff', 0.5),
-                            //                 }
-                            //             }
-                            //         }),
-                            //         reference: (s) => s.indication.display.color === applyColorOffset('#00eeff', 0.5),
-                            //     },
-                            // ],
                         },
                     ]
                 },
@@ -626,13 +607,13 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                             type: "property",
                             label: "EQ MODE SELECT",
                             values: [
-                                { label: "FLAT", shortPropName: "EQ", onSelect: s => applyPreset(s, 'FLAT'), reference: s => s.equalizer.preset === 'FLAT' },
-                                { label: "NATURAL", shortPropName: "EQ", onSelect: s => applyPreset(s, 'NATURAL'), reference: s => s.equalizer.preset === 'NATURAL' },
-                                { label: "DYNAMIC", shortPropName: "EQ", onSelect: s => applyPreset(s, 'DYNAMIC'), reference: s => s.equalizer.preset === 'DYNAMIC' },
+                                { displayPreview: true, label: "FLAT", shortPropName: "EQ", onSelect: s => applyPreset(s, 'FLAT'), reference: s => s.equalizer.preset === 'FLAT' },
+                                { displayPreview: true, label: "NATURAL", shortPropName: "EQ", onSelect: s => applyPreset(s, 'NATURAL'), reference: s => s.equalizer.preset === 'NATURAL' },
+                                { displayPreview: true, label: "DYNAMIC", shortPropName: "EQ", onSelect: s => applyPreset(s, 'DYNAMIC'), reference: s => s.equalizer.preset === 'DYNAMIC' },
                                 // { label: "POP", shortPropName: "EQ", onSelect: s => applyPreset(s, 'POP'), reference: s => s.equalizer.preset === 'POP' },
-                                { label: "VOCAL BOOST", shortPropName: "EQ", onSelect: s => applyPreset(s, 'VOCAL BOOST'), reference: s => s.equalizer.preset === 'VOCAL BOOST' },
-                                { label: "BASS BOOST", shortPropName: "EQ", onSelect: s => applyPreset(s, 'BASS BOOST'), reference: s => s.equalizer.preset === 'BASS BOOST' },
-                                { label: "CUSTOM", shortPropName: "EQ", onSelect: (s) => ({ ...s, equalizer: { ...s.equalizer, preset: 'CUSTOM' } }), reference: s => s.equalizer.preset === 'CUSTOM' },
+                                { displayPreview: true, label: "BASS BOOST", shortPropName: "EQ", onSelect: s => applyPreset(s, 'BASS BOOST'), reference: s => s.equalizer.preset === 'BASS BOOST' },
+                                { displayPreview: true, label: "VOCAL BOOST", shortPropName: "EQ", onSelect: s => applyPreset(s, 'VOCAL BOOST'), reference: s => s.equalizer.preset === 'VOCAL BOOST' },
+                                { displayPreview: true, label: "USER", shortPropName: "EQ", onSelect: (s) => ({ ...s, equalizer: { ...s.equalizer, preset: 'CUSTOM' } }), reference: s => s.equalizer.preset === 'CUSTOM' },
                             ],
                         },
                         {
@@ -678,7 +659,10 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                                                         low: { ...s.equalizer.bands.low, gain: val },
                                                     },
                                                 },
-                                            }), (s, val) => s.equalizer.bands.low.gain === val),
+                                            }), (s, val) => s.equalizer.bands.low.gain === val).map(v => ({
+                                                ...v,
+                                                label: (Number(v.label) > 0) ? `+${v.label.padStart(2, "0")}` : (Number(v.label) < 0) ? `-${v.label.replace('-', '').padStart(2, "0")}` : v.label.padStart(2, "0"),
+                                            })),
                                         },
                                         {
                                             type: "property",
@@ -737,7 +721,10 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                                                         mid: { ...s.equalizer.bands.mid, gain: val },
                                                     },
                                                 },
-                                            }), (s, val) => s.equalizer.bands.mid.gain === val),
+                                            }), (s, val) => s.equalizer.bands.mid.gain === val).map(v => ({
+                                                ...v,
+                                                label: (Number(v.label) > 0) ? `+${v.label.padStart(2, "0")}` : (Number(v.label) < 0) ? `-${v.label.replace('-', '').padStart(2, "0")}` : v.label.padStart(2, "0"),
+                                            })),
                                         },
                                         {
                                             type: "property",
@@ -796,7 +783,10 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                                                         high: { ...s.equalizer.bands.high, gain: val },
                                                     },
                                                 },
-                                            }), (s, val) => s.equalizer.bands.high.gain === val),
+                                            }), (s, val) => s.equalizer.bands.high.gain === val).map(v => ({
+                                                ...v,
+                                                label: (Number(v.label) > 0) ? `+${v.label.padStart(2, "0")}` : (Number(v.label) < 0) ? `-${v.label.replace('-', '').padStart(2, "0")}` : v.label.padStart(2, "0"),
+                                            })),
                                         },
                                         {
                                             type: "property",
@@ -826,43 +816,6 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                     label: "AUDIO",
 
                     innerOptions: [
-                        {
-                            type: "property",
-                            label: "VOLUME NORMALIZATION",
-
-                            values: [
-                                {
-                                    label: "ON",
-                                    shortPropName: "VOL NORM",
-                                    onSelect: (s) => ({
-                                        ...s,
-                                        audio: {
-                                            ...s.audio,
-                                            autoNormalization: {
-                                                ...s.audio.autoNormalization,
-                                                on: true
-                                            }
-                                        }
-                                    }),
-                                    reference: (s) => s.audio.autoNormalization.on === true,
-                                },
-                                {
-                                    label: "OFF",
-                                    shortPropName: "VOL NORM",
-                                    onSelect: (s) => ({
-                                        ...s,
-                                        audio: {
-                                            ...s.audio,
-                                            autoNormalization: {
-                                                ...s.audio.autoNormalization,
-                                                on: false
-                                            }
-                                        }
-                                    }),
-                                    reference: (s) => s.audio.autoNormalization.on === false,
-                                }
-                            ]
-                        },
                         {
                             type: "block",
                             label: "VOLUME CONTROL",
@@ -1030,39 +983,43 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                                 }
                             ]
                         },
-                        // {
-                        //     type: "property",
-                        //     label: "VOLUME CONTROL",
+                        {
+                            type: "property",
+                            label: "VOLUME NORMALIZATION",
 
-                        //     values: [
-                        //         {
-                        //             label: "NONE",
-                        //             onSelect: (s) => ({
-                        //                 ...s,
-                        //                 audio: {
-                        //                     ...s.audio,
-                        //                     volumeControl: "NONE",
-                        //                 }
-                        //             }),
-                        //             reference: (s) => s.audio.volumeControl === 'NONE',
-
-                        //             shortPropName: "VOL CONTROL",
-                        //         },
-                        //         {
-                        //             label: "AUTO",
-                        //             onSelect: (s) => ({
-                        //                 ...s,
-                        //                 audio: {
-                        //                     ...s.audio,
-                        //                     volumeControl: "AUTO",
-                        //                 }
-                        //             }),
-                        //             reference: (s) => s.audio.volumeControl === 'AUTO',
-
-                        //             shortPropName: "VOL CONTROL",
-                        //         }
-                        //     ]
-                        // },
+                            values: [
+                                {
+                                    label: "ON",
+                                    shortPropName: "VOL NORM",
+                                    onSelect: (s) => ({
+                                        ...s,
+                                        audio: {
+                                            ...s.audio,
+                                            autoNormalization: {
+                                                ...s.audio.autoNormalization,
+                                                on: true
+                                            }
+                                        }
+                                    }),
+                                    reference: (s) => s.audio.autoNormalization.on === true,
+                                },
+                                {
+                                    label: "OFF",
+                                    shortPropName: "VOL NORM",
+                                    onSelect: (s) => ({
+                                        ...s,
+                                        audio: {
+                                            ...s.audio,
+                                            autoNormalization: {
+                                                ...s.audio.autoNormalization,
+                                                on: false
+                                            }
+                                        }
+                                    }),
+                                    reference: (s) => s.audio.autoNormalization.on === false,
+                                }
+                            ]
+                        },
                         {
                             type: "block",
                             label: "LOUDNESS",
@@ -1106,6 +1063,40 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                                 },
                             ],
                         },
+                        // {
+                        //     type: "property",
+                        //     label: "MAIN FREQUENCY",
+
+                        //     values: [
+                        //         {
+                        //             shortPropName: "MAIN",
+                        //             label: "440 Hz",
+
+                        //             onSelect: (s) => ({
+                        //                 ...s,
+                        //                 audio: {
+                        //                     ...s.audio,
+                        //                     mainFrequency: 440,
+                        //                 }
+                        //             }),
+                        //             reference: (s) => s.audio.mainFrequency === 440,
+                        //         },
+                        //         {
+                        //             shortPropName: "MAIN",
+                        //             label: "432 Hz",
+
+                        //             onSelect: (s) => ({
+                        //                 ...s,
+                        //                 audio: {
+                        //                     ...s.audio,
+                        //                     mainFrequency: 432,
+                        //                 }
+                        //             }),
+
+                        //             reference: (s) => s.audio.mainFrequency === 432,
+                        //         }
+                        //     ]
+                        // },
                         {
                             type: "block",
                             label: "BEEP",
@@ -1548,11 +1539,11 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
             indication: {
                 display: {
                     type: "static",
-                    color: "#0088ff",
+                    color: "#00c3ff",
                 },
                 buttons: {
                     type: "static",
-                    color: "#0088ff",
+                    color: "#00c3ff",
                 }
             },
             display: {
@@ -1563,6 +1554,7 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                 },
             },
             audio: {
+                mainFrequency: 440,
                 loudness: { on: false, mode: 'AUTO', maxLow: 9, maxHigh: 4 },
                 autoNormalization: {
                     on: false
@@ -1722,10 +1714,10 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                     {
                         type: "button",
                         label: "OPEN DESKTOP APP",
-                        onClick: async () => {
-                            await tryOpenElectronMediaCenterApp();
+                        onClick: () => {
+                            tryOpenElectronMediaCenterApp();
 
-                            return false;
+                            return true;
                         },
                         scrollText: true,
                     }
@@ -1736,8 +1728,14 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
         currentSource: 1,
         mainVolume: 10,
         indicationColor: {
-            display: "#0088ff",
-            buttons: "#0088ff"
+            display: {
+                type: 'static',
+                color: "#00c3ff",
+            },
+            buttons: {
+                type: 'static',
+                color: "#00c3ff",
+            },
         },
         sourceData: {
             // 0: {}, // uncomment after adding to interface MainControllerOutputs

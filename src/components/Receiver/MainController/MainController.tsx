@@ -199,6 +199,11 @@ export interface MenuOptionValue {
     displayPreview?: boolean;
 
     shortPropName?: string;
+
+    animations?: {
+        buttons?: boolean;
+        display?: boolean;
+    }
 }
 
 export type MenuOption = ({
@@ -263,6 +268,7 @@ export interface MainControllerSettings {
         };
     };
     audio: {
+        mainFrequency: 440 | 432;
         loudness: {
             on: boolean;
             mode: 'ON' | 'AUTO';
@@ -334,7 +340,13 @@ export interface MainControllerSettings {
 
 export interface MainControllerMenuDefinition<T = "main" | "encoderMenu"> {
     navigation: {
-        _settingsBeforeUpdate?: MainControllerSettings | null;
+        _settingsBeforePreview?: MainControllerSettings | null;
+
+        _brightnessAnimations?: {
+            buttons?: boolean;
+            display?: boolean;
+        } | null;
+
         menuOpened?: boolean;
         menuType?: T;
         currentIdx: number;
@@ -360,7 +372,12 @@ export interface MainControllerMenuDefinition<T = "main" | "encoderMenu"> {
 
 export interface MainControllerExtendedMenu<T extends string, AdditionalOptionProps extends Record<string, any> = {}> {
     navigation: {
-        _settingsBeforeUpdate?: MainControllerSettings | null;
+        _settingsBeforePreview?: MainControllerSettings | null;
+
+        _brightnessAnimations?: {
+            buttons?: boolean;
+            display?: boolean;
+        } | null;
         menuOpened?: boolean;
         menuType?: T;
         currentIdx: number;
@@ -504,6 +521,7 @@ export interface MainControllerOutputs {
             isConnecting?: boolean;
             isConnected?: boolean;
             connectionInfo?: {
+                idx: number; // Current input position
                 ip?: string;
                 port?: string;
             },
@@ -547,7 +565,10 @@ export interface MainControllerOutputs {
                     slotDataIdx?: number;
                 }
 
-                error?: string;
+                error?: {
+                    message: string;
+                    displayTime: number;
+                };
 
             };
         }
@@ -576,8 +597,16 @@ export interface MainControllerOutputs {
 
     // currentSource?: MainControllerSource;
     indicationColor?: {
-        display?: string;
-        buttons?: string;
+        display?: {
+            type: "static" | "animated";
+            color: string;
+            animTimer?: number;
+        };
+        buttons?: {
+            type: "static" | "animated";
+            color: string;
+            animTimer?: number;
+        };
         // mainData?: string;
         // secondaryData?: string;
     };
@@ -686,12 +715,17 @@ export default function MainController({
         loudnessLowShelf.connect(loudnessHighShelf);
         loudnessHighShelf.connect(masterGain);
 
-        
+
         // alert('Connect')
         // beeper.connectAudioContext(audioContext, masterGain);
 
         masterGain.connect(audioContext.destination);
     };
+
+    const processFrequencyOffset = () => {
+        // if (outputsRef.current.settings.audio.mainFrequency)
+        if (audioPlayerRef.current) audioPlayerRef.current.playbackRate = (outputsRef.current.settings.audio.mainFrequency / 440);
+    }
 
     const applyEQSettings = () => {
         if (!lowFilter || !midFilter || !highFilter) return;
@@ -892,7 +926,7 @@ export default function MainController({
                         d2.autoAdvertCapture.timer = 0;
                         d2.autoAdvertCapture.startedAt = Date.now();
                         d2.autoAdvertCapture.streamTitle = data.raw;
-                        console.log('🟡 ADVERT started:', data.raw);
+                        console.log('> ADVERT started:', data.raw);
                     } else if (!isAdvert && d2.autoAdvertCapture?.mode === 'CAPTURING') {
                         const endedAt = Date.now();
 
@@ -908,7 +942,7 @@ export default function MainController({
                                 }
 
                                 const WAIT_MS = 15000;
-                                console.log(`⏳ Waiting ${WAIT_MS / 1000}s so the announcement tail is fully captured...`);
+                                console.log(`> Waiting ${WAIT_MS / 1000}s so the announcement tail is fully captured...`);
                                 await new Promise(r => setTimeout(r, WAIT_MS));
 
                                 const lookback = Math.min(detectedDuration + 55, 290);
@@ -916,7 +950,7 @@ export default function MainController({
                                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
                                 const filename = `Advert_${timestamp}.wav`;
 
-                                console.log(`🟢 Saving last ${lookback.toFixed(1)}s → ${filename}`);
+                                console.log(`> Saving last ${lookback.toFixed(1)}s → ${filename}`);
 
                                 await ringBuffer.saveWav(lookback, filename, {
                                     stereo: true,
@@ -924,7 +958,7 @@ export default function MainController({
                                     trim: {
                                         startThresholdDb: -20,
                                         endSilenceThresholdDb: -40,
-                                        minSilenceMs: 300,
+                                        minSilenceMs: 150,
                                         endMinSilenceMs: 500,
                                         maxEndSilenceMs: 3000,
                                         startSearchStartSec: 10,
@@ -1128,6 +1162,45 @@ export default function MainController({
                 reject(error);
             }
         });
+
+
+        const processMyLiftNumInput = (key: number, data: MainControllerOutputs['sourceData']['6'], type?: "connectionInfo") => {
+            if (type === 'connectionInfo') {
+                if (!outputsRef.current.sourceData) outputsRef.current.sourceData = {
+                    1: {},
+                    2: {},
+                    6: {},
+                };
+            }
+
+            if (!data.connectionInfo) data.connectionInfo = { idx: 0 };
+
+            let number = String(key);
+
+
+
+            if (!data.connectionInfo.ip || data.connectionInfo.ip?.indexOf(" ") > -1) {
+                if (
+                    !data.connectionInfo.ip
+                ) data.connectionInfo.ip = "   .   .   . ";
+
+
+                data.connectionInfo.idx = data.connectionInfo.ip.indexOf(" ");
+                data.connectionInfo.ip = (
+                    data.connectionInfo.ip.replace(" ", number)
+                );
+                // data.connectionInfo.ip[data.connectionInfo.idx] = number;
+            } else {
+                if (
+                    !data.connectionInfo.port
+                ) data.connectionInfo.port = "";
+
+
+                if (data.connectionInfo.port.length < 4) {
+                    data.connectionInfo.port += number;
+                }
+            }
+        }
 
         // const getNavigation = () => new Promise(async (resolve, reject) => {
         //     try {
@@ -2087,8 +2160,8 @@ export default function MainController({
                                 // if (currentValueIdx >= 0) {
                                 // }
                             } else if (currentElement.type === 'button') {
-                                currentElement.onClick();
                                 navigation.menuOpened = false;
+                                return currentElement.onClick();
                             }
                         }
                     }
@@ -2235,7 +2308,8 @@ export default function MainController({
                             const autoON = outputsRef.current.autoOnOff.ON;
 
                             if (autoON.isInterrupted) {
-
+                                autoON.buttonIndication = false;
+                                 outputsRef.current.autoOnOffMenu.navigation._brightnessAnimations = null;
                             } else {
                                 if (autoOnOffTimer % 60 < 30) autoON.buttonIndication = true;
                                 else autoON.buttonIndication = false;
@@ -2428,8 +2502,8 @@ export default function MainController({
                             // if (currentValueIdx >= 0) {
                             // }
                         } else if (currentElement.type === 'button') {
-                            currentElement.onClick();
                             navigation.menuOpened = false;
+                            return currentElement.onClick();
                         }
                     }
                 }
@@ -2689,8 +2763,20 @@ export default function MainController({
                 if (outputsRef.current.menu.navigation.timerBeforeClose > 0) {
                     outputsRef.current.menu.navigation.timerBeforeClose--;
                 } else {
+                    const navigation = outputsRef.current.menu.navigation;
+
                     outputsRef.current.menu.navigation.menuOpened = false;
-                    beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on)
+                    beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+
+                    // Reset settings after previewing in options with displayPreview: true
+                    if (navigation._settingsBeforePreview) {
+                        outputsRef.current.settings = navigation._settingsBeforePreview;
+                        navigation._settingsBeforePreview = null;
+                    }
+
+                    if (navigation._brightnessAnimations) {
+                        navigation._brightnessAnimations = null;
+                    }
                 }
 
             } else if (outputsRef.current.autoOnOffMenu.navigation.menuOpened) {
@@ -2699,7 +2785,8 @@ export default function MainController({
                     outputsRef.current.autoOnOffMenu.navigation.timerBeforeClose--;
                 } else {
                     outputsRef.current.autoOnOffMenu.navigation.menuOpened = false;
-                    beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on)
+                    beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+
                 }
 
             }
@@ -2828,6 +2915,8 @@ export default function MainController({
                         applyEQSettings();
                     }
 
+                    processFrequencyOffset();
+
                     updateTimer++;
 
                     if (audioPlayerRef.current) {
@@ -2917,6 +3006,7 @@ export default function MainController({
 
                             if (outputsRef.current.menu.navigation.menuOpened) {
 
+
                                 outputsRef.current.resetAnimationsTimer = {
                                     animTimer: true,
                                 };
@@ -2924,6 +3014,16 @@ export default function MainController({
                                 const openedIdxArray = outputsRef.current.menu.navigation.openedIdxArray;
                                 // alert(openedIdxArray.length);
                                 const navigation = outputsRef.current.menu.navigation;
+
+                                // Reset settings after previewing in options with displayPreview: true
+                                if (navigation._settingsBeforePreview) {
+                                    outputsRef.current.settings = navigation._settingsBeforePreview;
+                                    navigation._settingsBeforePreview = null;
+                                }
+
+                                if (navigation._brightnessAnimations) {
+                                    navigation._brightnessAnimations = null;
+                                }
 
                                 navigation.timerBeforeClose = (30 * 60);
 
@@ -3011,49 +3111,71 @@ export default function MainController({
                                     }
                                 } else if (currentSrc === 6) {
                                     const d = outputsRef.current.sourceData["6"];
-                                    if (d.ui?.elevatorCoursebotNavigation) {
-                                        const navigation = d.ui.elevatorCoursebotNavigation;
-                                        if (navigation.navigationTypeSelection) {
-                                            d.ui = {
-                                                selectedElevator: d.ui.selectedElevator,
-                                            }
-                                        } else if (navigation.floorSelection) {
-                                            d.ui.elevatorCoursebotNavigation = {
-                                                floorIdx: navigation.floorIdx,
-                                                navigationTypeSelection: {
-                                                    idx: 0,
-                                                    types: ["FLOOR SELECTION", "SLOT SELECTION"]
-                                                }
-                                            };
-                                        } else if (navigation.floorSlotView) {
-                                            d.ui.elevatorCoursebotNavigation = {
-                                                floorIdx: navigation.floorIdx,
-                                                navigationTypeSelection: {
-                                                    idx: 1,
-                                                    types: ["FLOOR SELECTION", "SLOT SELECTION"]
-                                                }
-                                            };
-                                        } else if (navigation.slotDataView) {
-                                            d.ui.elevatorCoursebotNavigation = {
-                                                floorIdx: navigation.floorIdx,
-                                                floorSlotIdx: navigation.floorSlotIdx,
-                                                floorSlotView: true,
-                                            };
-                                        }
-                                    } else if (d.ui?.elevatorActionSelection) {
+                                    if (!d.isConnected) {
+                                        if (d.connectionInfo?.port && d.connectionInfo?.port.length > 0) {
+                                            d.connectionInfo.port = d.connectionInfo.port.slice(0, d.connectionInfo.port.length - 1);
+                                        } else if (d.connectionInfo?.ip && d.connectionInfo?.ip.length > 0) {
+                                            // let prevIdx = d.connectionInfo.ip.search(/\d/g);
+                                            // if (d.connectionInfo.ip[prevIdx] === '.') {
+                                            //     prevIdx--;
+                                            // }
+                                            let newStr = d.connectionInfo.ip.split('');
 
-                                        if (d.ui.elevatorActionSelection.currentAction) {
-                                            d.ui.elevatorActionSelection.currentAction = undefined;
-                                        } else {
-                                            d.ui = {
-                                                selectedElevator: d.ui.selectedElevator,
-                                            }
-                                        }
+                                            let prevIdx = newStr.findLastIndex(s => /\d/g.test(s));
 
-                                    } else if (d.ui?.elevatorListSelection) {
-                                        d.ui = {
-                                            elevatorCategorySelection: true,
-                                        };
+                                            newStr[prevIdx - 0] = " ";
+                                            d.connectionInfo.ip = newStr.join('');
+                                        }
+                                    } else {
+                                        if (d.ui?.elevatorCoursebotNavigation) {
+                                            const navigation = d.ui.elevatorCoursebotNavigation;
+                                            if (navigation.navigationTypeSelection) {
+                                                d.ui = {
+                                                    selectedElevator: d.ui.selectedElevator,
+                                                }
+                                            } else if (navigation.floorSelection) {
+                                                d.ui.elevatorCoursebotNavigation = {
+                                                    floorIdx: navigation.floorIdx,
+                                                    navigationTypeSelection: {
+                                                        idx: 0,
+                                                        types: ["FLOOR SELECTION", "SLOT SELECTION"]
+                                                    }
+                                                };
+                                            } else if (navigation.floorSlotView) {
+                                                d.ui.elevatorCoursebotNavigation = {
+                                                    floorIdx: navigation.floorIdx,
+                                                    navigationTypeSelection: {
+                                                        idx: 1,
+                                                        types: ["FLOOR SELECTION", "SLOT SELECTION"]
+                                                    }
+                                                };
+                                            } else if (navigation.slotDataView) {
+                                                d.ui.elevatorCoursebotNavigation = {
+                                                    floorIdx: navigation.floorIdx,
+                                                    floorSlotIdx: navigation.floorSlotIdx,
+                                                    floorSlotView: true,
+                                                };
+                                            }
+                                        } else if (d.ui?.elevatorActionSelection) {
+
+                                            if (d.ui.elevatorActionSelection.currentAction) {
+                                                d.ui.elevatorActionSelection.currentAction = undefined;
+                                            } else {
+                                                d.ui = {
+                                                    selectedElevator: d.ui.selectedElevator,
+                                                }
+                                            }
+
+                                        } else if (d.ui?.elevatorListSelection) {
+                                            d.ui.elevatorCategorySelection = true;
+                                            d.ui.elevatorListSelection = undefined;
+                                            // d.ui = {
+                                            //     elevatorCategorySelection: true,
+                                            // };
+                                        } else if (d.ui?.elevatorCategorySelection && d.ui.selectedElevator) {
+                                            d.ui.elevatorCategorySelection = false;
+                                            d.ui.elevatorListSelection = undefined;
+                                        }
                                     }
                                 }
 
@@ -3110,6 +3232,15 @@ export default function MainController({
                                 // outputsRef.current.resetAnimationsTimer = {
                                 //     animTimer: true
                                 // };
+                            } else if (outputsRef.current.currentSource === 6) {
+                                const sourceData = outputsRef.current.sourceData[6];
+
+                                if (sourceData.ui && sourceData.ui.selectedElevator) {
+                                    sourceData.ui.elevatorCategorySelection = true;
+                                    sourceData.ui.elevatorListSelection = undefined;
+
+                                    resetDemo();
+                                }
                             }
                         }
                     }, 60, () => {
@@ -3136,9 +3267,10 @@ export default function MainController({
                         if (
                             outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened ||
                             outputsRef.current.sourceData[1].trackFolderSelection ||
-                            outputsRef.current.sourceData[1].timeMove?.on
+                            outputsRef.current.sourceData[1].timeMove?.on ||
+                            outputsRef.current.menu.navigation.menuOpened
                         ) {
-
+                            return beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
                         } else {
                             outputsRef.current.appeleyMediaCenter = {
                                 isOpened: true,
@@ -3172,6 +3304,8 @@ export default function MainController({
 
                                 const currentElement = getCurrentMenuElement(outputsRef.current, outputsRef.current.menu);
 
+                                // if (!navigation._settingsBeforePreview) navigation._settingsBeforePreview = outputsRef.current.settings;
+
                                 if (currentElement?.type === 'property' && currentElement.valueType === 'input') {
 
                                     const inputData = navigation._inputData;
@@ -3192,14 +3326,22 @@ export default function MainController({
 
                                 } else if (currentElement?.type === 'property' && typeof navigation.valueIdx === 'number') {
                                     if (navigation.valueIdx > 0) {
+
                                         navigation.valueIdx--;
+
+                                        if (currentElement.values[navigation.valueIdx]?.displayPreview) {
+                                            if (!navigation._settingsBeforePreview) navigation._settingsBeforePreview = outputsRef.current.settings;
+
+                                            const value = currentElement.values[navigation.valueIdx].onSelect(outputsRef.current.settings);
+                                            outputsRef.current.settings = value;
+                                        }
                                     }
                                 }
 
                                 // const currentElement = getCurrentMenuElement(outputsRef.current.menu);
                                 // if (currentElement?.type === 'property') {
-                                //     const value = currentElement.values[navigation.valueIdx].onSelect(outputsRef.current.settings);
-                                //     outputsRef.current.settings = value;
+                                // const value = currentElement.values[navigation.valueIdx].onSelect(outputsRef.current.settings);
+                                // outputsRef.current.settings = value;
                                 // }
                             } else {
                                 if (navigation.currentIdx > 0) {
@@ -3325,7 +3467,7 @@ export default function MainController({
                                 );
                             }
                         } else if (outputsRef.current.appeleyMediaCenterMenu.navigation.menuOpened) {
-                            processExtendedMenuNavigation(outputsRef.current.appeleyMediaCenterMenu, 'click');
+                            return processExtendedMenuNavigation(outputsRef.current.appeleyMediaCenterMenu, 'click');
                         } else if (outputsRef.current.menu.navigation.menuOpened) {
                             // MENU NAVIGATION
 
@@ -3352,6 +3494,8 @@ export default function MainController({
 
 
                                     if (navigation.isValueSelect) {
+
+
 
                                         if (currentElement.valueType === 'input') {
 
@@ -3384,6 +3528,9 @@ export default function MainController({
 
                                         } else if (typeof navigation.valueIdx === 'number') {
                                             // alert(navigation.valueIdx);
+                                            if (navigation._settingsBeforePreview) navigation._settingsBeforePreview = null;
+                                            if (navigation._brightnessAnimations) navigation._brightnessAnimations = null;
+
                                             const value = currentElement.values[navigation.valueIdx].onSelect(outputsRef.current.settings);
                                             outputsRef.current.settings = value;
 
@@ -3407,6 +3554,18 @@ export default function MainController({
 
                                             // alert(currentValueIdx);
 
+                                            if (currentElement.values[currentValueIdx]?.displayPreview) {
+                                                if (!navigation._settingsBeforePreview) navigation._settingsBeforePreview = outputsRef.current.settings;
+
+                                                if (currentElement.values[currentValueIdx].animations) {
+                                                    navigation._brightnessAnimations = currentElement.values[currentValueIdx].animations;
+                                                }
+
+                                            } else {
+                                                navigation._settingsBeforePreview = null;
+                                                navigation._brightnessAnimations = null;
+                                            }
+
                                             navigation.isValueSelect = true;
                                             navigation.valueIdx = (currentValueIdx < 0) ? 0 : currentValueIdx;
                                         }
@@ -3414,8 +3573,8 @@ export default function MainController({
                                     // if (currentValueIdx >= 0) {
                                     // }
                                 } else if (currentElement.type === 'button') {
-                                    currentElement.onClick();
                                     navigation.menuOpened = false;
+                                    return currentElement.onClick();
                                 }
                             }
                         } else {
@@ -3572,140 +3731,180 @@ export default function MainController({
                                 // MYLIFT CONTROLS
                                 const sourceData = outputsRef.current.sourceData["6"];
 
-                                if (sourceData.ui?.elevatorCoursebotNavigation) {
-                                    const navigation = sourceData.ui.elevatorCoursebotNavigation;
+                                if (sourceData.ui?.elevatorCategorySelection) {
 
-                                    if (navigation.navigationTypeSelection) {
-                                        const idx = navigation.navigationTypeSelection.idx;
-                                        if (navigation.navigationTypeSelection.types[idx] === 'FLOOR SELECTION') {
-                                            sourceData.ui.elevatorCoursebotNavigation = {
-                                                floorIdx: navigation.floorIdx,
-                                                floorSelection: true
-                                            }
-                                        } else {
-                                            sourceData.ui.elevatorCoursebotNavigation = {
-                                                floorIdx: navigation.floorIdx,
-                                                floorSlotView: true,
-                                                floorSlotIdx: -1, // -1 FOR AUTOSAVE, 0+ FOR OTHER FRAGMENTS
-                                            }
-                                        }
-                                    } else if (navigation.floorSelection) {
-                                        navigation.floorSelection = false;
-                                        navigation.navigationTypeSelection = {
-                                            idx: 0,
-                                            types: ["FLOOR SELECTION", "SLOT SELECTION"]
-                                        }
-                                    } else if (navigation.floorSlotView && typeof navigation.floorSlotIdx === 'number') {
-                                        if (navigation.floorSlotIdx === -1 && !sourceData.selectedElevatorData?.coursebot?.slots?.[navigation.floorSlotIdx]?.autosave) {
-                                            sourceData.ui.error = 'NO AUTOSAVE';
-                                            setTimeout(() => {
-                                                if (sourceData.ui) {
-                                                    sourceData.ui.error = undefined;
-                                                }
-                                            }, 1000);
+                                    sourceData.ui.elevatorCategorySelection = false;
+                                    sourceData.ui.elevatorListSelection = {
+                                        currentLift: sourceData.ui.selectedElevator?.liftNumber ?? 0,
+                                    };
 
-                                            return beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
-                                        } else {
-                                            navigation.floorSlotView = false;
-                                            navigation.slotDataView = true;
-                                            navigation.slotDataIdx = 0;
-                                        }
+                                    resetDemo();
+
+                                } else if (sourceData.ui?.elevatorListSelection) {
+
+                                    const selectionData = sourceData.ui.elevatorListSelection;
+
+                                    if (typeof selectionData.currentLift === 'number') {
+                                        sourceData.selectedElevatorData = undefined;
+                                        sourceData.ui = {
+                                            selectedElevator: {
+                                                liftId: sourceData.data.elevators[selectionData.currentLift].id,
+                                                liftNumber: selectionData.currentLift,
+                                            }
+                                        };
+                                        getCurrentMyLiftElevator(sourceData.data.elevators[selectionData.currentLift].id, sourceData.connectionInfo?.ip, sourceData.connectionInfo?.port).then((data) => {
+                                            sourceData.selectedElevatorData = data;
+                                            if (sourceData.ui?.selectedElevator) sourceData.ui.selectedElevator.floorNumber = 1;
+                                        });
                                     }
+                                } else {
 
-                                } else if (!sourceData.ui?.elevatorActionSelection) {
-                                    sourceData.ui = {
-                                        selectedElevator: sourceData.ui?.selectedElevator,
-                                        elevatorActionSelection: {
-                                            mainIdx: 0,
-                                            items: [
-                                                {
-                                                    value: "callElevator",
-                                                    text: "CALL TO FLOOR",
-                                                    onSelect: () => {
+                                    if (sourceData.ui?.elevatorCoursebotNavigation) {
+                                        const navigation = sourceData.ui.elevatorCoursebotNavigation;
 
-                                                    }
-                                                },
-                                                {
-                                                    value: "doorOpen",
-                                                    text: "OPEN DOORS",
-                                                    onSelect: () => {
+                                        if (navigation.navigationTypeSelection) {
+                                            const idx = navigation.navigationTypeSelection.idx;
+                                            if (navigation.navigationTypeSelection.types[idx] === 'FLOOR SELECTION') {
+                                                sourceData.ui.elevatorCoursebotNavigation = {
+                                                    floorIdx: navigation.floorIdx,
+                                                    floorSelection: true
+                                                }
+                                            } else {
+                                                sourceData.ui.elevatorCoursebotNavigation = {
+                                                    floorIdx: navigation.floorIdx,
+                                                    floorSlotView: true,
+                                                    floorSlotIdx: -1, // -1 FOR AUTOSAVE, 0+ FOR OTHER FRAGMENTS
+                                                }
+                                            }
+                                        } else if (navigation.floorSelection) {
+                                            navigation.floorSelection = false;
+                                            navigation.navigationTypeSelection = {
+                                                idx: 0,
+                                                types: ["FLOOR SELECTION", "SLOT SELECTION"]
+                                            }
+                                        } else if (navigation.floorSlotView && typeof navigation.floorSlotIdx === 'number') {
+                                            if (navigation.floorSlotIdx === -1 && !sourceData.selectedElevatorData?.coursebot?.slots?.[navigation.floorIdx]?.autosave) {
+                                                sourceData.ui.error = {
+                                                    message: 'NO AUTOSAVE',
+                                                    displayTime: (1 * 60),
+                                                };
+                                                // setTimeout(() => {
+                                                //     if (sourceData.ui) {
+                                                //         sourceData.ui.error = undefined;
+                                                //     }
+                                                // }, 1000);
 
-                                                    }
-                                                },
-                                                {
-                                                    value: "doorClose",
-                                                    text: "CLOSE DOORS",
-                                                    onSelect: () => {
+                                                return beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+                                            } else {
+                                                if (sourceData.selectedElevatorData?.coursebot?.slots?.[navigation.floorIdx]?.fragments?.[navigation.floorSlotIdx]?.data?.empty) {
+                                                    sourceData.ui.error = {
+                                                        message: 'NO DATA',
+                                                        displayTime: (1 * 60),
+                                                    };
+                                                    return beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+                                                } else {
+                                                    navigation.floorSlotView = false;
+                                                    navigation.slotDataView = true;
+                                                    navigation.slotDataIdx = 0;
+                                                }
+                                            }
+                                        }
 
-                                                    }
-                                                },
-                                                {
-                                                    value: "openCoursebot",
-                                                    text: "OPEN COURSEBOT",
-                                                    onSelect: () => {
-                                                        if (sourceData.ui?.elevatorActionSelection) {
-                                                            sourceData.ui.elevatorActionSelection = undefined;
-                                                            sourceData.ui.elevatorCoursebotNavigation = {
-                                                                navigationTypeSelection: {
-                                                                    idx: 0,
-                                                                    types: ['FLOOR SELECTION', 'SLOT SELECTION'],
-                                                                },
-                                                                floorIdx: 1,
-                                                            };
+                                    } else if (!sourceData.ui?.elevatorActionSelection) {
+                                        sourceData.ui = {
+                                            selectedElevator: sourceData.ui?.selectedElevator,
+                                            elevatorActionSelection: {
+                                                mainIdx: 0,
+                                                items: [
+                                                    {
+                                                        value: "callElevator",
+                                                        text: "CALL TO FLOOR",
+                                                        onSelect: () => {
+
+                                                        }
+                                                    },
+                                                    {
+                                                        value: "doorOpen",
+                                                        text: "OPEN DOORS",
+                                                        onSelect: () => {
+
+                                                        }
+                                                    },
+                                                    {
+                                                        value: "doorClose",
+                                                        text: "CLOSE DOORS",
+                                                        onSelect: () => {
+
+                                                        }
+                                                    },
+                                                    {
+                                                        value: "openCoursebot",
+                                                        text: "OPEN COURSEBOT",
+                                                        onSelect: () => {
+                                                            if (sourceData.ui?.elevatorActionSelection) {
+                                                                sourceData.ui.elevatorActionSelection = undefined;
+                                                                sourceData.ui.elevatorCoursebotNavigation = {
+                                                                    navigationTypeSelection: {
+                                                                        idx: 0,
+                                                                        types: ['FLOOR SELECTION', 'SLOT SELECTION'],
+                                                                    },
+                                                                    floorIdx: 1,
+                                                                };
+                                                            }
                                                         }
                                                     }
-                                                }
-                                            ],
+                                                ],
 
-                                            selection: {
-                                                "callElevator": {
-                                                    displayText: "CALL TO {floor}F",
-                                                    options: {
-                                                        floor: {
-                                                            value: {
-                                                                current: 1,
-                                                                min: Number(sourceData.selectedElevatorData?.floors?.[0]?.displaySymbol || 1),
-                                                                max: Number(sourceData.selectedElevatorData?.floors?.[
-                                                                    (sourceData.selectedElevatorData?.floors?.length) - 1
-                                                                ]?.displaySymbol || 1)
-                                                            },
-                                                            control: {
-                                                                encoder: {
-                                                                    left: (val: MyLiftElevatorActionOptionValue<number>) => {
-                                                                        if ((val.current - 1) < (val.min || 1)) return (val.min || 1);
-                                                                        return val.current - 1;
-                                                                    },
-                                                                    right: (val: MyLiftElevatorActionOptionValue<number>) => {
-                                                                        if ((val.current + 1) > (val.max || 1)) return (val.max || 1);
-                                                                        return val.current + 1;
+                                                selection: {
+                                                    "callElevator": {
+                                                        displayText: "CALL TO {floor}F",
+                                                        options: {
+                                                            floor: {
+                                                                value: {
+                                                                    current: 1,
+                                                                    min: Number(sourceData.selectedElevatorData?.floors?.[0]?.displaySymbol || 1),
+                                                                    max: Number(sourceData.selectedElevatorData?.floors?.[
+                                                                        (sourceData.selectedElevatorData?.floors?.length) - 1
+                                                                    ]?.displaySymbol || 1)
+                                                                },
+                                                                control: {
+                                                                    encoder: {
+                                                                        left: (val: MyLiftElevatorActionOptionValue<number>) => {
+                                                                            if ((val.current - 1) < (val.min || 1)) return (val.min || 1);
+                                                                            return val.current - 1;
+                                                                        },
+                                                                        right: (val: MyLiftElevatorActionOptionValue<number>) => {
+                                                                            if ((val.current + 1) > (val.max || 1)) return (val.max || 1);
+                                                                            return val.current + 1;
+                                                                        }
                                                                     }
                                                                 }
                                                             }
                                                         }
-                                                    }
 
+                                                    }
                                                 }
                                             }
-                                        }
-                                    };
-                                } else {
-                                    if (sourceData.ui.elevatorActionSelection.currentAction) {
-                                        const selected = sourceData.ui.elevatorActionSelection.selection[sourceData.ui.elevatorActionSelection.currentAction];
-                                        Object.entries(selected.options).forEach(([key, value]) => {
-                                            if (value.control.encoder?.button) {
-                                                selected.options[key].value.current = value.control.encoder.button(value.value);
-                                            }
-                                        });
+                                        };
                                     } else {
-                                        const mainIdx = sourceData.ui.elevatorActionSelection.mainIdx;
-                                        if (sourceData.ui.elevatorActionSelection.selection[
-                                            sourceData.ui.elevatorActionSelection.items[mainIdx].value
-                                        ]) {
-                                            sourceData.ui.elevatorActionSelection.currentAction = (
-                                                sourceData.ui.elevatorActionSelection.items[mainIdx].value
-                                            );
+                                        if (sourceData.ui.elevatorActionSelection.currentAction) {
+                                            const selected = sourceData.ui.elevatorActionSelection.selection[sourceData.ui.elevatorActionSelection.currentAction];
+                                            Object.entries(selected.options).forEach(([key, value]) => {
+                                                if (value.control.encoder?.button) {
+                                                    selected.options[key].value.current = value.control.encoder.button(value.value);
+                                                }
+                                            });
                                         } else {
-                                            sourceData.ui.elevatorActionSelection.items[mainIdx].onSelect?.();
+                                            const mainIdx = sourceData.ui.elevatorActionSelection.mainIdx;
+                                            if (sourceData.ui.elevatorActionSelection.selection[
+                                                sourceData.ui.elevatorActionSelection.items[mainIdx].value
+                                            ]) {
+                                                sourceData.ui.elevatorActionSelection.currentAction = (
+                                                    sourceData.ui.elevatorActionSelection.items[mainIdx].value
+                                                );
+                                            } else {
+                                                sourceData.ui.elevatorActionSelection.items[mainIdx].onSelect?.();
+                                            }
                                         }
                                     }
                                 }
@@ -3757,6 +3956,8 @@ export default function MainController({
 
                             if (navigation.isValueSelect) {
 
+                                // if (!navigation._settingsBeforePreview) navigation._settingsBeforePreview = outputsRef.current.settings;
+
                                 if (currentElement?.type === 'property' && currentElement.valueType === 'input') {
 
                                     const inputData = navigation._inputData;
@@ -3776,10 +3977,22 @@ export default function MainController({
                                     }
 
                                 } else if (currentElement?.type === 'property' && typeof navigation.valueIdx === 'number') {
+
                                     if (currentElement?.type === 'property') limit = (currentElement.values.length - 1);
 
                                     if (navigation.valueIdx < limit) {
+
                                         navigation.valueIdx++;
+
+                                        if (currentElement.values[navigation.valueIdx]?.displayPreview) {
+                                            if (!navigation._settingsBeforePreview) navigation._settingsBeforePreview = outputsRef.current.settings;
+
+                                            const value = currentElement.values[navigation.valueIdx].onSelect(outputsRef.current.settings);
+                                            outputsRef.current.settings = value;
+                                        }
+
+                                        // const value = currentElement.values[navigation.valueIdx].onSelect(outputsRef.current.settings);
+                                        // outputsRef.current.settings = value;
                                     }
                                 }
 
@@ -4370,7 +4583,19 @@ export default function MainController({
 
                                         outputsRef.current.sourceData["6"].ui = {
                                             elevatorCategorySelection: true,
-                                        }
+                                        };
+
+
+                                        // let module;
+
+                                        import(`http://${"192.168.100.2"}:${3777}/api/appeley-receiver/importCode?type=hook&fileUrl=elevator/useElevator.ts`).then((module) => {
+                                            alert(
+                                                JSON.stringify(module)
+                                            );
+                                        });
+
+
+
                                         // alert(JSON.stringify(data));
                                     }
                                 }).catch((r) => {
@@ -4378,393 +4603,92 @@ export default function MainController({
                                         outputsRef.current.sourceData["6"].isConnected = false;
                                         outputsRef.current.sourceData["6"].isConnecting = false;
                                         outputsRef.current.sourceData["6"].connectionError = r;
+                                        outputsRef.current.resetAnimationsTimer = { animTimer: true };
+                                        beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
                                     }
                                 });
                                 outputsRef.current.sourceData["6"].isConnecting = true;
                             } else {
 
-                                const sourceData = outputsRef.current.sourceData["6"];
+                                // const sourceData = outputsRef.current.sourceData["6"];
 
-                                if (sourceData.ui?.elevatorCategorySelection) {
+                                // if (sourceData.ui?.elevatorCategorySelection) {
 
-                                    if (inputsRef.current.buttons.encoder?.button) {
+                                //     if (inputsRef.current.buttons.encoder?.button) {
 
-                                        if (clickedEncoderBtn !== 'center') {
-                                            beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
-                                            sourceData.ui.elevatorCategorySelection = false;
-                                            sourceData.ui.elevatorListSelection = {
-                                                currentLift: 0,
-                                            };
-                                        }
+                                //         if (clickedEncoderBtn !== 'center') {
+                                //             beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+                                //             sourceData.ui.elevatorCategorySelection = false;
+                                //             sourceData.ui.elevatorListSelection = {
+                                //                 currentLift: 0,
+                                //             };
+                                //         }
 
-                                        clickedEncoderBtn = 'center';
-                                        resetDemo();
-                                    } else if (clickedEncoderBtn === 'center') clickedEncoderBtn = null;
+                                //         clickedEncoderBtn = 'center';
+                                //         resetDemo();
+                                //     } else if (clickedEncoderBtn === 'center') clickedEncoderBtn = null;
 
-                                } else if (sourceData.ui?.elevatorListSelection) {
+                                // } else if (sourceData.ui?.elevatorListSelection) {
 
-                                    const selectionData = sourceData.ui.elevatorListSelection;
+                                //     const selectionData = sourceData.ui.elevatorListSelection;
 
-                                    // if (inputsRef.current.buttons.back) {
-                                    //     sourceData.ui = {
-                                    //         elevatorCategorySelection: true,
-                                    //     };
-                                    //     resetDemo();
-                                    // }
-
-                                    // processEncoderInput('scroll-left', () => {
-                                    //     if (
-                                    //         typeof selectionData.currentLift === 'number' &&
-                                    //         (selectionData.currentLift > 0)
-
-                                    //     ) {
-                                    //         selectionData.currentLift -= 1;
-                                    //     }
-                                    // });
-
-                                    // processEncoderInput('scroll-right', () => {
-                                    //     if (
-                                    //         typeof selectionData.currentLift === 'number' &&
-                                    //         (selectionData.currentLift < (sourceData.data.elevators.length - 1))
-
-                                    //     ) {
-                                    //         selectionData.currentLift += 1;
-                                    //         // alert(selectionData.currentLift);
-                                    //     }
-                                    // });
-
-                                    // if (inputsRef.current.buttons.encoder?.left) {
-                                    //     if (clickedEncoderBtn !== 'left') {
-                                    //         if (
-                                    //             typeof selectionData.currentLift === 'number' &&
-                                    //             (selectionData.currentLift > 0)
-
-                                    //         ) {
-                                    //             selectionData.currentLift -= 1;
-                                    //         }
-                                    //         // alert(selectionData.currentLift);
-                                    //     }
-
-                                    //     clickedEncoderBtn = 'left';
-                                    //     resetDemo();
-                                    // } else if (clickedEncoderBtn === 'left') clickedEncoderBtn = null;
-
-                                    // if (inputsRef.current.buttons.encoder?.right) {
-                                    //     if (clickedEncoderBtn !== 'right') {
-                                    //         if (
-                                    //             typeof selectionData.currentLift === 'number' &&
-                                    //             (selectionData.currentLift < (sourceData.data.elevators.length - 1))
-
-                                    //         ) {
-                                    //             selectionData.currentLift += 1;
-                                    //             // alert(selectionData.currentLift);
-                                    //         }
-                                    //     }
-
-                                    //     clickedEncoderBtn = 'right';
-                                    //     resetDemo();
-                                    // } else if (clickedEncoderBtn === 'right') clickedEncoderBtn = null;
-
-                                    if (inputsRef.current.buttons.encoder?.button && typeof selectionData.currentLift === 'number') {
-                                        if (clickedEncoderBtn !== 'center') {
-                                            beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
-                                            sourceData.ui = {
-                                                selectedElevator: {
-                                                    liftId: sourceData.data.elevators[selectionData.currentLift].id,
-                                                    liftNumber: selectionData.currentLift,
-                                                }
-                                            };
-                                            getCurrentMyLiftElevator(sourceData.data.elevators[selectionData.currentLift].id, sourceData.connectionInfo?.ip, sourceData.connectionInfo?.port).then((data) => {
-                                                sourceData.selectedElevatorData = data;
-                                                if (sourceData.ui?.selectedElevator) sourceData.ui.selectedElevator.floorNumber = 1;
-                                            });
-                                        }
-                                        clickedEncoderBtn = 'center';
-                                    } else if (clickedEncoderBtn === 'center') clickedEncoderBtn = null;
-                                } else if (sourceData.ui?.selectedElevator) {
-
-                                    if (sourceData.selectedElevatorData) {
-                                        // processEncoderInput('click', () => {
-                                        //     if (sourceData.ui?.elevatorCoursebotNavigation) {
-                                        //         const navigation = sourceData.ui.elevatorCoursebotNavigation;
-
-                                        //         if (navigation.navigationTypeSelection) {
-                                        //             const idx = navigation.navigationTypeSelection.idx;
-                                        //             if (navigation.navigationTypeSelection.types[idx] === 'FLOOR SELECTION') {
-                                        //                 sourceData.ui.elevatorCoursebotNavigation = {
-                                        //                     floorIdx: navigation.floorIdx,
-                                        //                     floorSelection: true
-                                        //                 }
-                                        //             } else {
-                                        //                 sourceData.ui.elevatorCoursebotNavigation = {
-                                        //                     floorIdx: navigation.floorIdx,
-                                        //                     floorSlotView: true,
-                                        //                     floorSlotIdx: -1, // -1 FOR AUTOSAVE, 0+ FOR OTHER FRAGMENTS
-                                        //                 }
-                                        //             }
-                                        //         } else if (navigation.floorSelection) {
-                                        //             navigation.floorSelection = false;
-                                        //             navigation.navigationTypeSelection = {
-                                        //                 idx: 0,
-                                        //                 types: ["FLOOR SELECTION", "SLOT SELECTION"]
-                                        //             }
-                                        //         } else if (navigation.floorSlotView && typeof navigation.floorSlotIdx === 'number') {
-                                        //             if (navigation.floorSlotIdx === -1 && !sourceData.selectedElevatorData?.coursebot?.slots?.[navigation.floorSlotIdx]?.autosave) {
-                                        //                 sourceData.ui.error = 'NO AUTOSAVE';
-                                        //                 setTimeout(() => {
-                                        //                     if (sourceData.ui) {
-                                        //                         sourceData.ui.error = undefined;
-                                        //                     }
-                                        //                 }, 1000);
-
-                                        //                 return beeper.tripleBeep(outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
-                                        //             } else {
-                                        //                 navigation.floorSlotView = false;
-                                        //                 navigation.slotDataView = true;
-                                        //                 navigation.slotDataIdx = 0;
-                                        //             }
-                                        //         }
-
-                                        //     } else if (!sourceData.ui?.elevatorActionSelection) {
-                                        //         sourceData.ui = {
-                                        //             selectedElevator: sourceData.ui?.selectedElevator,
-                                        //             elevatorActionSelection: {
-                                        //                 mainIdx: 0,
-                                        //                 items: [
-                                        //                     {
-                                        //                         value: "callElevator",
-                                        //                         text: "CALL TO FLOOR",
-                                        //                         onSelect: () => {
-
-                                        //                         }
-                                        //                     },
-                                        //                     {
-                                        //                         value: "doorOpen",
-                                        //                         text: "OPEN DOORS",
-                                        //                         onSelect: () => {
-
-                                        //                         }
-                                        //                     },
-                                        //                     {
-                                        //                         value: "doorClose",
-                                        //                         text: "CLOSE DOORS",
-                                        //                         onSelect: () => {
-
-                                        //                         }
-                                        //                     },
-                                        //                     {
-                                        //                         value: "openCoursebot",
-                                        //                         text: "OPEN COURSEBOT",
-                                        //                         onSelect: () => {
-                                        //                             if (sourceData.ui?.elevatorActionSelection) {
-                                        //                                 sourceData.ui.elevatorActionSelection = undefined;
-                                        //                                 sourceData.ui.elevatorCoursebotNavigation = {
-                                        //                                     navigationTypeSelection: {
-                                        //                                         idx: 0,
-                                        //                                         types: ['FLOOR SELECTION', 'SLOT SELECTION'],
-                                        //                                     },
-                                        //                                     floorIdx: 1,
-                                        //                                 };
-                                        //                             }
-                                        //                         }
-                                        //                     }
-                                        //                 ],
-
-                                        //                 selection: {
-                                        //                     "callElevator": {
-                                        //                         displayText: "CALL TO {floor}F",
-                                        //                         options: {
-                                        //                             floor: {
-                                        //                                 value: {
-                                        //                                     current: 1,
-                                        //                                     min: Number(sourceData.selectedElevatorData?.floors?.[0]?.displaySymbol || 1),
-                                        //                                     max: Number(sourceData.selectedElevatorData?.floors?.[
-                                        //                                         (sourceData.selectedElevatorData?.floors?.length) - 1
-                                        //                                     ]?.displaySymbol || 1)
-                                        //                                 },
-                                        //                                 control: {
-                                        //                                     encoder: {
-                                        //                                         left: (val: MyLiftElevatorActionOptionValue<number>) => {
-                                        //                                             if ((val.current - 1) < (val.min || 1)) return (val.min || 1);
-                                        //                                             return val.current - 1;
-                                        //                                         },
-                                        //                                         right: (val: MyLiftElevatorActionOptionValue<number>) => {
-                                        //                                             if ((val.current + 1) > (val.max || 1)) return (val.max || 1);
-                                        //                                             return val.current + 1;
-                                        //                                         }
-                                        //                                     }
-                                        //                                 }
-                                        //                             }
-                                        //                         }
-
-                                        //                     }
-                                        //                 }
-                                        //             }
-                                        //         };
-                                        //     } else {
-                                        //         if (sourceData.ui.elevatorActionSelection.currentAction) {
-                                        //             const selected = sourceData.ui.elevatorActionSelection.selection[sourceData.ui.elevatorActionSelection.currentAction];
-                                        //             Object.entries(selected.options).forEach(([key, value]) => {
-                                        //                 if (value.control.encoder?.button) {
-                                        //                     selected.options[key].value.current = value.control.encoder.button(value.value);
-                                        //                 }
-                                        //             });
-                                        //         } else {
-                                        //             const mainIdx = sourceData.ui.elevatorActionSelection.mainIdx;
-                                        //             if (sourceData.ui.elevatorActionSelection.selection[
-                                        //                 sourceData.ui.elevatorActionSelection.items[mainIdx].value
-                                        //             ]) {
-                                        //                 sourceData.ui.elevatorActionSelection.currentAction = (
-                                        //                     sourceData.ui.elevatorActionSelection.items[mainIdx].value
-                                        //                 );
-                                        //             } else {
-                                        //                 sourceData.ui.elevatorActionSelection.items[mainIdx].onSelect?.();
-                                        //             }
-                                        //         }
-                                        //     }
-                                        // });
-
-                                        // processEncoderInput('scroll-left', () => {
-                                        //     if (sourceData.ui?.elevatorCoursebotNavigation) {
-                                        //         const navigation = sourceData.ui.elevatorCoursebotNavigation;
-
-                                        //         if (navigation.navigationTypeSelection) {
-                                        //             if (navigation.navigationTypeSelection.idx > 0) {
-                                        //                 navigation.navigationTypeSelection.idx--;
-                                        //             }
-                                        //         } else if (navigation.floorSelection) {
-                                        //             const limit = Number(sourceData.selectedElevatorData?.floors?.[0]?.displaySymbol || 1);
-
-                                        //             if (navigation.floorIdx > limit) {
-                                        //                 navigation.floorIdx--;
-                                        //             }
-                                        //         } else if (navigation.floorSlotView && typeof navigation.floorSlotIdx === 'number') {
-
-                                        //             if (navigation.floorSlotIdx > -1) {
-                                        //                 navigation.floorSlotIdx--;
-                                        //             }
-                                        //         }
-
-
-                                        //     } else if (sourceData.ui?.elevatorActionSelection) {
-                                        //         if (sourceData.ui.elevatorActionSelection.currentAction) {
-                                        //             const selected = sourceData.ui.elevatorActionSelection.selection[sourceData.ui.elevatorActionSelection.currentAction];
-                                        //             Object.entries(selected.options).forEach(([key, value]) => {
-                                        //                 if (value.control.encoder?.left) {
-                                        //                     selected.options[key].value.current = value.control.encoder.left(value.value);
-                                        //                 }
-                                        //             });
-                                        //         } else {
-                                        //             let mainIdx = sourceData.ui.elevatorActionSelection.mainIdx;
-                                        //             if (mainIdx > 0) {
-                                        //                 sourceData.ui.elevatorActionSelection.mainIdx--;
-                                        //             }
-                                        //         }
-
-                                        //     }
-                                        // });
-
-                                        // processEncoderInput('scroll-right', () => {
-                                        //     if (sourceData.ui?.elevatorCoursebotNavigation) {
-                                        //         const navigation = sourceData.ui.elevatorCoursebotNavigation;
-
-                                        //         if (navigation.navigationTypeSelection) {
-                                        //             if (navigation.navigationTypeSelection.idx < (navigation.navigationTypeSelection.types.length - 1)) {
-                                        //                 navigation.navigationTypeSelection.idx++;
-                                        //             }
-                                        //         } else if (navigation.floorSelection) {
-                                        //             const limit = Number(sourceData.selectedElevatorData?.floors?.[
-                                        //                 sourceData.selectedElevatorData?.floors.length - 1
-                                        //             ]?.displaySymbol || 1);
-
-                                        //             if (navigation.floorIdx < limit) {
-                                        //                 navigation.floorIdx++;
-                                        //             }
-                                        //         } else if (navigation.floorSlotView && typeof navigation.floorSlotIdx === 'number') {
-                                        //             const limit = Number(sourceData.selectedElevatorData?.coursebot?.slots?.[navigation.floorIdx].fragments.length - 1);
-
-                                        //             if (navigation.floorSlotIdx < limit) {
-                                        //                 navigation.floorSlotIdx++;
-                                        //             }
-                                        //         }
-
-
-                                        //     } else if (sourceData.ui?.elevatorActionSelection) {
-                                        //         if (sourceData.ui.elevatorActionSelection.currentAction) {
-                                        //             const selected = sourceData.ui.elevatorActionSelection.selection[sourceData.ui.elevatorActionSelection.currentAction];
-                                        //             Object.entries(selected.options).forEach(([key, value]) => {
-                                        //                 if (value.control.encoder?.right) {
-                                        //                     selected.options[key].value.current = value.control.encoder.right(value.value);
-                                        //                 }
-                                        //             });
-                                        //         } else {
-                                        //             let mainIdx = sourceData.ui.elevatorActionSelection.mainIdx;
-                                        //             if (mainIdx < (sourceData.ui.elevatorActionSelection.items.length - 1)) {
-                                        //                 sourceData.ui.elevatorActionSelection.mainIdx++;
-                                        //             }
-                                        //         }
-
-                                        //     }
-                                        // });
-                                    }
-
-                                }
+                                //     if (inputsRef.current.buttons.encoder?.button && typeof selectionData.currentLift === 'number') {
+                                //         if (clickedEncoderBtn !== 'center') {
+                                //             beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+                                //             sourceData.ui = {
+                                //                 selectedElevator: {
+                                //                     liftId: sourceData.data.elevators[selectionData.currentLift].id,
+                                //                     liftNumber: selectionData.currentLift,
+                                //                 }
+                                //             };
+                                //             getCurrentMyLiftElevator(sourceData.data.elevators[selectionData.currentLift].id, sourceData.connectionInfo?.ip, sourceData.connectionInfo?.port).then((data) => {
+                                //                 sourceData.selectedElevatorData = data;
+                                //                 if (sourceData.ui?.selectedElevator) sourceData.ui.selectedElevator.floorNumber = 1;
+                                //             });
+                                //         }
+                                //         clickedEncoderBtn = 'center';
+                                //     } else if (clickedEncoderBtn === 'center') clickedEncoderBtn = null;
+                                // }
 
                             }
                         }
 
-                        for (const key in inputsRef.current.buttons) {
-                            if (key.startsWith('num_')) {
-
-
-                                // otherBtnClick = 1;
-                                const button = inputsRef.current.buttons[key as keyof MainControllerInputs['buttons']];
-                                if (button) {
-
-                                    if (clickedNumButton !== key) {
-                                        beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
-                                        if (!outputsRef.current.sourceData) outputsRef.current.sourceData = {
-                                            1: {},
-                                            2: {},
-                                            6: {},
-                                        };
-
-                                        if (!outputsRef.current.sourceData["6"].connectionInfo) outputsRef.current.sourceData["6"].connectionInfo = {};
-
-                                        let number = key.replace(/\D/g, "");
-
-
-                                        if (!outputsRef.current.sourceData["6"].connectionInfo.ip || outputsRef.current.sourceData["6"].connectionInfo.ip?.indexOf(" ") > -1) {
-                                            if (
-                                                !outputsRef.current.sourceData["6"].connectionInfo.ip
-                                            ) outputsRef.current.sourceData["6"].connectionInfo.ip = "   .   .   . ";
-
-
-                                            outputsRef.current.sourceData["6"].connectionInfo.ip = (
-                                                outputsRef.current.sourceData["6"].connectionInfo.ip.replace(" ", number)
-                                            );
-                                        } else {
-                                            if (
-                                                !outputsRef.current.sourceData["6"].connectionInfo.port
-                                            ) outputsRef.current.sourceData["6"].connectionInfo.port = "";
-
-
-                                            if (outputsRef.current.sourceData["6"].connectionInfo.port.length < 4) {
-                                                outputsRef.current.sourceData["6"].connectionInfo.port += number;
-                                            }
-                                        }
-                                    }
-
-                                    clickedNumButton = key;
-                                    resetDemo();
-                                    // alert(number)
-
-                                } else if (clickedNumButton === key) clickedNumButton = null;
+                        processButtonClick('num_0', () => processMyLiftNumInput(0, outputsRef.current.sourceData[6], 'connectionInfo'));
+                        processButtonClick('num_1', () => processMyLiftNumInput(1, outputsRef.current.sourceData[6], 'connectionInfo'));
+                        processButtonClick('num_2', () => processMyLiftNumInput(2, outputsRef.current.sourceData[6], 'connectionInfo'));
+                        processButtonClick('num_3', () => processMyLiftNumInput(3, outputsRef.current.sourceData[6], 'connectionInfo'));
+                        processButtonClick('num_4', () => processMyLiftNumInput(4, outputsRef.current.sourceData[6], 'connectionInfo'));
+                        processButtonClick('num_5', () => processMyLiftNumInput(5, outputsRef.current.sourceData[6], 'connectionInfo'));
+                        processButtonClick('num_6', () => processMyLiftNumInput(6, outputsRef.current.sourceData[6], 'connectionInfo'));
+                        processButtonClick('num_7', () => processMyLiftNumInput(7, outputsRef.current.sourceData[6], 'connectionInfo'));
+                        processButtonClick('num_8', () => processMyLiftNumInput(8, outputsRef.current.sourceData[6], 'connectionInfo'));
+                        processButtonClick('num_9', () => processMyLiftNumInput(9, outputsRef.current.sourceData[6], 'connectionInfo'));
 
 
 
-                            }
-                        }
+                        // for (const key in inputsRef.current.buttons) {
+                        //     if (key.startsWith('num_')) {
+
+
+                        //         // otherBtnClick = 1;
+                        //         const button = inputsRef.current.buttons[key as keyof MainControllerInputs['buttons']];
+                        //         if (button) {
+
+                        //             if (clickedNumButton !== key) {
+                        //                 beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
+
+                        //             }
+
+                        //             clickedNumButton = key;
+                        //             resetDemo();
+                        //             // alert(number)
+
+                        //         } else if (clickedNumButton === key) clickedNumButton = null;
+
+
+
+                        //     }
+                        // }
 
                     }
 

@@ -38,16 +38,19 @@ class Beeper {
 
         const current = this.audioContext.currentTime;
 
+        this.gainNode.gain.cancelScheduledValues(current);
+
         this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, current);
         this.gainNode.gain.linearRampToValueAtTime(gain, current + 0.005);
 
         for (let i = 0; i < beepCount; i++) {
             const current = (this.audioContext.currentTime + (i * 0.15));
+            
 
             this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, current);
             this.gainNode.gain.linearRampToValueAtTime(gain, current + 0.005);
 
-            const afterOffset = (current + 0.03)/* + (beepCount * 0.05)*/;
+            const afterOffset = (current + 0.02)/* + (beepCount * 0.05)*/;
 
             this.gainNode.gain.setValueAtTime(gain, afterOffset);
             this.gainNode.gain.linearRampToValueAtTime(0, afterOffset + 0.005);

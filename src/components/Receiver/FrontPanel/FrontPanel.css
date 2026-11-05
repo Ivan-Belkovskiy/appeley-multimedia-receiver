@@ -9,7 +9,7 @@
 }
 
 @media (min-width: 1024px) {
-    
+
     .front-panel {
         width: 1400px;
     }
@@ -36,11 +36,39 @@
     z-index: 10;
     margin-top: 60px;
     margin-left: 210px;
+
+    &.no-animate * {
+        transition: none;
+    }
 }
 
 .front-panel__button {
     --webkit-app-region: no-drag;
     user-select: none;
+}
+
+.front-panel.no-animate-buttons *:not(.display).front-panel__button *,
+.front-panel.no-animate-buttons .encoder:not(.display) * {
+    transition: none;
+}
+
+
+@keyframes animatedIndication {
+
+    0% {
+        filter: hue-rotate(0deg);
+    }
+
+    100% {
+        filter: hue-rotate(360deg);
+    }
+
+}
+
+.front-panel.animated-indication .animating-element,
+.front-panel.animated-indication .animating-element {
+    animation: animatedIndication 6s linear 0s infinite;
+    transition: none;
 }
 
 .front-panel__usb-port {
@@ -56,8 +84,8 @@
 
 
 .encoder {
-    touch-action: none;      
-    -webkit-user-select: none;  
+    touch-action: none;
+    -webkit-user-select: none;
     user-select: none;
     /* cursor: grab; */
 }
