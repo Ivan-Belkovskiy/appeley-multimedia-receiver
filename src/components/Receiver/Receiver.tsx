@@ -160,6 +160,9 @@ export default function AppeleyReceiver({ internetRadioStations, videoOutputRef,
                 };
             }
         } else {
+
+            window.open('appeley-app://open');
+
             beeper.tripleBeep(controllerOutputsRef.current.settings.audio.beeper.volume, controllerOutputsRef.current.settings.audio.beeper.on);
             controllerOutputsRef.current.appeleyMediaCenter = {
                 isOpened: true,

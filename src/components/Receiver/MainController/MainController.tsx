@@ -501,7 +501,7 @@ export interface MainControllerOutputs {
             };
 
             autoAdvertCapture?: {
-                mode: "FOLDER_SELECT" | "READY" | "ACCESS_BLOCKED" | "CAPTURING" | "ENDED" | "ERROR" | "DOWNLOADING";
+                mode: "FOLDER_SELECT" | "READY" | "ACCESS_BLOCKED" | "CAPTURING" | "ENDED" | "ERROR" | "DOWNLOADING" | "ENCODING" | "PROCESSING";
 
                 startedAt?: number;
                 streamTitle?: string;
@@ -931,7 +931,7 @@ export default function MainController({
                         const endedAt = Date.now();
 
                         (async () => {
-                            d2.autoAdvertCapture = { ...d2.autoAdvertCapture, mode: 'DOWNLOADING', timer: 0 };
+                            d2.autoAdvertCapture = { ...d2.autoAdvertCapture, mode: 'PROCESSING', timer: 0 };
                             try {
                                 const detectedDuration = (endedAt - (d2.autoAdvertCapture.startedAt ?? endedAt)) / 1000;
 
@@ -948,11 +948,13 @@ export default function MainController({
                                 const lookback = Math.min(detectedDuration + 55, 290);
 
                                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                                const filename = `Advert_${timestamp}.wav`;
+                                const filename = `Advert_${timestamp}.mp3`;
 
                                 console.log(`> Saving last ${lookback.toFixed(1)}s → ${filename}`);
 
-                                await ringBuffer.saveWav(lookback, filename, {
+                                d2.autoAdvertCapture = { ...d2.autoAdvertCapture, mode: 'ENCODING', timer: 0 };
+
+                                await ringBuffer.saveToMp3(lookback, filename, {
                                     stereo: true,
                                     announcementRef: announcementRef.current,
                                     trim: {
@@ -967,6 +969,13 @@ export default function MainController({
                                         useDoubleAttack: true,
                                         useValidation: true
                                     },
+                                }, {
+                                    // onStartEncoding: () => {
+                                    //     d2.autoAdvertCapture = { ...d2.autoAdvertCapture, mode: 'ENCODING', timer: 0 };
+                                    // },
+                                    onEndEncoding: () => {
+                                        d2.autoAdvertCapture = { ...d2.autoAdvertCapture, mode: 'DOWNLOADING', timer: 0 };
+                                    }
                                 });
 
                                 beeper.singleBeep(1, outputsRef.current.settings.audio.beeper.volume, outputsRef.current.settings.audio.beeper.on);
@@ -2309,7 +2318,7 @@ export default function MainController({
 
                             if (autoON.isInterrupted) {
                                 autoON.buttonIndication = false;
-                                 outputsRef.current.autoOnOffMenu.navigation._brightnessAnimations = null;
+                                outputsRef.current.autoOnOffMenu.navigation._brightnessAnimations = null;
                             } else {
                                 if (autoOnOffTimer % 60 < 30) autoON.buttonIndication = true;
                                 else autoON.buttonIndication = false;
@@ -3372,8 +3381,12 @@ export default function MainController({
                                         }
                                     } else if (d[1].playbackData) {
                                         if (outputsRef.current.mainVolume > 0) {
+                                            outputsRef.current.resetAnimationsTimer = {
+                                                animTimer: true,
+                                            };
                                             outputsRef.current.mainVolume -= 1;
                                         }
+                                        return true; // No beep.
                                     }
                                 }
                             } else if (outputsRef.current.currentSource === 2) {
@@ -3395,6 +3408,7 @@ export default function MainController({
                                         }
                                         outputsRef.current.mainVolume -= 1;
                                     }
+                                    return true; // No beep.
                                 }
                             } else if (outputsRef.current.currentSource === 6) {
                                 // MYLIFT CONTROLS
@@ -4026,8 +4040,12 @@ export default function MainController({
                                         }
                                     } else if (d[1].playbackData) {
                                         if (outputsRef.current.mainVolume < 100) {
+                                            outputsRef.current.resetAnimationsTimer = {
+                                                animTimer: true,
+                                            };
                                             outputsRef.current.mainVolume += 1;
                                         }
+                                        return true; // No beep.
                                     }
                                 }
                             } else if (outputsRef.current.currentSource === 2) {
@@ -4049,6 +4067,7 @@ export default function MainController({
                                         }
                                         outputsRef.current.mainVolume += 1;
                                     }
+                                    return true; // No beep.
                                 }
 
 

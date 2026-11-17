@@ -2931,12 +2931,20 @@ export default function FrontPanel({
                             )) {
                                 if (mainOutputs.currentSource === 1) {
                                     if (displayMode.folder === null || displayMode.track === null) {
-                                        scrollSpeedUp = true;
+                                        if (scrollSpeedUp === false) {
+                                            scrollSpeedUp = true;
+                                            beeper.singleBeep(1, mainOutputs.settings.audio.beeper.volume, mainOutputs.settings.audio.beeper.on);
+                                            animTimer = (60 * 5);
+                                        }
                                         // alert(dispDataScrollSpeed);
                                     }
                                 } else if (mainOutputs.currentSource === 2) {
                                     if (displayMode.track === 1) {
-                                        scrollSpeedUp = true;
+                                        if (scrollSpeedUp === false) {
+                                            scrollSpeedUp = true;
+                                            beeper.singleBeep(1, mainOutputs.settings.audio.beeper.volume, mainOutputs.settings.audio.beeper.on);
+                                            animTimer = (60 * 5);
+                                        }
                                         // alert(dispDataScrollSpeed);
                                     }
                                 }
@@ -3629,6 +3637,17 @@ export default function FrontPanel({
                                             if (updateTimer % 60 < 30) {
                                                 updateDisplayData({
                                                     main: centerMainText('DOWNLOADING'),
+                                                    otherIndication: { topLeftDecorationLine: true, AUTO_CAPTURE: { on: true } },
+                                                });
+                                            } else updateDisplayData({
+                                                main: [],
+                                                otherIndication: { topLeftDecorationLine: true, AUTO_CAPTURE: { on: true } },
+                                            });
+                                        } else if (radioData.autoAdvertCapture?.mode === 'ENCODING') {
+                                            animTimer = 0;
+                                            if (updateTimer % 60 < 30) {
+                                                updateDisplayData({
+                                                    main: centerMainText('ENCODING TO MP3'),
                                                     otherIndication: { topLeftDecorationLine: true, AUTO_CAPTURE: { on: true } },
                                                 });
                                             } else updateDisplayData({
